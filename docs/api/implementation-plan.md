@@ -1,5 +1,10 @@
 # Abschlussplan
 
+Historischer Prüfstand vor dem Neuaufbau der Suite. Die damaligen Szenen und
+Testpfade sind nicht mehr aktiv. Aktuelle Struktur und ausstehende App-Anbindung
+stehen in [tests/README.md](../../tests/README.md). Die Nachweise unten gelten
+für ihre damaligen Codezustände.
+
 Die wesentliche Command- und Session-Funktionalität ist implementiert.
 Die ergänzten Steuerungsfälle und technischen Screenshot-Prüfungen bei stabilen
 Fensterbedingungen sowie der zusammenhängende Untersuchungsablauf sind abgenommen.

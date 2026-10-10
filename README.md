@@ -12,8 +12,7 @@ Remote operation is not supported.
 The experimental v3 slice supports tick warps, pace changes, stop, reflected
 resource and entity inspection, virtual pointer, keyboard and text input, PNG screenshots,
 session management, JSONL recording, replay, reporting, REPL, scripts and shutdown.
-Combined lifecycle/load acceptance remains unfinished. Fully covered windows are
-not guaranteed to be capturable; an unavailable render surface produces an explicit error.
+Fully covered windows are not guaranteed to be capturable; an unavailable render surface produces an explicit error.
 Actual black images are valid. Screenshot comparison is not a product feature.
 The v2 API and its `host`/`driver` features have been removed.
 
@@ -26,7 +25,7 @@ enables it through `slice`.
 - [Completion plan and coverage](docs/api/implementation-plan.md)
 - [Handoff and remaining tasks](docs/api/next-steps.md)
 - [CLI usage and acceptance tests](docs/api/usage.md)
-- [Bevy test applications](bevy_test_apps/README.md)
+- [Test suite and shared application contract](tests/README.md)
 
 ## Build and run
 
@@ -34,16 +33,15 @@ From this repository's root:
 
 ```sh
 cargo build --features cli --bin woodpecker
-cargo build --manifest-path bevy_test_apps/Cargo.toml --features slice --bin counter
 target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-In another terminal:
+Provide a launch TOML for your application; the [configuration examples](tests/application/README.md) describe the fields. In another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session create --config tests/fixtures/counter.toml
+  session create --config path/to/application.toml
 target/debug/woodpecker --address 127.0.0.1:4100 session ls
 ```
 
@@ -69,18 +67,23 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 
 ## Tests
 
-See [tests/README.md](tests/README.md) for groups, build prerequisites and coverage
-retention decisions. Rendered acceptance requires separate GUI approval.
+The suite selects product behavior by session mode and command interface:
 
 ```sh
-cargo test --all-features --all-targets
-cargo test --manifest-path bevy_test_apps/Cargo.toml --all-features --all-targets
-python3 -m tests.acceptance.headless.session_lifecycle
-python3 -m tests.acceptance.rendered.context_menu
-python3 -m tests.acceptance.headless.server_shutdown
+python3 -m tests.run --list
+python3 -m tests.run --layer rust
+python3 -m tests.run --feature warp --mode headless --interface repl
+python3 -m tests.run --all --allow-rendered
 ```
 
-The process tests launch real children. macOS Gatekeeper can delay or reject
+Python 3.11 or later is required. See [tests/README.md](tests/README.md) for the
+feature matrix and [the shared test application contract](tests/application/README.md).
+The previous scene applications have been removed. The common Bevy application
+is being developed separately; system scenarios report unavailable prerequisites
+until it is configured. Missing scenarios never count as a passed complete suite.
+Rendered runs need an awake desktop and explicit permission for that run.
+
+The process contracts launch real children. macOS Gatekeeper can delay or reject
 locally built executables; see the [environment note](docs/api/usage.md#noch-nicht-enthalten).
 
 ## Origin

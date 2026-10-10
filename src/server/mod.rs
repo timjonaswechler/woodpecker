@@ -280,7 +280,7 @@ mod tests {
         Create {
             launch: launch::Config {
                 manifest_path: PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("tests/fixtures/process/Cargo.toml"),
+                    .join("tests/connection/protocol_faults/peer/Cargo.toml"),
                 package: "process_fixture".into(),
                 target: launch::Target::Binary {
                     name: "process_fixture".into(),

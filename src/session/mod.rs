@@ -304,3 +304,6 @@ impl Drop for Session {
         }
     }
 }
+
+#[cfg(test)]
+mod api_tests;

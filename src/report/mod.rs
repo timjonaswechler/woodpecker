@@ -2,6 +2,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+#[cfg(test)]
+mod api_tests;
 pub(crate) mod capture;
 mod failure;
 mod markdown;

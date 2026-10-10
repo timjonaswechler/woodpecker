@@ -1,0 +1,38 @@
+name: Technical contracts
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  contracts:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Suite selection and failure detection
+        run: python3 -m unittest tests.runner.contracts -v
+      - name: Rust contracts
+        run: python3 -m tests.run --layer rust --output target/ci-contracts
+      - name: Fault scenarios through JSON and REPL
+        run: python3 -m tests.run --layer system --faults-only --output target/ci-faults
+      - name: Feature builds
+        run: |
+          for feature in ui screenshot server client cli; do
+            cargo check --locked --no-default-features --features "$feature"
+          done
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: technical-contract-results
+          path: |
+            target/ci-contracts
+            target/ci-faults
