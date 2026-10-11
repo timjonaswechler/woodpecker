@@ -78,8 +78,18 @@ Mit `--offscreen` bleibt das Testfenster verborgen. Derselbe Test rendert in ein
 - `src/shooting.rs`: Blaster, Raycast-Treffer, Zielscheiben und Übungsrunden.
 - `src/smoke.rs`: Gerenderter Integrationstest.
 - `blender/training_blaster.blend`: Bearbeitbares Blaster-Modell mit Vorschaukamera und Licht.
-- `blender/create_blaster.py`: Blender-Skript zum erneuten Erzeugen und Exportieren des Modells.
+- `blender/export_blaster.py`: Exportiert das bearbeitete Modell für die Demo.
+- `blender/create_blaster.py`: Erzeugt den ursprünglichen Blaster-Entwurf erneut.
 - `asset/custom/training_blaster.glb`: Export für das Spiel; Blender muss zum Spielen nicht laufen.
+
+Nach Änderungen die Blender-Datei speichern und aus dem Repository-Verzeichnis exportieren:
+
+```sh
+blender --background test_app/blender/training_blaster.blend \
+  --python-exit-code 1 --python test_app/blender/export_blaster.py
+```
+
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Mit `-- --preview` am Ende entsteht zusätzlich eine Modellvorschau unter `artifacts/blaster.png`. Der Export verwendet die Collection `Training Blaster` aus der gespeicherten Datei. Anschließend die Demo neu starten.
 
 Die vorhandenen Modelle und Texturen stammen aus **KayKit: Prototype Bits** von Kay Lousberg. Die mitgelieferte CC0-Lizenz steht in [`asset/License.txt`](asset/License.txt). Der Blaster unter `asset/custom/` wurde für diese Demo erstellt.
 

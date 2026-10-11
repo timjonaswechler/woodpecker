@@ -3,3 +3,4 @@
 /settings.json.tmp
 /artifacts/
 .DS_Store
+*.blend[0-9]*
