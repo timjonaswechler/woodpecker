@@ -1,7 +1,6 @@
 use crate::{
-    game::{Game, GameCamera, PlayerModel},
-    navigation::Navigation,
-    settings::Settings,
+    camera::GameCamera, coins::Coin, navigation::Navigation, player::PlayerModel,
+    settings::Settings, ui::UiState,
 };
 use bevy::{light::CascadeShadowConfigBuilder, prelude::*};
 use std::f32::consts::FRAC_PI_2;
@@ -18,8 +17,19 @@ pub const COINS: [Vec2; 6] = [
 pub const TEAL: Color = Color::srgb(0.25, 0.91, 0.77);
 pub const GOLD: Color = Color::srgb(1.0, 0.73, 0.25);
 
-#[derive(Component)]
-pub struct Coin(pub usize);
+#[derive(Resource, Default, PartialEq, Eq)]
+pub enum LevelLoad {
+    #[default]
+    Loading,
+    Ready,
+    Failed,
+}
+
+impl LevelLoad {
+    pub fn is_ready(&self) -> bool {
+        *self == Self::Ready
+    }
+}
 
 #[derive(Resource, Default)]
 pub struct LevelAssets(pub Vec<UntypedHandle>);
@@ -271,15 +281,20 @@ pub fn spawn_level(
     ));
 }
 
-pub fn check_assets(assets: Res<AssetServer>, tracked: Res<LevelAssets>, mut game: ResMut<Game>) {
-    if game.ready || game.asset_error {
+pub fn check_assets(
+    assets: Res<AssetServer>,
+    tracked: Res<LevelAssets>,
+    mut load: ResMut<LevelLoad>,
+    mut ui: ResMut<UiState>,
+) {
+    if *load != LevelLoad::Loading {
         return;
     }
     for handle in &tracked.0 {
         if let Some(bevy::asset::LoadState::Failed(error)) = assets.get_load_state(handle.id()) {
-            game.status = format!("Asset konnte nicht geladen werden: {error}");
-            game.asset_error = true;
-            error!("{}", game.status);
+            ui.status = format!("Asset konnte nicht geladen werden: {error}");
+            *load = LevelLoad::Failed;
+            error!("{}", ui.status);
             return;
         }
     }
@@ -289,8 +304,16 @@ pub fn check_assets(assets: Res<AssetServer>, tracked: Res<LevelAssets>, mut gam
             .iter()
             .all(|h| assets.is_loaded_with_dependencies(h.id()))
     {
-        game.ready = true;
-        game.status = "Sammle die sechs Münzen. Danach zurück zur grünen Plattform.".into();
+        *load = LevelLoad::Ready;
+        ui.status = "Sammle die sechs Münzen. Danach zurück zur grünen Plattform.".into();
+    }
+}
+
+pub fn update_lighting(settings: Res<Settings>, mut lights: Query<&mut DirectionalLight>) {
+    for mut light in &mut lights {
+        if light.shadow_maps_enabled != settings.shadows {
+            light.shadow_maps_enabled = settings.shadows;
+        }
     }
 }
 

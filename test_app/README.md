@@ -63,14 +63,17 @@ Die Unit-Tests prüfen Umwege, unerreichbare Ziele, enge diagonale Lücken, Koll
 
 Der gerenderte Integrationstest öffnet das Spielfenster, führt synthetische Eingaben durch dieselben Spielsysteme aus und beendet sich nach einem vollständigen Durchlauf. Das Fenster muss dabei den Eingabefokus behalten. Geprüft werden Asset-Laden, Pfeiltasten, Klick-Pathfinding, Unicode-Texteingabe, Eingabefokus, das Einstellungsmenü einschließlich Speicherung, FPV mit WASD und Maus, Neustart und Spielabschluss. Anschließend prüft er den Weg zum Schießstand, Treffer auf den geladenen glTF-Scheiben, Punkte, Trümmer, Wiedererscheinen der Ziele, durch Wände blockierte Schüsse, Pause, Zeitablauf und eine neue Übungsrunde. Screenshots und separate Testeinstellungen landen in `test_app/artifacts/`; persönliche Einstellungen bleiben erhalten. Ein Fehler beendet den Test mit einem Fehlercode.
 
-Mit `--offscreen` rendert derselbe Test in eine GPU-Textur und simuliert auch den Fensterfokus. So entstehen vollständige Screenshots, wenn macOS für ein gesperrtes oder verdecktes Fenster keine Bilder bereitstellt. Der normale Spielstart nutzt weiterhin den tatsächlichen Fensterfokus.
+Mit `--offscreen` bleibt das Testfenster verborgen. Derselbe Test rendert in eine GPU-Textur und simuliert auch den Fensterfokus. So entstehen vollständige Screenshots, wenn macOS für ein gesperrtes oder verdecktes Fenster keine Bilder bereitstellt. Der normale Spielstart nutzt weiterhin den tatsächlichen Fensterfokus.
 
 ## Dateien und Assets
 
-- `src/game.rs`: Eingaben, Spielablauf, Kameras und Darstellung.
+- `src/game.rs`: Tastenkürzel und Koordination übergreifender Aktionen wie Neustart und Ansichtswechsel.
+- `src/player.rs`: Spielerposition, Ausrichtung, Laufroute, Bewegung und Figurendarstellung.
+- `src/camera.rs`: Perspektive, Maussteuerung, Mausbindung und Kameradarstellung.
+- `src/coins.rs`: Münzrunde, Timer, Abschluss und Münzendarstellung.
 - `src/navigation.rs`: A*, Routenvereinfachung und Kollision.
-- `src/level.rs`: Level-Aufbau, Asset-Laden und Münzpositionen.
-- `src/ui.rs`: HUD, Namensfeld und Einstellungsmenü.
+- `src/level.rs`: Level-Aufbau, Ladezustand, Beleuchtung und Münzpositionen.
+- `src/ui.rs`: UI-Zustand, Statusmeldung, HUD, Namensfeld und Einstellungsmenü.
 - `src/settings.rs`: Laden und Speichern der Einstellungen.
 - `src/shooting.rs`: Blaster, Raycast-Treffer, Zielscheiben und Übungsrunden.
 - `src/smoke.rs`: Gerenderter Integrationstest.

@@ -1,6 +1,8 @@
 use crate::{
-    game::Game,
+    camera::ViewState,
+    coins::CoinRun,
     level::{GOLD, TEAL},
+    player::Player,
     settings::Settings,
     shooting::{self, Practice},
 };
@@ -12,6 +14,21 @@ use bevy::{
     prelude::*,
     text::{EditableText, TextCursorStyle},
 };
+
+#[derive(Resource)]
+pub struct UiState {
+    pub menu: bool,
+    pub status: String,
+}
+
+impl Default for UiState {
+    fn default() -> Self {
+        Self {
+            menu: false,
+            status: "Lade den Parcours …".into(),
+        }
+    }
+}
 
 const PANEL: Color = Color::srgba(0.045, 0.075, 0.09, 0.96);
 const MUTED: Color = Color::srgb(0.57, 0.66, 0.69);
@@ -373,7 +390,7 @@ pub fn sync_name(
     focus: Res<InputFocus>,
     mut borders: Query<&mut BorderColor, With<NameInput>>,
     mut settings: ResMut<Settings>,
-    mut game: ResMut<Game>,
+    mut ui: ResMut<UiState>,
 ) {
     for (entity, editable) in &inputs {
         if let Ok(mut border) = borders.get_mut(entity) {
@@ -392,7 +409,7 @@ pub fn sync_name(
         if settings.player_name != name {
             settings.player_name = name.to_owned();
             if let Err(error) = settings.save() {
-                game.status = format!("Name konnte nicht gespeichert werden: {error}");
+                ui.status = format!("Name konnte nicht gespeichert werden: {error}");
             }
         }
     }
@@ -400,10 +417,14 @@ pub fn sync_name(
 
 #[expect(
     clippy::type_complexity,
+    clippy::too_many_arguments,
     reason = "UI markers select which visibility rule applies to each node."
 )]
 pub fn update_ui(
-    game: Res<Game>,
+    player: Res<Player>,
+    view: Res<ViewState>,
+    run: Res<CoinRun>,
+    ui: Res<UiState>,
     settings: Res<Settings>,
     practice: Res<Practice>,
     mut labels: Query<(&Label, &mut Text)>,
@@ -425,43 +446,43 @@ pub fn update_ui(
     }
     for (label, mut value) in &mut labels {
         let new = match label {
-            Label::Title => if shooting::in_range(game.position) { "Zieltraining" } else { "Münzparcours" }.into(),
-            Label::Subtitle => if shooting::in_range(game.position) { "Drei Bahnen. 30 Sekunden." } else { "Sechs Münzen. Ein Weg zurück." }.into(),
+            Label::Title => if shooting::in_range(player.position) { "Zieltraining" } else { "Münzparcours" }.into(),
+            Label::Subtitle => if shooting::in_range(player.position) { "Drei Bahnen. 30 Sekunden." } else { "Sechs Münzen. Ein Weg zurück." }.into(),
             Label::Crosshair => if practice.hit_flash > 0.0 { "×" } else { "+" }.into(),
             Label::Exercise => {
                 if practice.running {
                     format!("{}/{} Treffer  ·  {:.0}% Genauigkeit\nRekord: {}{}",
                         practice.hits, practice.shots, practice.accuracy(), practice.best,
-                        if !game.captured || !game.first_person || game.menu || !window.focused { " · Pausiert" } else { "" })
-                } else if shooting::in_range(game.position) {
+                        if !view.captured || !view.first_person || ui.menu || !window.focused { " · Pausiert" } else { "" })
+                } else if shooting::in_range(player.position) {
                     format!("E startet 30 Sekunden Zieltraining\nLetzte Runde: {}  ·  Rekord: {}", practice.score, practice.best)
                 } else { "Schießstand im Norden\nDer Button bringt dich direkt hin.".into() }
             }
             Label::Progress => {
-                if shooting::in_range(game.position) {
+                if shooting::in_range(player.position) {
                     format!("{:03} Punkte", practice.score)
-                } else if game.finished {
+                } else if run.finished {
                     "Parcours geschafft!".into()
                 } else {
-                    format!("{:02} / 06   Münzen", game.count())
+                    format!("{:02} / 06   Münzen", run.count())
                 }
             }
-            Label::Clock if shooting::in_range(game.position) => format!("{:02.0}s  ·  {}", practice.remaining.ceil(), settings.player_name),
+            Label::Clock if shooting::in_range(player.position) => format!("{:02.0}s  ·  {}", practice.remaining.ceil(), settings.player_name),
             Label::Clock => format!(
                 "{:02}:{:02}  ·  {}",
-                game.elapsed as u32 / 60,
-                game.elapsed as u32 % 60,
+                run.elapsed as u32 / 60,
+                run.elapsed as u32 % 60,
                 settings.player_name
             ),
-            Label::Status => game.status.clone(),
-            Label::Mode => if game.first_person {
+            Label::Status => ui.status.clone(),
+            Label::Mode => if view.first_person {
                 "02 / EGOPERSPEKTIVE"
             } else {
                 "01 / ÜBERSICHT"
             }
             .into(),
-            Label::Controls => if game.first_person {
-                if game.captured {
+            Label::Controls => if view.first_person {
+                if view.captured {
                     "WASD bewegen · Maus umsehen\nLinksklick schießen · E Zielübung\nUmschalt sprinten · Esc Maus freigeben"
                 } else {
                     "Klicke ins Level, um weiterzuspielen.\nV Übersicht · M Einstellungen"
@@ -489,25 +510,43 @@ pub fn update_ui(
     }
     for (mut node, menu, crosshair, hud, interactive) in &mut nodes {
         if menu {
-            node.display = if game.menu {
+            node.display = if ui.menu {
                 Display::Flex
             } else {
                 Display::None
             };
         }
         if crosshair {
-            node.display = if game.first_person && game.captured && !game.menu {
+            node.display = if view.first_person && view.captured && !ui.menu {
                 Display::Flex
             } else {
                 Display::None
             };
         }
         if hud {
-            node.display = if game.menu || (interactive && game.first_person && game.captured) {
+            node.display = if ui.menu || (interactive && view.first_person && view.captured) {
                 Display::None
             } else {
                 Display::Flex
             };
         }
     }
+}
+
+/// Hit test the actual UI layout, including display scale and window resizing.
+pub fn pointer_over_ui(
+    window: &Window,
+    blocks: &Query<(&ComputedNode, &UiGlobalTransform), With<UiBlock>>,
+) -> bool {
+    let Some(pointer) = window.cursor_position() else {
+        return false;
+    };
+    let pointer = pointer * window.scale_factor();
+    blocks.iter().any(|(node, transform)| {
+        node.size().min_element() > 0.0
+            && transform.try_inverse().is_some_and(|inverse| {
+                let local = inverse.transform_point2(pointer);
+                (local.abs().cmple(node.size() * 0.5)).all()
+            })
+    })
 }

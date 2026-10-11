@@ -1,6 +1,9 @@
+mod camera;
+mod coins;
 mod game;
 mod level;
 mod navigation;
+mod player;
 mod settings;
 mod shooting;
 mod smoke;
@@ -20,7 +23,11 @@ fn main() {
         } else {
             settings::Settings::load()
         })
-        .init_resource::<game::Game>()
+        .init_resource::<player::Player>()
+        .init_resource::<camera::ViewState>()
+        .init_resource::<coins::CoinRun>()
+        .init_resource::<ui::UiState>()
+        .init_resource::<level::LevelLoad>()
         .init_resource::<ui::Actions>()
         .init_resource::<shooting::Practice>()
         .init_resource::<level::LevelAssets>()
@@ -34,6 +41,7 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Münzparcours & Zieltraining | KayKit Demo".into(),
+                        visible: !offscreen,
                         resolution: if offscreen {
                             WindowResolution::new(1440, 900).with_scale_factor_override(1.0)
                         } else {
@@ -64,12 +72,17 @@ fn main() {
                 ui::sync_name,
                 game::keyboard_shortcuts,
                 game::handle_actions,
-                game::move_player,
+                camera::mouse_look,
+                player::move_player,
+                coins::tick_run,
                 shooting::tick_practice,
                 shooting::shoot,
-                game::click_to_move,
-                game::sync_cursor,
-                game::update_scene,
+                player::click_to_move,
+                camera::sync_cursor,
+                camera::update_camera,
+                player::update_model,
+                coins::update_coins,
+                level::update_lighting,
                 shooting::update_visuals,
                 ui::update_ui,
             )

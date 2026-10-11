@@ -1,11 +1,13 @@
 //! Optional rendered integration check. Exercises the same systems as normal gameplay.
 use crate::{
-    game::{Game, GameCamera},
-    level::{COINS, START, ground},
+    camera::{GameCamera, ViewState},
+    coins::CoinRun,
+    level::{COINS, LevelLoad, START, ground},
     navigation::Navigation,
+    player::Player,
     settings::Settings,
     shooting::{self, Debris, Practice, Weapon},
-    ui::{Action, Actions, NameInput},
+    ui::{Action, Actions, NameInput, UiState},
 };
 use bevy::{
     camera::RenderTarget,
@@ -91,19 +93,19 @@ fn click_world(world: &mut World, point: Vec2) {
 }
 
 fn route_to(world: &mut World, point: Vec2) {
-    let position = world.resource::<Game>().position;
+    let position = world.resource::<Player>().position;
     let route = world
         .resource::<Navigation>()
         .path(position, point)
         .expect("reachable objective");
-    world.resource_mut::<Game>().route = route;
+    world.resource_mut::<Player>().route = route;
 }
 
 fn aim_at(world: &mut World, point: Vec3) {
-    let mut game = world.resource_mut::<Game>();
-    let direction = (point - ground(game.position, 1.5)).normalize();
-    game.yaw = (-direction.x).atan2(-direction.z);
-    game.pitch = direction.y.asin();
+    let position = world.resource::<Player>().position;
+    let direction = (point - ground(position, 1.5)).normalize();
+    world.resource_mut::<Player>().yaw = (-direction.x).atan2(-direction.z);
+    world.resource_mut::<ViewState>().pitch = direction.y.asin();
 }
 
 fn fire(world: &mut World) {
@@ -132,11 +134,11 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         test.stage
     );
     assert!(
-        !world.resource::<Game>().asset_error,
+        *world.resource::<LevelLoad>() != LevelLoad::Failed,
         "asset loading failed"
     );
     let next = match test.stage {
-        0 if world.resource::<Game>().ready
+        0 if world.resource::<LevelLoad>().is_ready()
             && test.frames > 90
             && world.query::<&Window>().single(world).unwrap().focused =>
         {
@@ -154,11 +156,11 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 .resource::<ButtonInput<KeyCode>>()
                 .pressed(KeyCode::ArrowUp);
             assert!(
-                world.resource::<Game>().position.y < START.y - 1.0,
+                world.resource::<Player>().position.y < START.y - 1.0,
                 "arrow-key movement: position={:?}, window_focused={focused}, held={held}, ui_focus={:?}, menu={}",
-                world.resource::<Game>().position,
+                world.resource::<Player>().position,
                 world.resource::<InputFocus>().get(),
-                world.resource::<Game>().menu
+                world.resource::<UiState>().menu
             );
             release(world);
             click_world(world, COINS[0]);
@@ -167,18 +169,18 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         2 if test.frames > 2 => {
             release(world);
             assert!(
-                !world.resource::<Game>().route.is_empty(),
+                !world.resource::<Player>().route.is_empty(),
                 "screen ray must start a route"
             );
             capture(world, "pathfinding");
             true
         }
-        3 if world.resource::<Game>().route.is_empty() => {
+        3 if world.resource::<Player>().route.is_empty() => {
             assert!(
-                world.resource::<Game>().collected[0],
+                world.resource::<CoinRun>().collected[0],
                 "click route collects coin"
             );
-            test.position = world.resource::<Game>().position;
+            test.position = world.resource::<Player>().position;
             let entity = world
                 .query_filtered::<Entity, With<NameInput>>()
                 .single(world)
@@ -211,12 +213,12 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         }
         5 if test.frames > 10 => {
             assert_eq!(
-                world.resource::<Game>().position,
+                world.resource::<Player>().position,
                 test.position,
                 "typing must block movement"
             );
             assert!(
-                !world.resource::<Game>().first_person,
+                !world.resource::<ViewState>().first_person,
                 "typing must block shortcuts"
             );
             assert_eq!(
@@ -249,8 +251,11 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             true
         }
         7 if test.frames > 3 => {
-            assert!(world.resource::<Game>().menu, "settings button opens menu");
-            test.position = world.resource::<Game>().position;
+            assert!(
+                world.resource::<UiState>().menu,
+                "settings button opens menu"
+            );
+            test.position = world.resource::<Player>().position;
             press(world, KeyCode::ArrowUp);
             world.resource_mut::<Actions>().0.extend([
                 Action::Sensitivity(0.4),
@@ -261,7 +266,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         }
         8 if test.frames > 10 => {
             assert_eq!(
-                world.resource::<Game>().position,
+                world.resource::<Player>().position,
                 test.position,
                 "menu pauses movement"
             );
@@ -278,12 +283,15 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             false
         }
         9 if test.frames > 20 => {
-            world.resource_mut::<Game>().yaw = 0.0;
+            world.resource_mut::<Player>().yaw = 0.0;
             world.resource_mut::<Actions>().0.push(Action::View);
             true
         }
         10 if test.frames > 3 => {
-            assert!(world.resource::<Game>().first_person && world.resource::<Game>().captured);
+            assert!(
+                world.resource::<ViewState>().first_person
+                    && world.resource::<ViewState>().captured
+            );
             assert!(
                 !world
                     .query::<&CursorOptions>()
@@ -291,19 +299,19 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                     .unwrap()
                     .visible
             );
-            test.position = world.resource::<Game>().position;
-            test.yaw = world.resource::<Game>().yaw;
+            test.position = world.resource::<Player>().position;
+            test.yaw = world.resource::<Player>().yaw;
             world.resource_mut::<AccumulatedMouseMotion>().delta = Vec2::new(60.0, -15.0);
             press(world, KeyCode::KeyW);
             true
         }
         11 if test.frames > 15 => {
             assert!(
-                world.resource::<Game>().position.distance(test.position) > 0.5,
+                world.resource::<Player>().position.distance(test.position) > 0.5,
                 "WASD movement"
             );
             assert!(
-                (world.resource::<Game>().yaw - test.yaw).abs() > 0.1,
+                (world.resource::<Player>().yaw - test.yaw).abs() > 0.1,
                 "mouse look"
             );
             capture(world, "first-person");
@@ -316,7 +324,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         }
         12 if test.frames > 13 => {
             assert!(
-                !world.resource::<Game>().captured,
+                !world.resource::<ViewState>().captured,
                 "Escape releases pointer"
             );
             assert!(
@@ -331,16 +339,25 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             true
         }
         13 if test.frames > 3 => {
-            assert_eq!(world.resource::<Game>().position, START);
-            assert_eq!(world.resource::<Game>().count(), 0);
-            assert!(!world.resource::<Game>().first_person);
+            assert_eq!(world.resource::<Player>().position, START);
+            assert_eq!(world.resource::<CoinRun>().count(), 0);
+            assert!(!world.resource::<ViewState>().first_person);
+            assert!(
+                world.resource::<LevelLoad>().is_ready(),
+                "restart keeps loaded assets ready"
+            );
+            assert_eq!(
+                world.resource::<Settings>().fov,
+                85.0,
+                "restart preserves settings"
+            );
             test.coin = 0;
             route_to(world, COINS[0]);
             true
         }
-        14 if world.resource::<Game>().route.is_empty() => {
+        14 if world.resource::<Player>().route.is_empty() => {
             assert!(
-                world.resource::<Game>().collected[test.coin],
+                world.resource::<CoinRun>().collected[test.coin],
                 "autopilot collects objective"
             );
             test.coin += 1;
@@ -352,8 +369,8 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 true
             }
         }
-        15 if world.resource::<Game>().finished => {
-            assert_eq!(world.resource::<Game>().count(), 6);
+        15 if world.resource::<CoinRun>().finished => {
+            assert_eq!(world.resource::<CoinRun>().count(), 6);
             capture(world, "completed");
             true
         }
@@ -361,9 +378,13 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             world.resource_mut::<Actions>().0.push(Action::Range);
             true
         }
-        17 if test.frames > 3 && world.resource::<Game>().route.is_empty() => {
+        17 if test.frames > 3 && world.resource::<Player>().route.is_empty() => {
             assert!(
-                world.resource::<Game>().position.distance(shooting::ENTRY) < 0.1,
+                world
+                    .resource::<Player>()
+                    .position
+                    .distance(shooting::ENTRY)
+                    < 0.1,
                 "range remains reachable after completing the coin game"
             );
             capture(world, "range-overview");
@@ -376,7 +397,14 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         19 if test.frames > 5 => {
             release(world);
             assert!(world.resource::<Practice>().running);
-            assert!(world.resource::<Game>().first_person && world.resource::<Game>().captured);
+            assert!(
+                world.resource::<CoinRun>().finished,
+                "target practice preserves the completed coin round"
+            );
+            assert!(
+                world.resource::<ViewState>().first_person
+                    && world.resource::<ViewState>().captured
+            );
             assert_eq!(
                 *world
                     .query_filtered::<&Visibility, With<Weapon>>()

@@ -1,6 +1,8 @@
 use crate::{
-    game::{Game, GameCamera},
-    level::{LevelAssets, TEAL, ground},
+    camera::{GameCamera, ViewState},
+    level::{LevelAssets, LevelLoad, TEAL, ground},
+    player::Player,
+    ui::UiState,
 };
 use bevy::{
     camera::visibility::RenderLayers,
@@ -227,13 +229,19 @@ pub fn tag_scene_parts(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Practice observes player location and input gates."
+)]
 pub fn tick_practice(
     time: Res<Time>,
     window: Single<&Window>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
     mut practice: ResMut<Practice>,
-    mut game: ResMut<Game>,
+    player: Res<Player>,
+    view: Res<ViewState>,
+    mut ui: ResMut<UiState>,
 ) {
     let dt = time.delta_secs().min(0.05);
     practice.cooldown = (practice.cooldown - dt).max(0.0);
@@ -246,17 +254,17 @@ pub fn tick_practice(
         }
     }
     if !practice.running
-        || game.menu
+        || ui.menu
         || !window.focused
-        || !game.first_person
-        || !game.captured
+        || !view.first_person
+        || !view.captured
         || focus.get().is_some_and(|e| inputs.contains(e))
     {
         return;
     }
-    if !in_range(game.position) {
+    if !in_range(player.position) {
         practice.finish();
-        game.status = format!(
+        ui.status = format!(
             "Übung beendet: Schießstand verlassen. {} Punkte.",
             practice.score
         );
@@ -268,7 +276,7 @@ pub fn tick_practice(
     }
     if practice.remaining <= 0.0 {
         practice.finish();
-        game.status = format!(
+        ui.status = format!(
             "Zeit vorbei! {} Punkte · {}/{} Treffer · {:.0}% Genauigkeit. E für eine neue Übung.",
             practice.score,
             practice.hits,
@@ -288,8 +296,11 @@ pub fn shoot(
     window: Single<&Window>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
-    mut game: ResMut<Game>,
+    player: Res<Player>,
+    view: Res<ViewState>,
+    mut ui: ResMut<UiState>,
     mut practice: ResMut<Practice>,
+    load: Res<LevelLoad>,
     mut raycast: MeshRayCast,
     ignored: Query<(), With<ShotIgnore>>,
     parts: Query<&TargetPart>,
@@ -297,21 +308,21 @@ pub fn shoot(
 ) {
     // The click that captures the cursor or resumes the menu never fires a shot.
     let was_captured = practice.was_captured;
-    practice.was_captured = game.first_person && game.captured && !game.menu;
+    practice.was_captured = view.first_person && view.captured && !ui.menu;
     if !buttons.just_pressed(MouseButton::Left)
-        || !game.ready
-        || !game.first_person
-        || !game.captured
-        || game.menu
+        || !load.is_ready()
+        || !view.first_person
+        || !view.captured
+        || ui.menu
         || !window.focused
-        || !in_range(game.position)
+        || !in_range(player.position)
         || !was_captured
         || focus.get().is_some_and(|e| inputs.contains(e))
     {
         return;
     }
     if !practice.running {
-        game.status = "Drücke E, um die 30-Sekunden-Zielübung zu starten.".into();
+        ui.status = "Drücke E, um die 30-Sekunden-Zielübung zu starten.".into();
         return;
     }
     if practice.cooldown > 0.0 {
@@ -320,8 +331,8 @@ pub fn shoot(
     practice.shots += 1;
     practice.cooldown = 0.16;
     practice.recoil = 1.0;
-    let rotation = Quat::from_euler(EulerRot::YXZ, game.yaw, game.pitch, 0.0);
-    let origin = ground(game.position, 1.5);
+    let rotation = Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.0);
+    let origin = ground(player.position, 1.5);
     let direction = rotation * Vec3::NEG_Z;
     let filter = |entity| {
         !ignored.contains(entity)
@@ -358,7 +369,7 @@ pub fn shoot(
     let center = TARGETS[part.0];
     let radius = (point - center).xy().length() / 0.8;
     if let Some(points) = practice.hit(part.0, radius) {
-        game.status = format!(
+        ui.status = format!(
             "{} +{points} Punkte · E startet eine neue Übung.",
             if points == 50 {
                 "Volltreffer!"
@@ -389,7 +400,10 @@ pub fn shoot(
 pub fn update_visuals(
     mut commands: Commands,
     time: Res<Time>,
-    game: Res<Game>,
+    player: Res<Player>,
+    view: Res<ViewState>,
+    load: Res<LevelLoad>,
+    ui: Res<UiState>,
     practice: Res<Practice>,
     camera: Single<
         &Transform,
@@ -412,7 +426,7 @@ pub fn update_visuals(
     mut debris: Query<(Entity, &mut Transform, &mut Debris)>,
     mut gizmos: Gizmos,
 ) {
-    let visible = game.first_person && game.ready && !game.menu;
+    let visible = view.first_person && load.is_ready() && !ui.menu;
     *gun.1 = if visible {
         Visibility::Visible
     } else {
@@ -420,8 +434,8 @@ pub fn update_visuals(
     };
     overlay.1.is_active = visible;
     *overlay.0 = **camera;
-    let bob = if game.captured {
-        (game.walked * 6.0).sin() * 0.008
+    let bob = if view.captured {
+        (player.walked * 6.0).sin() * 0.008
     } else {
         0.0
     };
@@ -440,7 +454,7 @@ pub fn update_visuals(
     }
     let dt = time.delta_secs().min(0.05);
     for (entity, mut transform, mut piece) in &mut debris {
-        if game.menu {
+        if ui.menu {
             continue;
         }
         piece.life -= dt;
@@ -466,13 +480,16 @@ mod tests {
         app.init_resource::<Time>()
             .init_resource::<InputFocus>()
             .init_resource::<Practice>()
-            .insert_resource(Game {
+            .insert_resource(Player {
                 position: ENTRY,
-                ready: true,
+                ..default()
+            })
+            .insert_resource(ViewState {
                 first_person: true,
                 captured: true,
                 ..default()
             })
+            .init_resource::<UiState>()
             .add_systems(Update, tick_practice);
         app.world_mut()
             .resource_mut::<Time>()
@@ -492,9 +509,9 @@ mod tests {
         app.world_mut().get_mut::<Window>(window).unwrap().focused = true;
         for reason in 0..4 {
             match reason {
-                0 => app.world_mut().resource_mut::<Game>().menu = true,
-                1 => app.world_mut().resource_mut::<Game>().captured = false,
-                2 => app.world_mut().resource_mut::<Game>().first_person = false,
+                0 => app.world_mut().resource_mut::<UiState>().menu = true,
+                1 => app.world_mut().resource_mut::<ViewState>().captured = false,
+                2 => app.world_mut().resource_mut::<ViewState>().first_person = false,
                 _ => app
                     .world_mut()
                     .resource_mut::<InputFocus>()
@@ -502,10 +519,10 @@ mod tests {
             }
             app.world_mut().run_schedule(Update);
             assert_eq!(app.world().resource::<Practice>().remaining, ROUND_SECONDS);
-            let mut game = app.world_mut().resource_mut::<Game>();
-            game.menu = false;
-            game.captured = true;
-            game.first_person = true;
+            app.world_mut().resource_mut::<UiState>().menu = false;
+            let mut view = app.world_mut().resource_mut::<ViewState>();
+            view.captured = true;
+            view.first_person = true;
         }
         app.world_mut().resource_mut::<InputFocus>().clear();
         {
