@@ -1,9 +1,10 @@
-"""Create the four-slide PDF for the ground-plate proposal.
+"""Create the six-slide PDF for the ground-plate proposal.
 
 Requires reportlab. Render create_model.py in Blender first.
 This script only writes the planning PDF and does not modify the game.
 """
 from pathlib import Path
+import layout as plan
 from math import atan2, cos, sin, pi
 from xml.sax.saxutils import escape
 
@@ -34,9 +35,9 @@ STONE = HexColor("#DBDFD6")
 LINE = HexColor("#C8D0C7")
 FLOORS = [HexColor(h) for h in ["#F0E1BC", "#DCE5D3", "#EFD7CB", "#D4E6E8"]]
 c = canvas.Canvas(str(OUT), pagesize=(W, H), pageCompression=1)
-c.setTitle("Eine Grundplatte, vier Höfe | Levelplan")
+c.setTitle("Acht Räume zum Erkunden | Levelplan")
 c.setAuthor("Woodpecker Demo")
-c.setSubject("Räumlicher Entwurf mit Treppen, Brücken und versteckten Verbindungen")
+c.setSubject("Erweiterter Levelentwurf mit Sammelaufgaben, Räumen und Abkürzungen")
 page = 0
 
 
@@ -104,12 +105,12 @@ def new(title, subtitle):
         c.showPage()
     page += 1
     rect(0, 0, W, H, BG)
-    text("TEST_APP  /  LEVELPLAN", 44, 23, 11, TEAL)
+    text("TEST_APP  /  ERWEITERTER LEVELPLAN", 44, 23, 11, TEAL)
     text(title, 44, 51, 31)
     text(subtitle, 44, 99, 16, MUTED)
     line([(44, 510), (916, 510)], LINE, .8)
     text("Planungsentwurf · 12.10.2026", 44, 519, 10, MUTED)
-    text(f"{page:02d} / 04", 879, 519, 10, TEAL)
+    text(f"{page:02d} / 06", 879, 519, 10, TEAL)
 
 
 def cropped_image(path, crop, x, y, w, h):
@@ -129,149 +130,191 @@ def cropped_image(path, crop, x, y, w, h):
     c.restoreState()
 
 
-# Both floor plans use the same coordinates as create_model.py.
-S, OX, OY = 10, 96, 476
+
+# Shared coordinates keep the maps aligned with the Blender model.
+S, OX, OY = 6.1, 78, 480
+BLUE = HexColor("#387DA8")
+ORANGE = HexColor("#B85F2C")
 
 
-def xy(x, y):
+def xy(x,y):
     return OX+x*S, OY-y*S
 
 
-def slab(x0, y0, x1, y1, color):
-    x, y = xy(x0, y1)
-    rect(x, y, (x1-x0)*S, (y1-y0)*S, color)
+def slab(bounds,color):
+    x0,y0,x1,y1=bounds
+    x,y=xy(x0,y1)
+    rect(x,y,(x1-x0)*S,(y1-y0)*S,color)
 
 
-def wall(a, b, color=INK):
-    line([xy(*a), xy(*b)], color, 3.5)
+def wall(axis,coord,lo,hi,color=INK):
+    points=[xy(lo,coord),xy(hi,coord)] if axis=='h' else [xy(coord,lo),xy(coord,hi)]
+    line(points,color,2.8)
 
 
-def route(points, color=TEAL, dash=None):
-    arrow([xy(*p) for p in points], color, 2.5, dash)
+def label(s,x,y,size=13,color=INK):
+    px,py=xy(x,y)
+    text(s,px,py-size/2,size,color,True)
 
 
-def label(s, x, y, size=13, color=INK):
-    px, py = xy(x, y)
-    text(s, px, py-size/2, size, color, True)
-
-
-def stairs(x, y0, y1, color=TEAL_PALE):
-    slab(x-1.35, y0, x+1.35, y1, color)
-    for i in range(13):
-        y = y0+(y1-y0)*i/12
-        line([xy(x-1.35, y), xy(x+1.35, y)], TEAL, .55)
+def route(points,color=TEAL,dash=None):
+    arrow([xy(*p) for p in points],color,2.3,dash,5)
 
 
 def base_plan(ghost=False):
-    rect(44, 139, 552, 352, WHITE, 9)
-    slab(-1, -1, 45, 33, STONE if not ghost else HexColor("#E9ECE6"))
-    for i, (x0, y0, x1, y1) in enumerate([(1, 1, 19, 14), (1, 17, 19, 31),
-                                         (25, 17, 43, 31), (25, 1, 43, 14)]):
-        slab(x0, y0, x1, y1, FLOORS[i] if not ghost else HexColor("#F1F2EC"))
-    segments = [
-        ((.7,.7),(.7,14.3)), ((.7,.7),(19.3,.7)),
-        ((.7,14.3),(9.5,14.3)), ((12.8,14.3),(19.3,14.3)),
-        ((19.3,.7),(19.3,6.4)), ((19.3,9),(19.3,14.3)),
-        ((.7,16.7),(.7,31.3)), ((.7,31.3),(19.3,31.3)),
-        ((.7,16.7),(9.5,16.7)), ((12.8,16.7),(19.3,16.7)),
-        ((19.3,16.7),(19.3,31.3)),
-        ((43.3,16.7),(43.3,31.3)), ((24.7,31.3),(43.3,31.3)),
-        ((24.7,16.7),(24.7,18.8)), ((24.7,21.5),(24.7,31.3)),
-        ((24.7,16.7),(34,16.7)), ((37,16.7),(43.3,16.7)),
-        ((24.7,14.3),(34,14.3)), ((37,14.3),(43.3,14.3)),
-        ((43.3,.7),(43.3,14.3)), ((24.7,.7),(24.7,14.3)),
-        ((24.7,.7),(43.3,.7)),
-        ((19.4,5.1),(24.45,5.1)), ((19.3,21.5),(24.7,21.5)),
-        ((3,19),(3,25)), ((3,25),(9,25)), ((9,19),(9,25)),
-        ((3,19),(4.8,19)), ((7.4,19),(9,19)),
-    ]
-    segments += [((x,14.3),(x,16.7)) for x in [9.5,12.8,34,37]]
-    for a, b in segments:
-        wall(a, b, LINE if ghost else INK)
-    for x, y in [(17.6,6),(18,10),(20.3,5.9),(30,22),(29.2,23.8),(41,19),(31,18.6)]:
-        slab(x-.6,y-.6,x+.6,y+.6, LINE if ghost else HexColor("#BDA382"))
-    for s, x, y in [("A",5,11),("B",4.5,28.5),("C",40,23),("D",28.5,4)]:
-        label(s, x, y, 23, MUTED if ghost else INK)
+    rect(44,132,552,365,WHITE,9)
+    slab(plan.PLATE,HexColor('#E7EAE3'))
+    for key,name,bounds,color in plan.ROOMS:
+        slab(bounds,HexColor('#F0F2EC') if ghost else HexColor('#'+color))
+    slab(plan.MAINTENANCE,PURPLE_PALE)
+    slab((3,38,10,43),PURPLE_PALE)
+    for segment in plan.walls(): wall(*segment,LINE if ghost else INK)
+    for segment in [('v',3,38,43),('v',10,38,43),('h',43,3,5),('h',43,8,10)]:
+        wall(*segment,LINE if ghost else INK)
+    for value,x,y in plan.LABELS: label(value,x,y,19,MUTED if ghost else INK)
 
 
-def g1_floor():
-    slab(19.6,5.2,23.8,10.2,PURPLE_PALE)
-    slab(20.55,10.2,23.65,18.7,PURPLE_PALE)
-    slab(22,18.7,24.8,21.3,PURPLE_PALE)
+def stairs():
+    for x,y0,y1 in plan.STAIRS:
+        slab((x-1.35,min(y0,y1),x+1.35,max(y0,y1)),TEAL_PALE)
+        for i in range(13):
+            yy=y0+(y1-y0)*i/12
+            line([xy(x-1.35,yy),xy(x+1.35,yy)],TEAL,.5)
 
 
-def upper_decks():
-    for bounds in [(10,26,20,30.2),(20,27,30,30),(30,27,41.5,30.2),(30,9,42,12.5)]:
-        slab(*bounds, TEAL)
-    for bounds in [(16,21.8,20,26),(20,21.8,20.7,24.5),
-                   (20.7,9,23.7,24.5),(23.7,9,30,12)]:
-        slab(*bounds, GOLD_PALE)
-    stairs(12,19,26)
-    stairs(37,20,27)
-    stairs(35,3,9)
+def upper():
+    for name,bounds,kind in plan.DECKS:
+        slab(bounds,GOLD_PALE if kind=='secret' else TEAL)
+    stairs()
+    for x,y,z in plan.PARKOUR:
+        slab((x-1.25,y-1.25,x+1.25,y+1.25),HexColor('#D5BA95'))
 
 
-new("Eine Grundplatte, vier Höfe.",
-    "Treppen führen auf Galerien. Brücken verbinden die oberen Wege.")
-cropped_image(ART/"raeumlicher_entwurf.png", (140,145,1455,985), 35,140,590,333)
-note("Ein gemeinsamer Boden", "Alle Höfe stehen auf derselben Platte. Unter den Brücken bleibt Platz zum Laufen.", 646,148,270)
-note("Eigene kleine Bereiche", "Mauern und Tore trennen die Höfe. Jeder Hof hat einen eigenen Zweck und erkennbare Eingänge.",646,251,270)
-note("Zwei versteckte Verbindungen", "Ein Nebenlager verbindet A mit C am Boden. Ein oberer Nebenraum verbindet B mit D.",646,358,270)
-text("Räumlicher Entwurf. Vordere Wände sind für die Ansicht gekürzt.",44,486,11,MUTED)
+def marker(value,x,y,color=ORANGE):
+    px,py=xy(x,y)
+    circle(px,py,7.5,WHITE)
+    text(value,px,py-5.5,12,color,True)
 
 
-new("Unten liegen vier abgegrenzte Bereiche.",
-    "Der Hauptweg führt vom Starthof über Werkhof und Lagerhof zum Zielhof.")
+new('Acht Räume zum Erkunden.',
+    'Eine größere Grundplatte mit Treppen, Brücken und Aufgaben in mehreren Räumen.')
+cropped_image(ART/'raeumlicher_entwurf.png',(120,110,1890,1270),35,136,595,346)
+note('Etwa dreimal so viel Platz',
+     'Die Grundplatte wächst von 46 x 34 auf 82 x 58 Meter. Acht Hauptbereiche ersetzen die vier Höfe.',646,145,270,size=15.5)
+note('Drei Aufgaben führen zum Ziel',
+     'In Werkhalle, Gewächshaus und Archiv gibt es je eine Energiezelle. Alle drei versorgen den Generator.',646,259,270,size=15.5)
+note('Abseits des Hauptwegs',
+     '24 Münzen, sechs Baupläne und drei versteckte Verbindungen belohnen das Erkunden.',646,373,270,size=15.5)
+text('Planungsmodell. Dächer fehlen in der Ansicht; die vordere Außenwand ist gekürzt.',44,493,10.5,MUTED)
+
+
+new('Jeder Raum bekommt eine eigene Aufgabe.',
+    'Die zentrale Halle verbindet die Räume. Die Aufgaben lassen sich in beliebiger Reihenfolge lösen.')
 base_plan()
-g1_floor()
-stairs(12,19,26)
-stairs(37,20,27)
-stairs(35,3,9)
-slab(4.9,22.7,6.1,23.6,TEAL)
-for x in [27.2,29.3,31.4]:
-    circle(*xy(x,25.6),4,GOLD)
-circle(*xy(10,6),8,TEAL)
-label("Start",6.3,5.8,12)
-label("G1",21.7,6.5,12,PURPLE)
-route([(11,6),(11,17.7),(12,18.6)])
-route([(37,20),(35.5,17.3),(35.5,15.4),(39,13),(39,4),(35,2),(35,2.8)])
-route([(16,7.7),(22,7.7),(22,20),(26.2,20)],PURPLE,[3,3])
-label("Treppe",14.1,18.2,11,TEAL)
-label("Treppe",39.4,18.7,11,TEAL)
-note("A · Starthof", "Platz zum Ankommen. Das Tor gegenüber führt in den Werkhof.",625,145,286,size=15.5)
-note("B · Werkhof", "Werkstatt mit Konsole. Die Treppe daneben führt zur ersten Brücke.",625,228,286,size=15.5)
-note("C · Lagerhof", "Kisten, Suchaufgabe und Schießstand. Vom Hof führt ein Tor weiter nach D.",625,311,286,size=15.5)
-note("D · Zielhof", "Der Zielpunkt steht oben auf dem Balkon. Die Treppe beginnt vorne im Hof.",625,394,286,size=15.5)
-text("Draufsicht · Bodenhöhe 0 m · Violett zeigt den versteckten Weg G1",61,493,10.5,MUTED)
+stairs()
+for x,y,z in plan.PARKOUR: slab((x-1.25,y-1.25,x+1.25,y+1.25),HexColor('#D5BA95'))
+for x,y,z in plan.CELLS: marker('Z',x,y,TEAL)
+for x,y,z in plan.GEARS: marker('T',x,y,ORANGE)
+circle(*xy(7,5),5,TEAL)
+label('G1',34,5,11,PURPLE)
+label('G3',6.5,40.8,9,PURPLE)
+rows=[
+ ('A · Eingang · 18 x 18 m','Auftrag und sichtbarer Startpunkt.'),
+ ('B · Werkhalle · 18 x 20 m','Bauteile sammeln und eine Zelle bauen.'),
+ ('C · Zentrale Halle · 32 x 28 m','Treppen, Orientierung und Sprungparcours.'),
+ ('D · Lagerhalle · 28 x 20 m','Regal verschieben und Verstecke finden.'),
+ ('E · Gewächshaus · 28 x 16 m','Bewässerung mit zwei Ventilen starten.'),
+ ('F · Archiv · 24 x 16 m','Drei markierte Tafeln scannen.'),
+ ('G · Übungsraum · 26 x 16 m','Ziele treffen und eine Truhe öffnen.'),
+ ('H · Generatorraum · 28 x 18 m','Drei Zellen einsetzen und Signal starten.'),
+]
+for i,(title,body) in enumerate(rows):
+    y=139+i*44
+    text(title,624,y,15.5,TEAL)
+    text(body,624,y+21,13.5,MUTED)
+text('Bodenplan · Z steht für eine Aufgabenbelohnung, T für ein Bauteil.',61,497,9.5,MUTED)
 
 
-new("Die oberen Wege verbinden die Höfe.",
-    "Die Brücken liegen etwa drei Meter über dem Boden. Beide Ebenen sind begehbar.")
+new('Oben entstehen zusätzliche Verbindungen.',
+    'Sechs Treppen verbinden den Boden mit den Galerien in drei Metern Höhe.')
 base_plan(ghost=True)
-g1_floor()
-upper_decks()
-route([(12,20),(12,28.5),(19,28.5)],INK)
-route([(31,28.5),(37,28.5),(37,21)],WHITE)
-route([(35,4),(35,10.7),(39.1,10.7)],INK)
-route([(18,24),(22.2,23),(22.2,11),(28.7,11)],GOLD)
-label("Brücke 1",25,28.5,11,WHITE)
-label("2",21.3,16.1,12,GOLD)
-label("G2",18,22.8,11,GOLD)
-label("G1",21.7,7.7,11,PURPLE)
-label("Ziel",40,11,12,WHITE)
-note("Hauptweg über Brücke 1", "In B die Treppe hinauf. Über die Brücke nach C, dort wieder hinunter. Weiter durch das Tor nach D.",625,147,286,size=15.5)
-note("G1 · Nebenlager am Boden", "Ein Spalt zwischen Kisten in A führt ins Nebenlager. Der Gang unter Brücke 2 endet direkt in C.",625,263,286,PURPLE,15.5)
-note("G2 · Nebenraum auf der Galerie", "Neben einem Regal in B liegt ein Seiteneingang. Dahinter führt Brücke 2 direkt zum Zielbalkon in D.",625,379,286,GOLD,15.5)
-text("Gleiche Draufsicht · Türkis zeigt den Hauptweg oben · Gold zeigt G2",61,493,10.5,MUTED)
+upper()
+route([(12,24),(12,33.5),(27.5,33.5)],INK)
+route([(37,34),(52,34),(56,34),(56,41)],WHITE)
+route([(8,49),(8,42),(19.5,42),(19.5,45.8),(49.5,45.8)],GOLD)
+route([(69,4),(69,12.5),(73,12.5)],INK)
+label('G2',21,48.1,10,GOLD)
+label('Ziel',73,14.1,10,WHITE)
+note('Werkhalle bis Gewächshaus',
+     'Die türkisen Wege verbinden B, C, D und E. Unten bleiben die Türen und Laufwege offen.',625,145,286,size=15.5)
+note('Versteckter Steg vom Archiv',
+     'G2 liegt hinter einem Regal auf der Archivgalerie. Der goldene Steg führt über den Übungsraum direkt nach E.',625,261,286,GOLD,15.5)
+note('Kurzer Parcours in der Halle',
+     'Fünf Sprungplattformen führen zur Galerie mit einem Bauplan. Daneben liegt eine Treppe. Bei einem Fehltritt landet man auf dem Boden.',625,377,286,size=15.5)
+text('Obere Ebene · Türkis zeigt Galerien und Brücken · Gold zeigt die Abkürzung G2.',61,497,9.5,MUTED)
 
 
-new("Hier läuft man oben und unten.",
-    "Der goldene Steg liegt über dem violetten Gang. Beide Wege bleiben nutzbar.")
-cropped_image(ART/"unter_der_bruecke.png", (65,60,1350,845), 44,143,558,335)
-note("Eine Abkürzung muss auffallen", "Ein sichtbarer Spalt, Licht oder ein Gegenstand am Eingang gibt einen Hinweis auf den Nebenraum.",625,147,286,size=15.5)
-note("Erkunden spart später einen Umweg", "G1 überspringt den Weg durch B. G2 überspringt C und führt direkt auf den Zielbalkon. Beide Wege bleiben offen.",625,263,286,size=15.5)
-note("Beim Bau zuerst prüfen", "Boden und Brücken brauchen getrennte begehbare Ebenen. Figur und Klickwege müssen auf der richtigen Höhe bleiben.",625,379,286,size=15.5)
-text("Planungsmodell in Blender. Farben markieren Wege, der Spielstil folgt später.",44,491,11,MUTED)
+new('Sammeln verändert den Fortschritt.',
+    'Drei unterschiedliche Aufgaben liefern je eine Energiezelle. Die Reihenfolge bleibt frei.')
+# The three cards describe the actual three energy-cell rewards.
+cards=[
+ ('B + D','Eine Zelle zusammenbauen',
+  ['Ein Bauteil liegt in der Werkhalle.',
+   'Das zweite liegt hinter dem verschiebbaren Regal in der Lagerhalle.',
+   'Beide an der Werkbank einsetzen.'],TEAL),
+ ('E','Die Bewässerung starten',
+  ['Zwei Ventile zwischen den Beeten finden und aufdrehen.',
+   'Fließendes Wasser zeigt den Erfolg.',
+   'Die Zelle am Verteiler abholen.'],HexColor('#5E8547')),
+ ('F','Das Archiv durchsuchen',
+  ['Drei markierte Tafeln in den Regalgängen scannen.',
+   'Das Terminal zählt die gelesenen Tafeln.',
+   'Nach dem dritten Scan die Zelle abholen.'],PURPLE),
+]
+for i,(room,title,steps,color) in enumerate(cards):
+    x=44+i*298
+    rect(x,141,278,252,WHITE,10)
+    text(room,x+17,155,12,color)
+    text(title,x+17,180,18,color)
+    y=215
+    for j,step in enumerate(steps):
+        text(str(j+1)+'.',x+17,y,14,color)
+        h=para(step,x+37,y,225,15,max_h=63)
+        y+=h+12
+    arrow([(x+139,397),(x+139,419)],color,2,head=6)
+rect(44,424,874,73,TEAL_PALE,10)
+text('H · Drei Zellen einsetzen, dann das Signal starten.',62,439,19,TEAL)
+text('Alle Zellen passen ins Inventar. Münzen und Baupläne sind für den Abschluss freiwillig.',62,470,14,MUTED)
 
+
+new('Nebenwege bekommen eigene Belohnungen.',
+    '24 Münzen markieren Laufwege. Sechs Baupläne liegen in Verstecken oder hinter kleinen Aufgaben.')
+base_plan(ghost=True)
+# All pickups are shown together here; the room diagram on page three separates heights.
+route([(16,4.5),(26,4.5),(42,4.5),(52,4.5)],PURPLE,[3,3])
+route([(6.5,35),(6.5,38.5)],PURPLE,[3,3])
+route([(23.5,46),(39,46),(52,46)],GOLD,[3,3])
+for x,y,z in plan.COINS: circle(*xy(x,y),2.7,GOLD)
+for i,(x,y,z) in enumerate(plan.BLUEPRINTS,1): marker(str(i),x,y,BLUE)
+text('Drei Abkürzungen',625,140,19,TEAL)
+para('G1 verbindet A und H durch einen Wartungsgang. G2 führt oben von F nach E. G3 verbindet B und F durch ein Nebenlager.',625,170,286,15.5,max_h=99)
+text('Hier liegen die sechs Baupläne',625,291,18,BLUE)
+for i,body in enumerate(['1  Im Wartungsgang G1', '2  Im oberen Nebenraum G2',
+                         '3  Im Nebenlager G3', '4  Auf der Galerie über dem Parcours',
+                         '5  Hinter den Kisten in der Lagerhalle', '6  In der Truhe nach drei Zieltreffern']):
+    text(body,625,323+i*26,14.5,MUTED)
+text('Sammelplan für beide Ebenen · Goldene Punkte sind Münzen · Blaue Zahlen sind Baupläne.',61,497,9.5,MUTED)
+
+
+new('So greift das Spielen ineinander.',
+    'Erkunden bringt Bauteile und Abkürzungen. Die Aufgaben füllen den Generator mit Energie.')
+cropped_image(ART/'zentrale_halle.png',(80,55,1520,1040),40,140,568,349)
+note('In der Nähe mit E bedienen',
+     'Bauteil aufnehmen, Ventil drehen, Tafel scannen oder eine Zelle einsetzen. Der Hinweis nennt die passende Aktion.',625,145,286,size=15.5)
+note('Sammelstand bleibt sichtbar',
+     'Zellen 0/3, Münzen 0/24 und Baupläne 0/6 stehen im HUD. Ein Raumhinweis zeigt, wo noch etwas fehlt.',625,261,286,size=15.5)
+note('Nach dem Ziel weiter erkunden',
+     'Mit drei Zellen lässt sich das Signal starten. Danach bleiben Parcours, Zielübung und übrige Fundstücke erreichbar.',625,377,286,size=15.5)
+text('Räumlicher Entwurf und geplante Spielregeln. Aufgaben und Sammelstände sind noch Konzept.',44,497,10.5,MUTED)
 c.save()
 print(OUT)

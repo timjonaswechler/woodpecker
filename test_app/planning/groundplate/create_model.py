@@ -3,13 +3,17 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 from math import pi
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import layout as plan
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT/'artifacts/groundplate-plan'
 OUT.mkdir(parents=True,exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene=bpy.context.scene
-scene.name='Groundplate level proposal'
+scene.name='Eight-room exploration proposal'
+bpy.context.preferences.filepaths.save_version=0
 
 
 def mat(name,hex):
@@ -89,129 +93,185 @@ def disk(name,x,y,z,r,m):
     obj=bpy.context.object;obj.name=name;obj.data.materials.append(m)
     return obj
 
-# One slab supports every courtyard and all bridges.
-box('ONE continuous ground plate',22,16,-.8,46,34,.8,base,.15)
-for name,x0,y0,x1,y1,m in [('A',1,1,19,14,A),('B',1,17,19,31,B),('C',25,17,43,31,C),('D',25,1,43,14,D)]:
-    box(name+' floor',(x0+x1)/2,(y0+y1)/2,0,x1-x0,y1-y0,.05,m)
+# Eight main rooms on a larger continuous slab. Colors identify their uses.
+room_mats={key:mat(name,color) for key,name,_,color in plan.ROOMS}
+green=mat('Plants','477B4D');leaf=mat('Leaves','81AA64')
+blue=mat('Blueprints','428FC1');orange=mat('Interaction handles','D77438')
 
-# Boundaries with deliberate gates. Front walls are cut down for the drawing.
-wall_y('A west',.7,.7,14.3)
-wall_x('A front cutaway',.7,19.3,.7,h=.45)
-wall_x('A north',.7,9.5,14.3);wall_x('A north',12.8,19.3,14.3)
-wall_y('A east',19.3,.7,6.4);wall_y('A east',19.3,9.0,14.3)
-wall_y('B west',.7,16.7,31.3);wall_x('B rear',.7,19.3,31.3)
-wall_x('B entrance',.7,9.5,16.7);wall_x('B entrance',12.8,19.3,16.7)
-wall_y('B east',19.3,16.7,31.3)
-wall_y('C east',43.3,16.7,31.3);wall_x('C rear',24.7,43.3,31.3)
-wall_y('C west',24.7,16.7,18.8);wall_y('C west',24.7,21.5,31.3)
-wall_x('C south',24.7,34.0,16.7);wall_x('C south',37.0,43.3,16.7)
-wall_x('D north',24.7,34,14.3);wall_x('D north',37,43.3,14.3)
-wall_y('D east',43.3,.7,14.3);wall_y('D west',24.7,.7,14.3)
-wall_x('D front cutaway',24.7,43.3,.7,h=.45)
-# Enclose the two main doorways so the gap between courts is not a bypass.
-for x in [9.5,12.8,34,37]: wall_y('Enclosed courtyard doorway',x,14.3,16.7)
-wall_x('G1 passage end',19.3,24.7,21.5,h=2.2)
 
-# Workshop enclosure, with an open entrance and a visible ceiling edge.
-wall_y('Workshop room west',3,19,25,h=3)
-wall_x('Workshop room back',3,9,25,h=3)
-wall_x('Workshop facade',3,4.8,19,h=3);wall_x('Workshop facade',7.4,9,19,h=3)
-wall_y('Workshop room east',9,19,25,h=3)
-box('Workshop sign',6,19,2.65,6,.2,.45,teal)
-box('Workshop console',5.4,23.3,.05,1.2,.8,1.0,dark)
-box('Workshop console screen',5.4,22.85,.85,.9,.1,.45,teal)
+def floor(name,bounds,z,material,thickness=.035):
+    x0,y0,x1,y1=bounds
+    return box(name,(x0+x1)/2,(y0+y1)/2,z-thickness,x1-x0,y1-y0,thickness,material)
 
-# Main route above the ground plate, 3m above the courtyards.
-stairs('B stairs',12,19,26,teal)
-deck('B gallery',10,26,20.0,30.2,teal)
-deck('BRIDGE 1 above the ground corridor',20,27,30,30,teal)
-deck('C gallery',30,27,41.5,30.2,teal)
-stairs('C stairs',37,20,27,teal)
-rails_x('B rear gallery',30.15,10,20)
-rails_x('Bridge 1 north',30,20,30);rails_x('Bridge 1 south',27,20,30)
-rails_x('C rear gallery',30.15,30,41.5)
-rails_x('C front gallery',27,30,35.3)
-rails_x('C front gallery',27,38.6,41.5)
-for x,y in [(11,29),(18,29),(27,28.5),(32,29),(41,29)]: box('Gallery support',x,y,0,.45,.45,2.7,dark)
 
-# Hidden ground route G1. A small storeroom leads into a passage below Bridge 2.
-box('G1 storeroom floor',21.7,7.7,.05,4.2,5,.035,purple)
-box('G1 passage floor',22.1,14.45,.05,3.1,8.5,.035,purple)
-box('G1 exit to C',23.4,20,.05,2.8,2.6,.035,purple)
-wall_x('G1 storeroom back',19.4,24.45,5.1,h=2.2)
-# Crates partially screen the doorway without completely covering the clue.
-for x,y in [(17.6,6.0),(18,10),(20.3,5.9)]: box('G1 crates',x,y,.1,1.1,1.1,1.2,boxmat)
+def wall_segment(axis,coord,lo,hi,z=0,h=2.5,name='Room wall'):
+    if axis=='h': wall_x(name,lo,hi,coord,z,h)
+    else: wall_y(name,coord,lo,hi,z,h)
 
-# Hidden upper room G2, with a second bridge toward the goal balcony.
-deck('G2 side room floor',16,21.8,20.0,26,gold)
-wall_y('G2 room west',16,21.8,26,z=3,h=1.8)
-wall_x('G2 room south',16,17.3,21.8,z=3,h=1.8)
-wall_x('G2 room south',19.0,20.0,21.8,z=3,h=1.8)
-box('G2 shelf',17.1,25.3,3,1.7,.6,1.3,boxmat)
-deck('BRIDGE 2 secret gallery connector',20,21.8,20.7,24.5,gold)
-deck('BRIDGE 2 long part above G1',20.7,9.0,23.7,24.5,gold)
-deck('BRIDGE 2 into D balcony',23.7,9,30,12,gold)
-rails_y('Bridge 2 west',20.7,9,21.3);rails_y('Bridge 2 east',23.7,12,24.5)
-rails_x('Bridge 2 south',9,20.7,32);rails_x('Bridge 2 north',12,23.7,30)
-for x,y in [(20.7,13),(23.7,18),(23.7,22),(28,10.5)]: box('Bridge 2 support',x,y,0,.25,.25,2.7,dark)
-deck('D goal balcony',30,9,42,12.5,teal)
-stairs('D stairs',35,3,9,teal)
-rails_x('D rear balcony',12.5,30,42)
-rails_y('D east balcony',42,9,12.5)
-for x,y in [(31,11),(41,11)]: box('D balcony support',x,y,0,.45,.45,2.7,dark)
-# A small landmark makes the final courtyard identifiable.
-box('Signal base',40,11,3,1.8,1.5,.3,dark)
-for x in [39.4,40.6]: box('Signal mast',x,11,3.3,.18,.18,3.0,dark)
-box('Signal head',40,11,6.1,2,.65,.65,teal)
-box('Signal light',40,10.6,6.3,.9,.1,.18,gold)
 
-# Local courtyard props show different uses at a glance.
-for x,y,h in [(30,22,1.4),(29.2,23.8,.8),(41,19,1.2),(31,18.6,1.0)]: box('C supply crate',x,y,.05,1.5,1.5,h,boxmat)
-for x in [27.2,29.3,31.4]:
-    box('Target support',x,25.6,.05,.1,.15,1.8,dark)
-    bpy.ops.mesh.primitive_cylinder_add(vertices=24,radius=.6,depth=.12,location=(x,25.55,1.75),rotation=(pi/2,0,0))
-    bpy.context.object.data.materials.append(gold)
-for x,y in [(5,5),(5,8)]: box('A low bench',x,y,.05,3.1,.8,.5,boxmat)
-disk('Start',10,6,.06,1.5,teal)
-disk('Checkpoint B stairs',12,18.0,.06,.6,gold)
-disk('Checkpoint D stairs',35,2.0,.06,.6,gold)
-# Person under the bridge gives a scale and makes the two levels visible.
-box('Person legs',22,16,.1,.45,.4,.65,dark)
-box('Person body',22,16,.75,.65,.45,.65,gold)
-bpy.ops.mesh.primitive_uv_sphere_add(segments=12,ring_count=8,radius=.28,location=(22,16,1.67));bpy.context.object.data.materials.append(white)
+def upright_disk(name,x,y,z,r,material):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24,radius=r,depth=.12,
+        location=(x,y,z),rotation=(pi/2,0,0))
+    obj=bpy.context.object;obj.name=name;obj.data.materials.append(material)
 
-# Floor labels are part of the proposal illustration.
-label('A',7.8,10.5,.075,2.7)
-label('B',5,28.4,.075,2.7)
-label('C',39.5,23.6,.075,2.7)
-label('D',29.2,4.6,.075,2.7)
-label('G1',21.8,7.7,.105,.8,white)
-label('G2',18,23.5,3.03,.85,dark)
-label('1',24.7,28.5,3.03,1.2,white)
-label('2',22.2,18.5,3.03,1.2,dark)
+
+def console(name,x,y,z=0):
+    box(name,x,y,z,1.3,.9,1.1,dark)
+    box(name+' screen',x,y-.48,z+.65,1,.06,.4,teal)
+    disk(name+' interaction ring',x,y-1,z+.015,.55,orange)
+
+
+def crate(x,y,z=0,w=1.5):
+    box('Crate',x,y,z,w,w,w,boxmat)
+    box('Crate strap',x,y-w/2-.01,z+.1,.13,.05,w-.2,dark)
+
+
+floor('ONE continuous ground plate',plan.PLATE,0,base,.8)
+for key,name,bounds,_ in plan.ROOMS:
+    x0,y0,x1,y1=bounds
+    floor(key+' '+name,(x0+.22,y0+.22,x1-.22,y1-.22),.045,room_mats[key])
+floor('G1 maintenance passage',(18.22,.22,49.78,9.78),.05,purple)
+for axis,coord,lo,hi in plan.walls():
+    wall_segment(axis,coord,lo,hi,h=.5 if axis=='h' and coord==0 else 2.5)
+
+# G3 is a store between B and F, below the archive gallery.
+floor('G3 store floor',(3,38,10,43),.08,purple)
+for axis,coord,lo,hi in [('v',3,38,43),('v',10,38,43),('h',43,3,5),('h',43,8,10)]:
+    wall_segment(axis,coord,lo,hi,name='G3 store wall')
+for name,bounds,kind in plan.DECKS:
+    floor(name,bounds,3,gold if kind=='secret' else teal,.28)
+for x,y0,y1 in plan.STAIRS: stairs('Stair',x,y0,y1,teal)
+
+# Rails leave stair heads, bridge junctions and the parkour landing clear.
+for axis,coord,lo,hi in [
+    ('h',35,18,29),('h',32,18,29),('h',37,29,47),
+    ('h',35,47,55),('h',32,47,55),('h',36,57,75),
+    ('h',31,55,69.4),('h',31,72.6,75),
+    ('v',54,36,40),('v',57,36,40),
+    ('h',47.5,24,51),('h',44.5,24,51),
+    ('h',44,4,6.4),('h',44,9.6,17),('h',40,4,22),
+    ('h',15,64,76),('v',76,10,15),
+    ('h',31,29,30.5),('h',31,33.5,40.4),('h',31,43.6,47),
+]:
+    if axis=='h': rails_x('Gallery rail',coord,lo,hi)
+    else: rails_y('Gallery rail',coord,lo,hi)
+for x,y in [(10,35),(17,35),(25,33),(30,36),(46,36),(51,33),
+            (57,35),(74,35),(55,39),(52,46),(61,46),
+            (5,41),(21,41),(26,46),(38,46),(48,46),(65,14),(75,14)]:
+    box('Gallery support',x,y,0,.4,.4,2.72,dark)
+
+# G2 opens from the archive gallery and crosses above the exercise room.
+for axis,coord,lo,hi in [('v',17,44,49),('h',49,17,24),
+                       ('h',44,17,18),('h',44,21,24),('v',24,47.5,49)]:
+    wall_segment(axis,coord,lo,hi,z=3,h=1.5,name='G2 upper room wall')
+box('G2 concealing shelf',22.4,44.3,3,2,.65,1.15,boxmat)
+
+# A: the visible starting point and the mission board.
+disk('Start',7,5,.06,1.4,teal)
+console('Mission board',4,13)
+box('Start bench',4,8,.05,4,.8,.55,boxmat)
+for x,y in [(16,2.3),(16.3,7.1)]: crate(x,y)
+
+# B: large work tables, a two-part assembly task and a hidden rear door.
+box('Cell assembly workbench',4,33,0,4,2,1,boxmat)
+console('Workbench controls',6.6,33)
+for x,y in [(5,26),(5,30)]: box('Machine base',x,y,0,2.6,2,1.1,dark)
+for x,y in [(3.5,36),(9.7,36),(15.5,24)]: crate(x,y)
+
+# C: a broad central hall with an optional jump route and stairs beside it.
+for x,y,z in plan.PARKOUR: box('Optional parkour block',x,y,0,2.5,2.5,z,boxmat)
+disk('Hall checkpoint',23,22,.06,.9,teal)
+console('Hall map',21,34)
+for x,y in [(23,30),(46,19)]: box('Hall bench',x,y,0,3.5,1,.65,boxmat)
+box('Person legs',37,33,.05,.45,.4,.65,dark)
+box('Person body',37,33,.7,.65,.4,.65,orange)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=12,ring_count=8,radius=.28,location=(37,33,1.62))
+bpy.context.object.data.materials.append(white)
+
+# D: movable storage, a switch and an extra reward behind the crates.
+for x,y in [(58,23),(61,23),(74,24),(75,25.5),(68,35),(62,28)]: crate(x,y)
+for x in [64,68]: box('Storage rack rail',x,26,.05,.12,6,.07,dark)
+box('Movable storage rack',66,27,0,3,1.4,1.3,boxmat)
+console('Storage rack lever',59,27)
+box('Lever handle',59,27,1.1,.15,.15,.8,orange)
+
+# E: two valves feed planted beds; the task reward stands by the manifold.
+for x,y in [(66,46),(72,46),(67,51)]:
+    box('Planter',x,y,0,3.8,2.1,.65,boxmat)
+    for dx in [-1.2,0,1.2]:
+        box('Plant stem',x+dx,y,.65,.12,.12,.8,green)
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.65,location=(x+dx,y,1.4))
+        bpy.context.object.data.materials.append(leaf)
+for x,y in [(64,43),(73,49)]:
+    box('Valve pipe',x,y,0,.25,.25,1.2,dark)
+    upright_disk('Valve handwheel',x,y-.18,1.2,.42,orange)
+box('Irrigation main pipe',68.5,43,.15,9,.2,.2,dark)
+box('Irrigation return pipe',73,46,.15,.2,6,.2,dark)
+box('Greenhouse reward stand',71,42,0,1.8,1.3,1,boxmat)
+
+# F: short aisles, three scan tablets and a terminal.
+for x,y in [(3,45),(11.5,51),(19,53)]:
+    box('Archive bookcase',x,y,0,3,.8,1.7,boxmat)
+    for dx in [-1,-.5,0,.5,1]: box('Archive folder',x+dx,y-.43,.7,.28,.2,.7,blue)
+for x,y in [(4,50),(16,51),(20,40)]: console('Archive scan tablet',x,y)
+console('Archive reward terminal',17,48)
+
+# G: shooting is optional and awards a blueprint instead of a main cell.
+for x in [29,35,41]:
+    box('Practice lane',x,45,.05,.09,12,.015,white)
+    box('Practice target post',x,51,0,.15,.2,1.8,dark)
+    upright_disk('Practice target',x,51,1.85,.8,gold)
+    upright_disk('Practice target centre',x,50.9,1.85,.24,orange)
+console('Practice start',28,42)
+box('Practice reward locker',46,51,0,2,1.5,.3,dark)
+
+# H: three sockets power the signal; the other rooms stay accessible.
+box('Generator machine',58,7,0,3.8,2.5,1.4,dark)
+for dx in [-1.15,0,1.15]: box('Empty cell socket',58+dx,6.7,1.4,.65,.9,.12,white)
+console('Generator controls',61,7)
+for x in [72,74]: box('Signal mast',x,13,3,.2,.2,3.6,dark)
+box('Signal head',73,13,6.3,3,.8,.7,teal)
+box('Signal lamp',73,12.55,6.5,1.4,.1,.22,gold)
+
+# G1 contains a reward alcove and clues at both entrances.
+for x in [24,43]: box('Maintenance cabinet',x,8,0,3,1.4,1.6,dark)
+for x,y in [(21,2),(39,2.2),(47,7.6)]: crate(x,y)
+for x in [19,49]: box('Secret entrance light',x,6.2,.8,.18,.18,.6,gold)
+
+for x,y,z in plan.COINS: upright_disk('Optional coin',x,y,z+.8,.35,gold)
+for x,y,z in plan.BLUEPRINTS:
+    box('Optional blueprint',x,y,z+.4,.95,.7,.08,blue)
+    box('Blueprint drawing',x,y,z+.485,.65,.05,.015,white)
+for x,y,z in plan.GEARS: disk('Assembly part',x,y,z+1.3,.48,orange)
+for x,y,z in plan.CELLS:
+    box('Task reward energy cell',x,y,z,.65,.65,1,teal)
+    box('Cell luminous band',x,y-.34,z+.35,.5,.06,.2,gold)
+for value,x,y in plan.LABELS: label(value,x,y,.085,3.2)
+for value,x,y,z in plan.SECRETS: label(value,x,y+1.2,z+.09,.9,white)
+label('START',7,3,.09,.75)
 
 world=bpy.data.worlds.new('Warm background');scene.world=world;world.use_nodes=True
 world.node_tree.nodes['Background'].inputs[0].default_value=(.77,.79,.75,1)
 world.node_tree.nodes['Background'].inputs[1].default_value=.65
-bpy.ops.object.light_add(type='AREA',location=(8,-14,48));bpy.context.object.data.energy=19000;bpy.context.object.data.shape='DISK';bpy.context.object.data.size=28
-bpy.context.object.rotation_euler=(Vector((22,16,0))-bpy.context.object.location).to_track_quat('-Z','Y').to_euler()
-bpy.ops.object.light_add(type='AREA',location=(42,32,35));bpy.context.object.data.energy=12000;bpy.context.object.data.size=25
-bpy.context.object.rotation_euler=(Vector((22,16,0))-bpy.context.object.location).to_track_quat('-Z','Y').to_euler()
-bpy.ops.object.camera_add(location=(63,-60,82));camera=bpy.context.object;scene.camera=camera
-camera.rotation_euler=(Vector((22,16,1))-camera.location).to_track_quat('-Z','Y').to_euler()
-camera.data.type='ORTHO';camera.data.ortho_scale=72
-scene.render.engine='CYCLES';scene.cycles.samples=32;scene.cycles.use_denoising=True
-scene.render.resolution_x=1600;scene.render.resolution_y=1100;scene.render.resolution_percentage=100
+bpy.ops.object.light_add(type='AREA',location=(18,-25,78));bpy.context.object.data.energy=40000;bpy.context.object.data.shape='DISK';bpy.context.object.data.size=45
+bpy.context.object.rotation_euler=(Vector((39,27,0))-bpy.context.object.location).to_track_quat('-Z','Y').to_euler()
+bpy.ops.object.light_add(type='AREA',location=(70,50,60));bpy.context.object.data.energy=28000;bpy.context.object.data.size=35
+bpy.context.object.rotation_euler=(Vector((39,27,0))-bpy.context.object.location).to_track_quat('-Z','Y').to_euler()
+bpy.ops.object.camera_add(location=(114,-98,137));camera=bpy.context.object;scene.camera=camera
+camera.rotation_euler=(Vector((39,27,1))-camera.location).to_track_quat('-Z','Y').to_euler()
+camera.data.type='ORTHO';camera.data.ortho_scale=118
+scene.render.engine='CYCLES';scene.cycles.samples=40;scene.cycles.use_denoising=True
+scene.render.resolution_x=2000;scene.render.resolution_y=1350;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.render.film_transparent=False
 scene.view_settings.view_transform='AgX'
 scene.render.filepath=str(OUT/'raeumlicher_entwurf.png')
 bpy.ops.wm.save_as_mainfile(filepath=str(Path(__file__).with_name('groundplate_concept.blend')))
 bpy.ops.render.render(write_still=True)
 # Second view makes passing below the elevated route easier to understand.
-camera.location=(46,-14,21)
-camera.rotation_euler=(Vector((22,15,1.6))-camera.location).to_track_quat('-Z','Y').to_euler()
-camera.data.ortho_scale=26
-scene.render.resolution_x=1400;scene.render.resolution_y=900
-scene.render.filepath=str(OUT/'unter_der_bruecke.png')
+camera.location=(78,-18,43)
+camera.rotation_euler=(Vector((35,28,1))-camera.location).to_track_quat('-Z','Y').to_euler()
+camera.data.ortho_scale=57
+scene.render.resolution_x=1600;scene.render.resolution_y=1100
+scene.render.filepath=str(OUT/'zentrale_halle.png')
 bpy.ops.render.render(write_still=True)
 print('PLANNING MODEL RENDERED',OUT)
