@@ -42,8 +42,19 @@ pub const TABLETS: [Vec3; 3] = [
     point(16., 49.5, 0.),
     point(18.5, 40., 0.),
 ];
-pub const REWARDS: [Vec3; 3] = [BENCH, point(71., 40.5, 0.), point(17., 46.5, 0.)];
+pub const PART_APPROACH: [Vec3; 2] = [point(6.7, 28., 0.), point(66., 24.4, 0.)];
+pub const CELL_ITEMS: [Vec3; 3] = [
+    point(4., 33., 1.32),
+    point(71., 42., 1.32),
+    point(17., 48., 1.32),
+];
+pub const REWARDS: [Vec3; 3] = [
+    point(2.8, 31.3, 0.),
+    point(71., 40.5, 0.),
+    point(17., 46.5, 0.),
+];
 pub const GENERATOR: Vec3 = point(61., 5.5, 0.);
 pub const SIGNAL: Vec3 = point(73., 11.8, 3.);
 pub const PRACTICE: Vec3 = point(35., 41., 0.);
+#[cfg(test)]
 pub const BOARD: Vec3 = point(4., 11.5, 0.);

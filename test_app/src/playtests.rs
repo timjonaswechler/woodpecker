@@ -156,7 +156,7 @@ fn walk(player: &mut Player, nav: &Navigation, target: Vec3) {
 fn all_task_stations_and_optional_finds_are_reachable() {
     let mut nav = level::layout();
     let mut player = Player::default();
-    for p in [map::BOARD, DATA.gears[0].into(), map::RACK] {
+    for p in [map::BOARD, map::PART_APPROACH[0], map::RACK] {
         walk(&mut player, &nav, p);
     }
     nav.obstacles
@@ -165,7 +165,7 @@ fn all_task_stations_and_optional_finds_are_reachable() {
         .unwrap()
         .center[2] -= 3.;
     nav.rebuild();
-    for p in [Vec3::from(DATA.gears[1]), map::BENCH]
+    for p in [map::PART_APPROACH[1], map::BENCH]
         .into_iter()
         .chain(map::VALVES)
         .chain(map::TABLETS)
@@ -272,7 +272,7 @@ fn cells_require_tasks_and_allow_any_order_and_partial_delivery() {
     for action in [Signal, Craft, Cell(0), Part(1), Chest] {
         mission.apply(action);
     }
-    assert!(!mission.finished && !mission.parts[1] && !mission.chest_open);
+    assert!(!mission.finished && !mission.parts[1] && !mission.chest_claimed);
     assert_eq!(mission.cells, [CellState::Locked; 3]);
     for action in [Scan(2), Scan(0), Scan(1), Cell(2), Install, Signal] {
         mission.apply(action);
@@ -339,6 +339,84 @@ fn resource_inventory_consumes_parts_and_delivered_cells() {
     mission.apply(Chest);
     mission.apply(Chest);
     assert_eq!(counts(&mission, &coins), [1, 0, 0, 1]);
+}
+
+#[test]
+fn archive_scanner_can_be_used_from_every_accessible_side() {
+    let nav = level::layout();
+    let mission = Expedition::default();
+    let center = point(4., 50., 0.);
+    for offset in [Vec3::X, Vec3::NEG_X, Vec3::Z, Vec3::NEG_Z] {
+        let position = center + offset * 1.6;
+        assert!(nav.walkable(position), "test approach must be accessible");
+        let mut player = Player::default();
+        player.respawn(position.xz(), 0.);
+        assert_eq!(
+            mission.interaction(&player, &nav, &crate::camera::ViewState::default()),
+            Interaction::Scan(0),
+            "scanner unavailable from {offset:?}"
+        );
+        let direction = (center + Vec3::Y - (player.feet() + Vec3::Y * 1.5)).normalize();
+        player.yaw = (-direction.x).atan2(-direction.z);
+        let view = crate::camera::ViewState {
+            first_person: true,
+            captured: true,
+            pitch: direction.y.asin(),
+            ..default()
+        };
+        assert_eq!(
+            mission.interaction(&player, &nav, &view),
+            Interaction::Scan(0)
+        );
+    }
+}
+
+#[test]
+fn interaction_requires_aim_reach_same_floor_and_no_wall() {
+    let mut nav = level::layout();
+    let mut mission = Expedition::default();
+    let mut player = Player::default();
+    player.respawn(point(4., 48.4, 0.).xz(), 0.);
+    let mut view = crate::camera::ViewState {
+        first_person: true,
+        captured: true,
+        pitch: -0.3,
+        ..default()
+    };
+    assert_eq!(
+        mission.interaction(&player, &nav, &view),
+        Interaction::Scan(0)
+    );
+    player.yaw = std::f32::consts::PI;
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    player.yaw = 0.;
+    player.height = 3.;
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    player.height = 0.;
+    player.position = point(4., 46., 0.).xz();
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    player.position = point(4., 48.4, 0.).xz();
+    view.captured = false;
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    view.captured = true;
+    nav.obstacles.push(crate::navigation::Obstacle {
+        name: "test wall".into(),
+        center: point(4., 49.2, 1.5).to_array(),
+        half: [2., 1.5, 0.10],
+    });
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    nav.obstacles.pop();
+    mission.apply(Interaction::Scan(0));
+    assert_eq!(
+        mission.interaction(&player, &nav, &view),
+        Interaction::None,
+        "used scanner must not offer the same action again"
+    );
+    mission = Expedition::default();
+    assert_eq!(
+        mission.interaction(&player, &nav, &view),
+        Interaction::Scan(0)
+    );
 }
 
 #[test]

@@ -352,18 +352,31 @@ pub fn spawn_ui(
             p.spawn((text("", 14.0, INK), Label::Controls));
         });
     commands
-        .spawn((panel(), HudPanel, InteractionPrompt))
-        .insert(Node {
-            position_type: PositionType::Absolute,
-            left: percent(36),
-            right: px(24),
-            bottom: px(106),
-            padding: px(16).all(),
-            border_radius: BorderRadius::all(px(10)),
-            ..default()
-        })
+        .spawn((
+            HudPanel,
+            InteractionPrompt,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: percent(50),
+                margin: px(32).top(),
+                justify_content: JustifyContent::Center,
+                ..default()
+            },
+        ))
         .with_children(|p| {
-            p.spawn((text("", 16.0, TEAL), Label::Interaction));
+            p.spawn((
+                Node {
+                    padding: UiRect::axes(px(16), px(10)),
+                    border_radius: BorderRadius::all(px(8)),
+                    ..default()
+                },
+                BackgroundColor(PANEL),
+            ))
+            .with_children(|p| {
+                p.spawn((text("", 18.0, INK), Label::Interaction));
+            });
         });
     commands
         .spawn((
@@ -513,6 +526,8 @@ pub fn update_ui(
     practice: Res<Practice>,
     expedition: Res<Expedition>,
     nav: Res<crate::navigation::Navigation>,
+    focus: Res<InputFocus>,
+    inputs: Query<(), With<EditableText>>,
     mut labels: Query<(&Label, &mut Text)>,
     mut nodes: Query<(
         &mut Node,
@@ -535,13 +550,21 @@ pub fn update_ui(
     if scale.0 != desired_scale {
         scale.0 = desired_scale;
     }
+    let interaction = if ui.menu
+        || !window.focused
+        || focus.get().is_some_and(|entity| inputs.contains(entity))
+    {
+        crate::expedition::Interaction::None
+    } else {
+        expedition.interaction(&player, &nav, &view)
+    };
     for (label, mut value) in &mut labels {
         let new = match label {
             Label::Title => if expedition.finished { "Signal aktiv".into() }
                 else {crate::blueprint::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
             Label::Resource(kind) => kind.count(&run, &expedition).to_string(),
             Label::Objective => expedition.objective().into(),
-            Label::Interaction => expedition.interaction(&player,&nav).prompt().into(),
+            Label::Interaction => interaction.prompt().into(),
             Label::Crosshair => if practice.hit_flash > 0.0 { "×" } else { "+" }.into(),
             Label::Range => if shooting::in_range(player.position) {
                 if expedition.practice_reward { "Bauplan-Truhe entriegelt · hinten rechts".into() }
@@ -608,12 +631,22 @@ pub fn update_ui(
                 Display::None
             };
         }
+        if prompt {
+            node.top = if view.first_person {
+                percent(50)
+            } else {
+                Val::Auto
+            };
+            node.bottom = if view.first_person {
+                Val::Auto
+            } else {
+                px(110)
+            };
+        }
         if hud {
             node.display = if ui.menu
                 || (interactive && view.first_person && view.captured)
-                || (prompt
-                    && expedition.interaction(&player, &nav)
-                        == crate::expedition::Interaction::None)
+                || (prompt && interaction == crate::expedition::Interaction::None)
             {
                 Display::None
             } else {

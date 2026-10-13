@@ -4,6 +4,7 @@ mod coins;
 mod course;
 mod expedition;
 mod game;
+mod interactions;
 mod items;
 mod level;
 mod navigation;
@@ -14,13 +15,19 @@ mod scenery;
 mod settings;
 mod shooting;
 mod smoke;
+mod stations;
 mod ui;
+mod zoo;
 
 use bevy::{
     input_focus::tab_navigation::TabNavigationPlugin, prelude::*, window::WindowResolution,
 };
 
 fn main() {
+    if std::env::args().any(|arg| arg == "--zoo") {
+        zoo::run();
+        return;
+    }
     let smoke_test = std::env::args().any(|arg| arg == "--smoke-test");
     let offscreen = smoke_test && std::env::args().any(|arg| arg == "--offscreen");
     let mut app = App::new();
@@ -71,6 +78,7 @@ fn main() {
             (
                 level::spawn_level,
                 course::spawn_course,
+                stations::spawn_stations,
                 shooting::spawn_range,
                 ui::spawn_ui,
             ),
@@ -89,6 +97,7 @@ fn main() {
                     game::keyboard_shortcuts,
                     game::handle_actions,
                     course::update_course,
+                    stations::update_stations,
                 )
                     .chain(),
                 (

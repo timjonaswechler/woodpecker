@@ -78,8 +78,10 @@ pub fn handle_actions(
                 if !load.is_ready() || ui.menu {
                     continue;
                 }
-                let action = expedition.interaction(&player, &nav);
-                ui.status = expedition.apply(action);
+                let action = expedition.interaction(&player, &nav, &view);
+                if action != crate::expedition::Interaction::None {
+                    ui.status = expedition.apply(action);
+                }
             }
             Action::Checkpoint => {
                 let p = if expedition.checkpoint {

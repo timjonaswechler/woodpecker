@@ -172,6 +172,7 @@ pub fn spawn_range(
             tracked: &mut tracked,
             meshes: &mut meshes,
             materials: &mut materials,
+            parent: None,
         };
         for center in TARGETS {
             scene.item(

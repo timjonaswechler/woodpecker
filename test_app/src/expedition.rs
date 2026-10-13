@@ -28,7 +28,7 @@ pub struct Expedition {
     pub secrets: [bool; 3],
     pub rack_open: bool,
     pub practice_reward: bool,
-    pub chest_open: bool,
+    pub chest_claimed: bool,
     pub checkpoint: bool,
     pub elapsed: f32,
     pub finished: bool,
@@ -46,7 +46,6 @@ pub enum Interaction {
     Chest,
     Checkpoint,
     Board,
-    Locked(&'static str),
     None,
 }
 impl Interaction {
@@ -59,12 +58,11 @@ impl Interaction {
             Self::Craft => "E · Aus zwei Bauteilen eine Energiezelle bauen",
             Self::Cell(_) => "E · Energiezelle ins Inventar nehmen",
             Self::Install => "E · Gesammelte Energiezellen in den Generator einsetzen",
-            Self::Signal => "E · Signal starten und Auftrag abschließen",
-            Self::Chest => "E · Belohnungstruhe öffnen",
+            Self::Signal => "E · Sendemast einschalten",
+            Self::Chest => "E · Bauplan aus der Truhe nehmen",
             Self::Checkpoint => "E · Checkpoint aktivieren",
             Self::Board => "E · Auftrag lesen",
-            Self::Locked(message) => message,
-            Self::None => "E bedient Stationen in deiner Nähe.",
+            Self::None => "",
         }
     }
 }
@@ -103,68 +101,49 @@ impl Expedition {
     pub fn blueprint_count(&self) -> usize {
         self.blueprints.iter().filter(|&&v| v).count()
     }
-    pub fn interaction(&self, player: &Player, nav: &Navigation) -> Interaction {
-        for (i, p) in DATA.gears.into_iter().map(Vec3::from).enumerate() {
-            if !self.parts[i] && (i == 0 || self.rack_open) && near(player, p, nav) {
-                return Interaction::Part(i);
+    pub fn available(&self, action: Interaction) -> bool {
+        match action {
+            Interaction::Part(i) => self.parts.get(i) == Some(&false) && (i == 0 || self.rack_open),
+            Interaction::Rack => !self.rack_open,
+            Interaction::Valve(i) => self.valves.get(i) == Some(&false),
+            Interaction::Scan(i) => self.scans.get(i) == Some(&false),
+            Interaction::Craft => {
+                self.parts.iter().all(|&v| v) && self.cells[0] == CellState::Locked
             }
+            Interaction::Cell(i) => self.cells.get(i) == Some(&CellState::Available),
+            Interaction::Install => self.carried_cells() > 0,
+            Interaction::Signal => !self.finished && self.installed_cells() == 3,
+            Interaction::Chest => self.practice_reward && !self.chest_claimed,
+            Interaction::Checkpoint => !self.checkpoint,
+            Interaction::Board => true,
+            Interaction::None => false,
         }
-        for (i, &p) in map::REWARDS.iter().enumerate() {
-            if self.cells[i] == CellState::Available && near(player, p, nav) {
-                return Interaction::Cell(i);
+    }
+    pub fn completed(&self, action: Interaction) -> bool {
+        match action {
+            Interaction::Part(i) => self.parts[i],
+            Interaction::Rack => self.rack_open,
+            Interaction::Valve(i) => self.valves[i],
+            Interaction::Scan(i) => self.scans[i],
+            Interaction::Craft => self.cells[0] != CellState::Locked,
+            Interaction::Cell(i) => {
+                matches!(self.cells[i], CellState::Carried | CellState::Installed)
             }
+            Interaction::Install => self.installed_cells() == 3,
+            Interaction::Signal => self.finished,
+            Interaction::Chest => self.chest_claimed,
+            Interaction::Checkpoint => self.checkpoint,
+            Interaction::Board | Interaction::None => false,
         }
-        if near(player, map::BENCH, nav) && self.cells[0] == CellState::Locked {
-            return if self.parts.iter().all(|&v| v) {
-                Interaction::Craft
-            } else {
-                Interaction::Locked("Werkbank: Finde je ein Bauteil in B und D.")
-            };
-        }
-        if near(player, map::RACK, nav) && !self.rack_open {
-            return Interaction::Rack;
-        }
-        for (i, p) in map::VALVES.into_iter().enumerate() {
-            if !self.valves[i] && near(player, p, nav) {
-                return Interaction::Valve(i);
-            }
-        }
-        for (i, p) in map::TABLETS.into_iter().enumerate() {
-            if !self.scans[i] && near(player, p, nav) {
-                return Interaction::Scan(i);
-            }
-        }
-        if near(player, map::GENERATOR, nav) {
-            return if self.cells.contains(&CellState::Carried) {
-                Interaction::Install
-            } else {
-                Interaction::Locked("Generator: Setze die drei Zellen aus B, E und F ein.")
-            };
-        }
-        if !self.finished && near(player, map::SIGNAL, nav) {
-            return if self.installed_cells() == 3 {
-                Interaction::Signal
-            } else {
-                Interaction::Locked("Dem Signal fehlen noch Energiezellen im Generator unten.")
-            };
-        }
-        if !self.chest_open && near(player, map::point(46., 49.5, 0.), nav) {
-            return if self.practice_reward {
-                Interaction::Chest
-            } else {
-                Interaction::Locked("Truhe: Triff jede Scheibe aus mindestens 6 m Entfernung.")
-            };
-        }
-        if !self.checkpoint && near(player, map::CHECKPOINT, nav) {
-            return Interaction::Checkpoint;
-        }
-        if near(player, map::BOARD, nav) {
-            return Interaction::Board;
-        }
-        Interaction::None
+    }
+    pub fn interaction(&self, player: &Player, nav: &Navigation, view: &ViewState) -> Interaction {
+        crate::interactions::select(self, player, nav, view)
     }
     /// State transitions enforce prerequisites even outside the UI dispatcher.
     pub fn apply(&mut self, action: Interaction) -> String {
+        if !self.available(action) {
+            return "Hier gibt es gerade nichts zu tun.".into();
+        }
         match action {
             Interaction::Part(i) if i < 2 && !self.parts[i] && (i == 0 || self.rack_open) => {
                 self.parts[i] = true;
@@ -187,7 +166,7 @@ impl Expedition {
                 self.scans[i] = true;
                 if self.scans.iter().all(|&v| v) {
                     self.cells[2] = CellState::Available;
-                    "Archiv vollständig. Am Terminal liegt eine Energiezelle bereit.".into()
+                    "Archiv vollständig. Auf dem Ausgabetisch liegt eine Energiezelle bereit.".into()
                 } else {
                     "Tafel gescannt. Suche nach weiteren markierten Tafeln.".into()
                 }
@@ -196,7 +175,7 @@ impl Expedition {
                 if self.parts.iter().all(|&v| v) && self.cells[0] == CellState::Locked =>
             {
                 self.cells[0] = CellState::Available;
-                "Zelle gebaut. Drücke E, um sie mitzunehmen.".into()
+                "Zelle gebaut. Sie liegt links auf dem Montagetisch bereit.".into()
             }
             Interaction::Cell(i) if self.cells.get(i) == Some(&CellState::Available) => {
                 self.cells[i] = CellState::Carried;
@@ -215,32 +194,34 @@ impl Expedition {
                 "Signal aktiv! Auftrag geschafft. Die übrigen Fundstücke bleiben erreichbar.".into()
             }
             Interaction::Chest if self.practice_reward => {
-                self.chest_open = true;
+                self.chest_claimed = true;
                 self.blueprints[5] = true;
-                "Truhe geöffnet. Ein weiterer Bauplan gehört dir.".into()
+                "Bauplan aus der Truhe genommen.".into()
             }
             Interaction::Checkpoint => {
                 self.checkpoint = true;
                 "Checkpoint gesetzt. Backspace bringt dich hierher zurück.".into()
             }
             Interaction::Board => "Drei Zellen starten das Signal: Bauteile in B und D, Ventile in E, Archivtafeln in F. Die Reihenfolge ist frei.".into(),
-            Interaction::Locked(message) => message.into(),
             _ => "Hier gibt es gerade nichts zu tun.".into(),
         }
     }
     pub fn destination(&self) -> Vec3 {
         if !self.parts[0] {
-            return DATA.gears[0].into();
+            return map::PART_APPROACH[0];
         }
         if !self.parts[1] {
             return if self.rack_open {
-                DATA.gears[1].into()
+                map::PART_APPROACH[1]
             } else {
                 map::RACK
             };
         }
-        if matches!(self.cells[0], CellState::Locked | CellState::Available) {
+        if self.cells[0] == CellState::Locked {
             return map::BENCH;
+        }
+        if self.cells[0] == CellState::Available {
+            return map::REWARDS[0];
         }
         if let Some(i) = self.valves.iter().position(|&v| !v) {
             return map::VALVES[i];
@@ -279,7 +260,7 @@ impl Expedition {
         } else if !self.scans.iter().all(|&v| v) {
             "Scanne die drei markierten Tafeln im Archiv F."
         } else if self.cells[2] == CellState::Available {
-            "Hole die Energiezelle am Archivterminal ab."
+            "Nimm die Energiezelle vom Ausgabetisch im Archiv."
         } else if self.installed_cells() < 3 {
             "Setze deine Energiezellen in den Generator im Raum H ein."
         } else {

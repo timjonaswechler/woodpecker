@@ -1,4 +1,5 @@
 //! Optional rendered integration check. Exercises the same systems as normal gameplay.
+mod stations;
 use crate::{
     blueprint::{self as map, DATA},
     camera::{GameCamera, ViewState},
@@ -140,6 +141,13 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         *world.resource::<LevelLoad>() != LevelLoad::Failed,
         "asset loading failed"
     );
+    if test.stage >= 100 {
+        if stations::step(world, test.stage, test.frames) {
+            test.stage += 1;
+            test.frames = 0;
+        }
+        return;
+    }
     let next = match test.stage {
         0 if world.resource::<LevelLoad>().is_ready()
             && test.frames > 90
@@ -149,6 +157,20 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 world.query::<&Mesh3d>().iter(world).count() > 100,
                 "glTF scenes must instantiate"
             );
+            if std::env::args().any(|arg| arg == "--smoke-stations") {
+                world
+                    .resource_mut::<Player>()
+                    .respawn(map::point(4., 51.6, 0.).xz(), 0.);
+                *world.resource_mut::<ViewState>() = ViewState {
+                    first_person: true,
+                    captured: true,
+                    ..default()
+                };
+                aim_at(world, map::point(4., 50., 1.));
+                test.stage = 100;
+                test.frames = 0;
+                return;
+            }
             if std::env::args().any(|arg| arg == "--smoke-range") {
                 world
                     .resource_mut::<Player>()

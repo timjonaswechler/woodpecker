@@ -119,14 +119,13 @@ impl Scenery<'_, '_, '_> {
                 .entity(part)
                 .insert(crate::shooting::ShotIgnore);
         }
-        self.commands
-            .spawn((
-                Name::new(kind.label()),
-                transform,
-                Visibility::Inherited,
-                crate::shooting::ShotIgnore,
-            ))
-            .add_children(&parts)
-            .id()
+        let root = self.spawn((
+            Name::new(kind.label()),
+            transform,
+            Visibility::Inherited,
+            crate::shooting::ShotIgnore,
+        ));
+        self.commands.entity(root).add_children(&parts);
+        root
     }
 }

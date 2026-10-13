@@ -24,7 +24,13 @@ pub fn ground(point: Vec2, height: f32) -> Vec3 {
     Vec3::new(point.x, height, point.y)
 }
 pub fn layout() -> Navigation {
-    let mut obstacles = blueprint::DATA.obstacles.clone();
+    let mut obstacles: Vec<_> = blueprint::DATA
+        .obstacles
+        .iter()
+        .filter(|o| !crate::stations::replaces(&o.name))
+        .cloned()
+        .collect();
+    obstacles.extend(crate::stations::colliders());
     for (i, center) in crate::shooting::TARGETS.into_iter().enumerate() {
         for (size, position) in crate::shooting::stand_boxes(center) {
             obstacles.push(crate::navigation::Obstacle {
@@ -34,11 +40,6 @@ pub fn layout() -> Navigation {
             });
         }
     }
-    obstacles.push(crate::navigation::Obstacle {
-        name: "Blueprint reward chest".into(),
-        center: crate::course::CHEST_CENTER.to_array(),
-        half: (crate::course::CHEST_SIZE * 0.5).to_array(),
-    });
     Navigation::new(
         blueprint::DATA.surfaces.clone(),
         obstacles,
@@ -60,6 +61,7 @@ pub fn spawn_level(
         tracked: &mut tracked,
         meshes: &mut meshes,
         materials: &mut materials,
+        parent: None,
     };
     scene.model(
         "custom/courtyard/courtyard.glb".into(),
