@@ -1,229 +1,374 @@
+//! Height-aware walking, body collision and A* for overlapping floors.
 use bevy::prelude::*;
+use serde::Deserialize;
 use std::{
     cmp::Reverse,
-    collections::{BinaryHeap, VecDeque},
+    collections::{BinaryHeap, HashMap, VecDeque},
+    sync::OnceLock,
 };
 
-pub const ARENA_HALF: f32 = 14.0;
-pub const PLAYER_RADIUS: f32 = 0.38;
-const STEP: f32 = 0.5;
-const WIDTH: usize = 55;
-const HEIGHT: usize = 79;
-const ORIGIN: Vec2 = Vec2::new(-13.5, -25.5);
+pub const BODY_HALF: f32 = 0.60;
+pub const BODY_HEIGHT: f32 = 1.82;
+pub const STEP_HEIGHT: f32 = 0.3;
+const GRID: f32 = 0.5;
+const BIN: f32 = 2.0;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Obstacle {
-    pub center: Vec2,
-    pub half: Vec2,
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct Surface {
+    pub center: [f32; 2],
+    pub half: [f32; 2],
+    pub height: f32,
+    pub bottom: f32,
 }
-
+impl Surface {
+    pub fn contains(&self, p: Vec2) -> bool {
+        (p - Vec2::from(self.center))
+            .abs()
+            .cmple(Vec2::from(self.half) + Vec2::splat(0.0001))
+            .all()
+    }
+    fn overlaps_body(&self, p: Vec2) -> bool {
+        (p - Vec2::from(self.center))
+            .abs()
+            .cmplt(Vec2::from(self.half) + Vec2::splat(BODY_HALF - 0.001))
+            .all()
+    }
+}
+#[derive(Clone, Debug, Deserialize)]
+pub struct Obstacle {
+    pub name: String,
+    pub center: [f32; 3],
+    pub half: [f32; 3],
+}
+impl Obstacle {
+    fn overlaps(&self, p: Vec2) -> bool {
+        let c = Vec3::from(self.center).xz();
+        let h = Vec3::from(self.half).xz();
+        (p - c)
+            .abs()
+            .cmplt(h + Vec2::splat(BODY_HALF - 0.001))
+            .all()
+    }
+}
+#[derive(Default)]
+struct Bin {
+    surfaces: Vec<usize>,
+    obstacles: Vec<usize>,
+}
+#[derive(Default)]
+struct Graph {
+    nodes: Vec<Vec3>,
+    edges: Vec<Vec<(usize, u32)>>,
+    cells: Vec<Vec<usize>>,
+    width: usize,
+    depth: usize,
+    origin: Vec2,
+}
 #[derive(Resource)]
 pub struct Navigation {
+    pub surfaces: Vec<Surface>,
     pub obstacles: Vec<Obstacle>,
     pub min: Vec2,
     pub max: Vec2,
+    bins: HashMap<(i32, i32), Bin>,
+    graph: OnceLock<Graph>,
 }
-
 impl Default for Navigation {
     fn default() -> Self {
-        Self {
-            obstacles: Vec::new(),
-            min: Vec2::splat(-ARENA_HALF),
-            max: Vec2::splat(ARENA_HALF),
-        }
+        Self::new(Vec::new(), Vec::new(), Vec2::splat(-39.), Vec2::splat(39.))
     }
 }
-
 impl Navigation {
-    pub fn add(&mut self, center: Vec2, half: Vec2) {
-        self.obstacles.push(Obstacle { center, half });
+    pub fn new(surfaces: Vec<Surface>, obstacles: Vec<Obstacle>, min: Vec2, max: Vec2) -> Self {
+        let mut nav = Self {
+            surfaces,
+            obstacles,
+            min,
+            max,
+            bins: HashMap::new(),
+            graph: OnceLock::new(),
+        };
+        nav.rebuild();
+        nav
     }
-
-    pub fn walkable(&self, point: Vec2) -> bool {
-        point.is_finite()
-            && point
-                .cmpgt(self.min + Vec2::splat(0.3 + PLAYER_RADIUS))
-                .all()
-            && point
-                .cmplt(self.max - Vec2::splat(0.3 + PLAYER_RADIUS))
-                .all()
-            && self.obstacles.iter().all(|o| {
-                let nearest = point.clamp(o.center - o.half, o.center + o.half);
-                point.distance_squared(nearest) > PLAYER_RADIUS * PLAYER_RADIUS
-            })
+    fn bin(p: Vec2) -> (i32, i32) {
+        ((p.x / BIN).floor() as i32, (p.y / BIN).floor() as i32)
     }
-
-    pub fn clear_segment(&self, a: Vec2, b: Vec2) -> bool {
-        let samples = (a.distance(b) / 0.08).ceil() as usize;
-        (0..=samples.max(1)).all(|i| self.walkable(a.lerp(b, i as f32 / samples.max(1) as f32)))
-    }
-
-    /// Resolve each small movement step separately, so sprinting cannot tunnel through walls.
-    pub fn move_and_slide(&self, position: Vec2, delta: Vec2) -> Vec2 {
-        let steps = (delta.length() / 0.1).ceil().max(1.0) as usize;
-        let step = delta / steps as f32;
-        let mut point = position;
-        for _ in 0..steps {
-            if self.walkable(point + step) {
-                point += step;
-            } else {
-                if self.walkable(point + Vec2::new(step.x, 0.0)) {
-                    point.x += step.x;
-                }
-                if self.walkable(point + Vec2::new(0.0, step.y)) {
-                    point.y += step.y;
+    pub fn rebuild(&mut self) {
+        self.bins.clear();
+        self.graph.take();
+        for (i, s) in self.surfaces.iter().enumerate() {
+            let lo = Self::bin(Vec2::from(s.center) - Vec2::from(s.half) - Vec2::splat(BODY_HALF));
+            let hi = Self::bin(Vec2::from(s.center) + Vec2::from(s.half) + Vec2::splat(BODY_HALF));
+            for y in lo.1..=hi.1 {
+                for x in lo.0..=hi.0 {
+                    self.bins.entry((x, y)).or_default().surfaces.push(i);
                 }
             }
         }
-        point
+        for (i, o) in self.obstacles.iter().enumerate() {
+            let c = Vec3::from(o.center).xz();
+            let h = Vec3::from(o.half).xz() + Vec2::splat(BODY_HALF);
+            let lo = Self::bin(c - h);
+            let hi = Self::bin(c + h);
+            for y in lo.1..=hi.1 {
+                for x in lo.0..=hi.0 {
+                    self.bins.entry((x, y)).or_default().obstacles.push(i);
+                }
+            }
+        }
     }
-
-    fn point(index: usize) -> Vec2 {
-        Vec2::new((index % WIDTH) as f32, (index / WIDTH) as f32) * STEP + ORIGIN
+    fn surfaces_at(&self, p: Vec2) -> impl Iterator<Item = &Surface> {
+        self.bins
+            .get(&Self::bin(p))
+            .into_iter()
+            .flat_map(|b| b.surfaces.iter())
+            .map(|&i| &self.surfaces[i])
+            .filter(move |s| s.overlaps_body(p))
     }
-
-    // Connect off-grid endpoints only to cells that can actually be reached without clipping.
-    fn anchor(&self, point: Vec2) -> Option<usize> {
-        (0..WIDTH * HEIGHT)
-            .filter(|&i| Self::point(i).distance_squared(point) < 2.0)
-            .filter(|&i| self.clear_segment(point, Self::point(i)))
-            .min_by(|&a, &b| {
-                Self::point(a)
-                    .distance_squared(point)
-                    .total_cmp(&Self::point(b).distance_squared(point))
+    fn obstacles_at(&self, p: Vec2) -> impl Iterator<Item = &Obstacle> {
+        self.bins
+            .get(&Self::bin(p))
+            .into_iter()
+            .flat_map(|b| b.obstacles.iter())
+            .map(|&i| &self.obstacles[i])
+            .filter(move |o| o.overlaps(p))
+    }
+    /// The highest support BELOW the feet, not the highest floor in the room.
+    pub fn support(&self, p: Vec2, maximum: f32) -> f32 {
+        self.surfaces_at(p)
+            .filter(|s| s.height <= maximum + 0.001)
+            .map(|s| s.height)
+            .chain(
+                self.obstacles_at(p)
+                    .map(|o| o.center[1] + o.half[1])
+                    .filter(|&top| top <= maximum + 0.001),
+            )
+            .fold(0., f32::max)
+    }
+    pub fn ceiling(&self, p: Vec2, head: f32) -> f32 {
+        self.surfaces_at(p)
+            .map(|s| s.bottom)
+            .chain(self.obstacles_at(p).map(|o| o.center[1] - o.half[1]))
+            .filter(|&bottom| bottom >= head - 0.01)
+            .fold(f32::INFINITY, f32::min)
+    }
+    pub fn can_occupy(&self, p: Vec3) -> bool {
+        p.is_finite()
+            && p.xz().cmpgt(self.min + Vec2::splat(BODY_HALF)).all()
+            && p.xz().cmplt(self.max - Vec2::splat(BODY_HALF)).all()
+            && !self.obstacles_at(p.xz()).any(|o| {
+                o.center[1] + o.half[1] > p.y + 0.02
+                    && o.center[1] - o.half[1] < p.y + BODY_HEIGHT - 0.02
             })
+            && !self
+                .surfaces_at(p.xz())
+                .any(|s| s.height > p.y + 0.02 && s.bottom < p.y + BODY_HEIGHT - 0.02)
     }
-
-    /// A* on an eight-connected grid, followed by collision-checked line-of-sight smoothing.
-    pub fn path(&self, start: Vec2, goal: Vec2) -> Option<VecDeque<Vec2>> {
+    pub fn walkable(&self, p: Vec3) -> bool {
+        self.can_occupy(p) && (self.support(p.xz(), p.y + 0.02) - p.y).abs() < 0.025
+    }
+    pub fn pick(&self, ray: Ray3d) -> Option<Vec3> {
+        self.surfaces
+            .iter()
+            .map(|s| s.height)
+            .chain([0.])
+            .filter_map(|height| {
+                let d = ray.intersect_plane(Vec3::Y * height, InfinitePlane3d::new(Vec3::Y))?;
+                let mut p = ray.get_point(d);
+                p.y = height;
+                let on_floor = height == 0.
+                    || self
+                        .surfaces_at(p.xz())
+                        .any(|s| s.contains(p.xz()) && (s.height - height).abs() < 0.001);
+                (on_floor && p.xz().cmpge(self.min).all() && p.xz().cmple(self.max).all())
+                    .then_some((d, p))
+            })
+            .min_by(|a, b| a.0.total_cmp(&b.0))
+            .map(|(_, p)| p)
+    }
+    pub fn clear_segment(&self, a: Vec3, b: Vec3) -> bool {
+        if !self.walkable(a) || !self.walkable(b) {
+            return false;
+        }
+        let n = (a.xz().distance(b.xz()) / 0.12).ceil().max(1.) as usize;
+        let mut height = a.y;
+        for i in 1..=n {
+            let p = a.xz().lerp(b.xz(), i as f32 / n as f32);
+            let next = self.support(p, height + STEP_HEIGHT);
+            if (next - height).abs() > STEP_HEIGHT + 0.001
+                || !self.can_occupy(Vec3::new(p.x, next, p.y))
+            {
+                return false;
+            }
+            height = next;
+        }
+        (height - b.y).abs() < 0.025
+    }
+    /// Small body sweeps prevent sprint tunnelling and slide along walls.
+    pub fn move_body(&self, from: Vec3, delta: Vec2, stairs: bool) -> Vec3 {
+        let n = (delta.length() / 0.08).ceil().max(1.) as usize;
+        let step = delta / n as f32;
+        let mut p = from;
+        for _ in 0..n {
+            let enter = |d: Vec2, p: Vec3| {
+                let v = p.xz() + d;
+                let support = self.support(v, p.y + if stairs { STEP_HEIGHT } else { 0.001 });
+                let h = if stairs && (support - p.y).abs() <= STEP_HEIGHT + 0.001 {
+                    support
+                } else {
+                    p.y
+                };
+                let next = Vec3::new(v.x, h, v.y);
+                self.can_occupy(next).then_some(next)
+            };
+            if let Some(next) = enter(step, p) {
+                p = next;
+            } else {
+                if let Some(next) = enter(Vec2::new(step.x, 0.), p) {
+                    p = next;
+                }
+                if let Some(next) = enter(Vec2::new(0., step.y), p) {
+                    p = next;
+                }
+            }
+        }
+        p
+    }
+    fn build_graph(&self) -> Graph {
+        let origin = self.min + Vec2::splat(GRID);
+        let width = ((self.max.x - origin.x) / GRID).ceil() as usize;
+        let depth = ((self.max.y - origin.y) / GRID).ceil() as usize;
+        let mut g = Graph {
+            origin,
+            width,
+            depth,
+            cells: vec![Vec::new(); width * depth],
+            ..default()
+        };
+        for z in 0..depth {
+            for x in 0..width {
+                let p = origin + Vec2::new(x as f32, z as f32) * GRID;
+                let mut levels = vec![0.];
+                levels.extend(self.surfaces_at(p).map(|s| s.height));
+                levels.sort_by(f32::total_cmp);
+                levels.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+                for y in levels {
+                    let node = Vec3::new(p.x, y, p.y);
+                    if self.walkable(node) {
+                        g.cells[z * width + x].push(g.nodes.len());
+                        g.nodes.push(node);
+                    }
+                }
+            }
+        }
+        g.edges = vec![Vec::new(); g.nodes.len()];
+        for z in 0..depth {
+            for x in 0..width {
+                for &a in &g.cells[z * width + x] {
+                    for dz in -1..=1 {
+                        for dx in -1..=1 {
+                            if dx == 0 && dz == 0 {
+                                continue;
+                            }
+                            let nx = x as i32 + dx;
+                            let nz = z as i32 + dz;
+                            if nx < 0 || nz < 0 || nx >= width as i32 || nz >= depth as i32 {
+                                continue;
+                            }
+                            for &b in &g.cells[nz as usize * width + nx as usize] {
+                                if (g.nodes[a].y - g.nodes[b].y).abs() <= STEP_HEIGHT + 0.001
+                                    && self.clear_segment(g.nodes[a], g.nodes[b])
+                                {
+                                    g.edges[a].push((b, if dx != 0 && dz != 0 { 14 } else { 10 }));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        g
+    }
+    fn anchor(&self, g: &Graph, p: Vec3) -> Option<usize> {
+        let cell = ((p.xz() - g.origin) / GRID).round().as_ivec2();
+        let mut best = None;
+        let mut distance = f32::INFINITY;
+        for z in cell.y - 2..=cell.y + 2 {
+            for x in cell.x - 2..=cell.x + 2 {
+                if x < 0 || z < 0 || x >= g.width as i32 || z >= g.depth as i32 {
+                    continue;
+                }
+                for &i in &g.cells[z as usize * g.width + x as usize] {
+                    let d = p.distance_squared(g.nodes[i]);
+                    if d < distance && d < 1.5 && self.clear_segment(p, g.nodes[i]) {
+                        best = Some(i);
+                        distance = d;
+                    }
+                }
+            }
+        }
+        best
+    }
+    pub fn path(&self, start: Vec3, goal: Vec3) -> Option<VecDeque<Vec3>> {
         if !self.walkable(start) || !self.walkable(goal) {
             return None;
         }
         if self.clear_segment(start, goal) {
             return Some(VecDeque::from([goal]));
         }
-        let start_cell = self.anchor(start)?;
-        let goal_cell = self.anchor(goal)?;
-        let mut costs = vec![u32::MAX; WIDTH * HEIGHT];
-        let mut parents = vec![usize::MAX; WIDTH * HEIGHT];
-        let mut open = BinaryHeap::new();
-        let heuristic = |index: usize| {
-            let dx = (index % WIDTH).abs_diff(goal_cell % WIDTH) as u32;
-            let dy = (index / WIDTH).abs_diff(goal_cell / WIDTH) as u32;
-            10 * dx.max(dy) + 4 * dx.min(dy)
+        let g = self.graph.get_or_init(|| self.build_graph());
+        let first = self.anchor(g, start)?;
+        let last = self.anchor(g, goal)?;
+        let heuristic = |i: usize| {
+            let d = (g.nodes[i].xz() - g.nodes[last].xz()).abs() / GRID;
+            (14. * d.min_element() + 10. * (d.max_element() - d.min_element())) as u32
         };
-        costs[start_cell] = 0;
-        open.push(Reverse((heuristic(start_cell), 0, start_cell)));
-        while let Some(Reverse((_, cost, current))) = open.pop() {
-            if cost != costs[current] {
+        let mut costs = vec![u32::MAX; g.nodes.len()];
+        let mut parent = vec![usize::MAX; g.nodes.len()];
+        let mut open = BinaryHeap::new();
+        costs[first] = 0;
+        open.push(Reverse((heuristic(first), 0, first)));
+        while let Some(Reverse((_, cost, a))) = open.pop() {
+            if costs[a] != cost {
                 continue;
             }
-            if current == goal_cell {
-                let mut reversed = vec![goal];
-                let mut cell = current;
+            if a == last {
+                let mut points = vec![goal];
+                let mut at = a;
                 loop {
-                    reversed.push(Self::point(cell));
-                    if cell == start_cell {
+                    points.push(g.nodes[at]);
+                    if at == first {
                         break;
                     }
-                    cell = parents[cell];
+                    at = parent[at];
                 }
-                reversed.reverse();
+                points.reverse();
                 let mut route = VecDeque::new();
                 let mut from = start;
-                let mut index = 0;
-                while index < reversed.len() {
-                    let mut furthest = index;
-                    for (candidate, &point) in reversed.iter().enumerate().skip(index + 1) {
+                let mut i = 0;
+                while i < points.len() {
+                    let mut far = i;
+                    for (j, &point) in points.iter().enumerate().skip(i + 1) {
                         if self.clear_segment(from, point) {
-                            furthest = candidate;
+                            far = j;
                         }
                     }
-                    from = reversed[furthest];
+                    from = points[far];
                     route.push_back(from);
-                    index = furthest + 1;
+                    i = far + 1;
                 }
                 return Some(route);
             }
-            let x = (current % WIDTH) as i32;
-            let y = (current / WIDTH) as i32;
-            for dy in -1..=1 {
-                for dx in -1..=1 {
-                    if dx == 0 && dy == 0 {
-                        continue;
-                    }
-                    let (nx, ny) = (x + dx, y + dy);
-                    if !(0..WIDTH as i32).contains(&nx) || !(0..HEIGHT as i32).contains(&ny) {
-                        continue;
-                    }
-                    let next = ny as usize * WIDTH + nx as usize;
-                    let candidate = cost + if dx != 0 && dy != 0 { 14 } else { 10 };
-                    if candidate < costs[next]
-                        && self.clear_segment(Self::point(current), Self::point(next))
-                    {
-                        costs[next] = candidate;
-                        parents[next] = current;
-                        open.push(Reverse((candidate + heuristic(next), candidate, next)));
-                    }
+            for &(b, step) in &g.edges[a] {
+                let next = cost + step;
+                if next < costs[b] {
+                    costs[b] = next;
+                    parent[b] = a;
+                    open.push(Reverse((next + heuristic(b), next, b)));
                 }
             }
         }
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn route_around_wall_is_clear_including_off_grid_endpoints() {
-        let mut nav = Navigation::default();
-        nav.add(Vec2::ZERO, Vec2::new(0.3, 3.0));
-        let start = Vec2::new(-3.13, 0.17);
-        let goal = Vec2::new(3.21, -0.11);
-        let route = nav.path(start, goal).expect("route around wall");
-        assert!(route.len() > 1);
-        assert_eq!(route.back(), Some(&goal));
-        let mut from = start;
-        for to in route {
-            assert!(nav.clear_segment(from, to));
-            from = to;
-        }
-    }
-
-    #[test]
-    fn unreachable_and_blocked_destinations_are_rejected() {
-        let mut nav = Navigation::default();
-        nav.add(Vec2::ZERO, Vec2::new(0.3, 14.0));
-        assert!(
-            nav.path(Vec2::new(-3.0, 0.0), Vec2::new(3.0, 0.0))
-                .is_none()
-        );
-        assert!(nav.path(Vec2::new(-3.0, 0.0), Vec2::ZERO).is_none());
-        assert!(nav.path(Vec2::ZERO, Vec2::splat(20.0)).is_none());
-    }
-
-    #[test]
-    fn movement_does_not_tunnel_and_slides_along_walls() {
-        let mut nav = Navigation::default();
-        nav.add(Vec2::ZERO, Vec2::new(0.25, 5.0));
-        let position = nav.move_and_slide(Vec2::new(-2.0, 0.0), Vec2::new(8.0, 2.0));
-        assert!(position.x < -0.6);
-        assert!(position.y > 1.9);
-        assert!(nav.walkable(position));
-    }
-
-    #[test]
-    fn narrow_diagonal_gap_respects_character_radius() {
-        let mut nav = Navigation::default();
-        nav.add(Vec2::new(-0.6, 0.6), Vec2::splat(0.5));
-        nav.add(Vec2::new(0.6, -0.6), Vec2::splat(0.5));
-        assert!(!nav.clear_segment(Vec2::splat(-2.0), Vec2::splat(2.0)));
-        let mut from = Vec2::splat(-2.0);
-        for to in nav.path(from, Vec2::splat(2.0)).unwrap() {
-            assert!(nav.clear_segment(from, to));
-            from = to;
-        }
     }
 }

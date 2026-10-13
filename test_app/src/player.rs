@@ -1,6 +1,7 @@
 use crate::{
+    blueprint::START,
     camera::{GameCamera, ViewState},
-    level::{self, LevelLoad, START, ground},
+    level::{self, LevelLoad, ground},
     navigation::Navigation,
     settings::Settings,
     ui::{UiBlock, UiState, pointer_over_ui},
@@ -8,25 +9,125 @@ use crate::{
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
 use std::collections::VecDeque;
 
+pub const MODEL_SCALE: f32 = 0.78;
+pub const MODEL_BOB: f32 = 0.07;
+
+pub fn limb_rotation(name: &str) -> Quat {
+    match name {
+        "Dummy_ArmLeft" => Quat::from_rotation_z(-70_f32.to_radians()),
+        "Dummy_ArmRight" => Quat::from_rotation_z(70_f32.to_radians()),
+        _ => Quat::IDENTITY,
+    }
+}
 #[derive(Component)]
 pub struct PlayerModel;
+
+pub fn pose_player(
+    ready: On<bevy::world_serialization::WorldInstanceReady>,
+    roots: Query<(), With<PlayerModel>>,
+    children: Query<&Children>,
+    mut nodes: Query<(&Name, &mut Transform), Without<PlayerModel>>,
+) {
+    if !roots.contains(ready.entity) {
+        return;
+    }
+    for entity in children.iter_descendants(ready.entity) {
+        if let Ok((name, mut transform)) = nodes.get_mut(entity) {
+            transform.rotation *= limb_rotation(name.as_str());
+        }
+    }
+}
 
 /// Locomotion state for the demo's single player.
 #[derive(Resource)]
 pub struct Player {
     pub position: Vec2,
     pub yaw: f32,
+    pub height: f32,
+    pub vertical_speed: f32,
+    pub(crate) coyote: f32,
+    pub(crate) jump_buffer: f32,
     pub walked: f32,
-    pub route: VecDeque<Vec2>,
+    pub route: VecDeque<Vec3>,
 }
 
 impl Default for Player {
     fn default() -> Self {
         Self {
-            position: START,
+            position: START.xz(),
             yaw: 0.0,
+            height: 0.0,
+            vertical_speed: 0.0,
+            coyote: 0.0,
+            jump_buffer: 0.0,
             walked: 0.0,
             route: VecDeque::new(),
+        }
+    }
+}
+
+impl Player {
+    pub fn respawn(&mut self, position: Vec2, height: f32) {
+        self.position = position;
+        self.height = height;
+        self.vertical_speed = 0.0;
+        self.coyote = 0.0;
+        self.jump_buffer = 0.0;
+        self.route.clear();
+    }
+
+    pub fn feet(&self) -> Vec3 {
+        ground(self.position, self.height)
+    }
+
+    /// Ground support and ceiling collision are evaluated on the current floor.
+    pub fn advance(&mut self, nav: &Navigation, delta: Vec2, dt: f32, jump: bool) {
+        let floor = nav.support(self.position, self.height + 0.02);
+        let grounded = (self.height - floor).abs() < 0.025 && self.vertical_speed <= 0.0;
+        self.coyote = if grounded {
+            0.10
+        } else {
+            (self.coyote - dt).max(0.0)
+        };
+        self.jump_buffer = if jump {
+            0.12
+        } else {
+            (self.jump_buffer - dt).max(0.0)
+        };
+        if self.coyote > 0.0 && self.jump_buffer > 0.0 {
+            self.vertical_speed = 7.5;
+            self.coyote = 0.0;
+            self.jump_buffer = 0.0;
+            self.route.clear();
+        }
+        let stepping = grounded && self.vertical_speed <= 0.0;
+        let old_height = self.height;
+        let ceiling = nav.ceiling(self.position, self.height + crate::navigation::BODY_HEIGHT);
+        let mut next_height = self.height + self.vertical_speed * dt - 9.0 * dt * dt;
+        self.vertical_speed -= 18.0 * dt;
+        if next_height + crate::navigation::BODY_HEIGHT > ceiling {
+            next_height = ceiling - crate::navigation::BODY_HEIGHT;
+            self.vertical_speed = self.vertical_speed.min(0.0);
+        }
+        let from = ground(
+            self.position,
+            if stepping {
+                self.height
+            } else {
+                next_height.max(0.0)
+            },
+        );
+        let moved = nav.move_body(from, delta, stepping);
+        self.position = moved.xz();
+        self.height = if stepping {
+            moved.y + next_height - old_height
+        } else {
+            next_height
+        };
+        let landing = nav.support(self.position, old_height.max(moved.y) + 0.025);
+        if self.height <= landing && self.vertical_speed <= 0.0 {
+            self.height = landing;
+            self.vertical_speed = 0.0;
         }
     }
 }
@@ -66,18 +167,23 @@ pub fn click_to_move(
     let Ok(ray) = camera.0.viewport_to_world(camera.1, cursor) else {
         return;
     };
-    let Some(distance) = ray.intersect_plane(Vec3::ZERO, InfinitePlane3d::new(Vec3::Y)) else {
+    if (player.height - nav.support(player.position, player.height + 0.02)).abs() > 0.15 {
+        ui.status = "Lande zuerst, bevor du eine Laufroute auswählst.".into();
+        return;
+    }
+    let Some(target) = nav.pick(ray) else {
+        player.route.clear();
+        ui.status = "Wähle einen Boden, eine Treppe oder eine Galerie als Laufziel.".into();
         return;
     };
-    let target = ray.get_point(distance).xz();
-    match nav.path(player.position, target) {
+    match nav.path(player.feet(), target) {
         Some(route) => {
             player.route = route;
             ui.status = "Unterwegs. Pfeiltasten übernehmen jederzeit die Steuerung.".into();
         }
         None => {
             player.route.clear();
-            ui.status = "Dieses Ziel ist blockiert. Klicke auf freien Boden.".into();
+            ui.status = "Kein Laufweg dorthin. Treppen sind begehbar; Lücken überspringst du mit der Leertaste.".into();
         }
     }
 }
@@ -128,30 +234,27 @@ pub fn move_player(
             1.0
         };
     let before = player.position;
+    let mut delta = Vec2::ZERO;
     if axis != Vec2::ZERO {
         player.route.clear();
         let mut direction = axis.normalize();
         if view.first_person {
             direction = (Quat::from_rotation_y(player.yaw) * ground(direction, 0.0)).xz();
         }
-        player.position = nav.move_and_slide(player.position, direction * speed * dt);
-    } else {
-        let mut budget = speed * dt;
-        while let Some(&target) = player.route.front() {
-            let delta = target - player.position;
-            let distance = delta.length();
-            if distance <= budget {
-                player.position = target;
-                player.route.pop_front();
-                budget -= distance;
-            } else {
-                player.position = nav.move_and_slide(player.position, delta / distance * budget);
-                break;
-            }
-            if budget <= 0.0 {
-                break;
-            }
-        }
+        delta = direction * speed * dt;
+    } else if let Some(&target) = player.route.front() {
+        delta = (target.xz() - player.position).clamp_length_max(speed * dt);
+    }
+    player.advance(
+        &nav,
+        delta,
+        dt,
+        keys.just_pressed(KeyCode::Space) && focus.get().is_none(),
+    );
+    if player.route.front().is_some_and(|target| {
+        target.xz().distance(player.position) < 0.04 && (target.y - player.height).abs() < 0.05
+    }) {
+        player.route.pop_front();
     }
     let travelled = player.position - before;
     player.walked += travelled.length();
@@ -170,7 +273,7 @@ pub fn update_model(
     let (ref mut player_transform, ref mut visibility) = *model;
     player_transform.translation = ground(
         player.position,
-        0.025 + (player.walked * 7.0).sin().abs() * 0.045,
+        player.height + MODEL_BOB - 0.045 + (player.walked * 7.0).sin().abs() * 0.045,
     );
     // Dummy_Base faces local +Z; movement and the FPV camera use local -Z.
     player_transform.rotation = Quat::from_rotation_y(player.yaw + std::f32::consts::PI);
@@ -181,15 +284,15 @@ pub fn update_model(
     };
     if settings.show_path && !view.first_person && !player.route.is_empty() {
         gizmos.linestrip(
-            std::iter::once(player.position)
+            std::iter::once(player.feet())
                 .chain(player.route.iter().copied())
-                .map(|p| ground(p, 0.12)),
+                .map(|p| p + Vec3::Y * 0.12),
             level::TEAL,
         );
         if let Some(&goal) = player.route.back() {
             gizmos.circle(
                 Isometry3d::new(
-                    ground(goal, 0.12),
+                    goal + Vec3::Y * 0.12,
                     Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
                 ),
                 0.4,
@@ -200,7 +303,7 @@ pub fn update_model(
     if !view.first_person {
         gizmos.circle(
             Isometry3d::new(
-                ground(player.position, 0.1),
+                ground(player.position, player.height + 0.1),
                 Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
             ),
             0.65,
@@ -264,7 +367,7 @@ mod tests {
             if pathfinding {
                 let mut player = app.world_mut().resource_mut::<Player>();
                 let target = player.position + direction * 3.0;
-                player.route.push_back(target);
+                player.route.push_back(ground(target, 0.0));
             } else {
                 let mut keys = app.world_mut().resource_mut::<ButtonInput<KeyCode>>();
                 for (key, pressed) in [

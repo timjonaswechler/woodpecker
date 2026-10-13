@@ -1,6 +1,8 @@
 use crate::{
     camera::ViewState,
     coins::CoinRun,
+    expedition::Expedition,
+    items::ItemKind,
     level::{GOLD, TEAL},
     player::Player,
     settings::Settings,
@@ -25,7 +27,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             menu: false,
-            status: "Lade den Parcours …".into(),
+            status: "Lade die Signalstation …".into(),
         }
     }
 }
@@ -54,15 +56,20 @@ pub struct Crosshair;
 pub struct HudPanel;
 #[derive(Component)]
 pub struct InteractivePanel;
+#[derive(Component)]
+pub struct InteractionPrompt;
 
 #[derive(Component, Clone, Copy, Debug)]
 pub enum Action {
     View,
+    Map,
     Settings,
     Resume,
     Restart,
     Range,
-    Practice,
+    Interact,
+    Objective,
+    Checkpoint,
     Sensitivity(f32),
     Speed(f32),
     Fov(f32),
@@ -88,9 +95,11 @@ pub enum Label {
     Invert,
     Clock,
     Title,
-    Subtitle,
-    Exercise,
+    Resource(ItemKind),
+    Range,
     Crosshair,
+    Objective,
+    Interaction,
 }
 
 fn text(value: impl Into<String>, size: f32, color: Color) -> impl Bundle {
@@ -171,7 +180,12 @@ fn setting_row(
         });
 }
 
-pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
+pub fn spawn_ui(
+    mut commands: Commands,
+    settings: Res<Settings>,
+    assets: Res<AssetServer>,
+    mut tracked: ResMut<crate::level::LevelAssets>,
+) {
     // Draw the HUD after both the level and the FPV weapon pass.
     commands.spawn((
         Name::new("HUD-Kamera"),
@@ -190,7 +204,56 @@ pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
             Node {
                 position_type: PositionType::Absolute,
                 left: px(24),
-                top: px(24),
+                right: px(24),
+                top: px(20),
+                height: px(70),
+                padding: UiRect::axes(px(22), px(10)),
+                column_gap: px(30),
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceEvenly,
+                border_radius: BorderRadius::all(px(12)),
+                ..default()
+            },
+            BackgroundColor(PANEL),
+            UiBlock,
+            HudPanel,
+        ))
+        .with_children(|bar| {
+            for kind in ItemKind::ALL {
+                let icon: Handle<Image> = assets.load(kind.icon());
+                tracked.0.push(icon.clone().untyped());
+                bar.spawn(Node {
+                    align_items: AlignItems::Center,
+                    column_gap: px(12),
+                    ..default()
+                })
+                .with_children(|slot| {
+                    slot.spawn((
+                        ImageNode::new(icon),
+                        Node {
+                            width: px(42),
+                            height: px(42),
+                            ..default()
+                        },
+                    ));
+                    slot.spawn(Node {
+                        flex_direction: FlexDirection::Column,
+                        row_gap: px(1),
+                        ..default()
+                    })
+                    .with_children(|p| {
+                        p.spawn(text(kind.label(), 12., kind.color()));
+                        p.spawn((text("0", 25., INK), Label::Resource(kind)));
+                    });
+                });
+            }
+        });
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(24),
+                top: px(110),
                 width: px(295),
                 padding: px(20).all(),
                 flex_direction: FlexDirection::Column,
@@ -203,9 +266,9 @@ pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
             HudPanel,
         ))
         .with_children(|p| {
-            p.spawn(text("KAYKIT  /  SPIELDEMO", 12.0, TEAL));
-            p.spawn((text("Münzparcours", 30.0, INK), Label::Title));
-            p.spawn((text("", 14.0, MUTED), Label::Subtitle));
+            p.spawn(text("SIGNALSTATION  /  ERKUNDUNG", 12.0, TEAL));
+            p.spawn((text("Signalstation", 30.0, INK), Label::Title));
+            p.spawn((text("", 16.0, INK), Label::Objective));
             p.spawn((
                 text("", 21.0, GOLD),
                 Label::Progress,
@@ -215,14 +278,14 @@ pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
                 },
             ));
             p.spawn((text("", 13.0, MUTED), Label::Clock));
-            p.spawn((text("", 14.0, TEAL), Label::Exercise));
+            p.spawn((text("", 14.0, TEAL), Label::Range));
         });
     commands
         .spawn((panel(), TabGroup::new(0), HudPanel, InteractivePanel))
         .insert(Node {
             position_type: PositionType::Absolute,
             right: px(24),
-            top: px(24),
+            top: px(110),
             width: px(245),
             padding: px(18).all(),
             flex_direction: FlexDirection::Column,
@@ -263,10 +326,12 @@ pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
             ));
             p.spawn(text("Anklicken, schreiben, Enter bestätigen", 11.0, MUTED));
             button(p, "Ansicht wechseln  [V]", Action::View, 1);
+            button(p, "Gesamtkarte  [G]", Action::Map, 8);
             button(p, "Einstellungen  [M]", Action::Settings, 2);
             button(p, "Neue Runde  [R]", Action::Restart, 3);
-            button(p, "Zum Schießstand", Action::Range, 4);
-            button(p, "Zielübung starten  [E]", Action::Practice, 5);
+            button(p, "Zum nächsten Auftrag", Action::Objective, 4);
+            button(p, "Interagieren  [E]", Action::Interact, 5);
+            button(p, "Zum Schießstand", Action::Range, 6);
         });
     commands
         .spawn((panel(), HudPanel))
@@ -285,6 +350,20 @@ pub fn spawn_ui(mut commands: Commands, settings: Res<Settings>) {
         .with_children(|p| {
             p.spawn((text("", 13.0, TEAL), Label::Mode));
             p.spawn((text("", 14.0, INK), Label::Controls));
+        });
+    commands
+        .spawn((panel(), HudPanel, InteractionPrompt))
+        .insert(Node {
+            position_type: PositionType::Absolute,
+            left: percent(36),
+            right: px(24),
+            bottom: px(106),
+            padding: px(16).all(),
+            border_radius: BorderRadius::all(px(10)),
+            ..default()
+        })
+        .with_children(|p| {
+            p.spawn((text("", 16.0, TEAL), Label::Interaction));
         });
     commands
         .spawn((
@@ -363,9 +442,10 @@ pub fn buttons(
         &mut BorderColor,
     )>,
     focus: Res<InputFocus>,
-    keys: Res<ButtonInput<KeyCode>>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
     mut actions: ResMut<Actions>,
 ) {
+    let mut keyboard_activation = false;
     for (entity, interaction, action, mut background, mut border) in &mut buttons {
         let focused = focus.get() == Some(entity);
         let hovered = *interaction != Interaction::None;
@@ -381,7 +461,11 @@ pub fn buttons(
             || (focused && keys.any_just_pressed([KeyCode::Enter, KeyCode::Space]))
         {
             actions.0.push(*action);
+            keyboard_activation |= focused && keys.just_pressed(KeyCode::Space);
         }
+    }
+    if keyboard_activation {
+        keys.clear_just_pressed(KeyCode::Space);
     }
 }
 
@@ -427,6 +511,8 @@ pub fn update_ui(
     ui: Res<UiState>,
     settings: Res<Settings>,
     practice: Res<Practice>,
+    expedition: Res<Expedition>,
+    nav: Res<crate::navigation::Navigation>,
     mut labels: Query<(&Label, &mut Text)>,
     mut nodes: Query<(
         &mut Node,
@@ -434,44 +520,43 @@ pub fn update_ui(
         Has<Crosshair>,
         Has<HudPanel>,
         Has<InteractivePanel>,
+        Has<InteractionPrompt>,
     )>,
     window: Single<&Window>,
     mut scale: ResMut<UiScale>,
+    hud_camera: Single<&Camera, With<IsDefaultUiCamera>>,
 ) {
-    let desired_scale = (window.width() / 1280.0)
-        .min(window.height() / 800.0)
+    let viewport = hud_camera
+        .logical_viewport_size()
+        .unwrap_or(Vec2::new(window.width(), window.height()));
+    let desired_scale = (viewport.x / 1440.0)
+        .min(viewport.y / 900.0)
         .clamp(0.65, 1.5);
     if scale.0 != desired_scale {
         scale.0 = desired_scale;
     }
     for (label, mut value) in &mut labels {
         let new = match label {
-            Label::Title => if shooting::in_range(player.position) { "Zieltraining" } else { "Münzparcours" }.into(),
-            Label::Subtitle => if shooting::in_range(player.position) { "Drei Bahnen. 30 Sekunden." } else { "Sechs Münzen. Ein Weg zurück." }.into(),
+            Label::Title => if expedition.finished { "Signal aktiv".into() }
+                else {crate::blueprint::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
+            Label::Resource(kind) => kind.count(&run, &expedition).to_string(),
+            Label::Objective => expedition.objective().into(),
+            Label::Interaction => expedition.interaction(&player,&nav).prompt().into(),
             Label::Crosshair => if practice.hit_flash > 0.0 { "×" } else { "+" }.into(),
-            Label::Exercise => {
-                if practice.running {
-                    format!("{}/{} Treffer  ·  {:.0}% Genauigkeit\nRekord: {}{}",
-                        practice.hits, practice.shots, practice.accuracy(), practice.best,
-                        if !view.captured || !view.first_person || ui.menu || !window.focused { " · Pausiert" } else { "" })
-                } else if shooting::in_range(player.position) {
-                    format!("E startet 30 Sekunden Zieltraining\nLetzte Runde: {}  ·  Rekord: {}", practice.score, practice.best)
-                } else { "Schießstand im Norden\nDer Button bringt dich direkt hin.".into() }
-            }
-            Label::Progress => {
-                if shooting::in_range(player.position) {
-                    format!("{:03} Punkte", practice.score)
-                } else if run.finished {
-                    "Parcours geschafft!".into()
-                } else {
-                    format!("{:02} / 06   Münzen", run.count())
+            Label::Range => if shooting::in_range(player.position) {
+                if expedition.practice_reward { "Bauplan-Truhe entriegelt · hinten rechts".into() }
+                else {
+                    let distance = shooting::TARGETS.iter().enumerate().filter(|(i,_)| !practice.targets_hit[*i])
+                        .map(|(_,p)| p.xz().distance(player.position)).fold(f32::INFINITY, f32::min);
+                    format!("Mindestabstand {:.0} m · nächstes Ziel {distance:.1} m\n{} gültige Treffer · V für FPV", shooting::MIN_TARGET_DISTANCE, practice.hits)
                 }
-            }
-            Label::Clock if shooting::in_range(player.position) => format!("{:02.0}s  ·  {}", practice.remaining.ceil(), settings.player_name),
+            } else { String::new() },
+            Label::Progress => if shooting::in_range(player.position) && player.height<0.2 {format!("{} Punkte",practice.score)}
+                else {format!("Ziel {:.0} m · Ebene {}",player.feet().distance(expedition.destination()),if player.height>2.8 {"oben"} else {"unten"})},
             Label::Clock => format!(
                 "{:02}:{:02}  ·  {}",
-                run.elapsed as u32 / 60,
-                run.elapsed as u32 % 60,
+                expedition.elapsed as u32 / 60,
+                expedition.elapsed as u32 % 60,
                 settings.player_name
             ),
             Label::Status => ui.status.clone(),
@@ -483,12 +568,12 @@ pub fn update_ui(
             .into(),
             Label::Controls => if view.first_person {
                 if view.captured {
-                    "WASD bewegen · Maus umsehen\nLinksklick schießen · E Zielübung\nUmschalt sprinten · Esc Maus freigeben"
+                    "WASD + Maus · Leertaste springen\nUmschalt sprinten · E interagieren\nLinksklick schießen · Esc Maus freigeben"
                 } else {
                     "Klicke ins Level, um weiterzuspielen.\nV Übersicht · M Einstellungen"
                 }
             } else {
-                "Pfeiltasten bewegen · Boden anklicken\nV Egoperspektive · Umschalt sprinten"
+                "Pfeiltasten · Klickweg · V FPV · G Karte\nLeertaste springen · Umschalt sprinten\nE interagieren · Backspace Checkpoint"
             }
             .into(),
             Label::Sensitivity => format!("Maus-Empfindlichkeit    {:.1}", settings.sensitivity),
@@ -508,7 +593,7 @@ pub fn update_ui(
             value.0 = new;
         }
     }
-    for (mut node, menu, crosshair, hud, interactive) in &mut nodes {
+    for (mut node, menu, crosshair, hud, interactive, prompt) in &mut nodes {
         if menu {
             node.display = if ui.menu {
                 Display::Flex
@@ -524,7 +609,12 @@ pub fn update_ui(
             };
         }
         if hud {
-            node.display = if ui.menu || (interactive && view.first_person && view.captured) {
+            node.display = if ui.menu
+                || (interactive && view.first_person && view.captured)
+                || (prompt
+                    && expedition.interaction(&player, &nav)
+                        == crate::expedition::Interaction::None)
+            {
                 Display::None
             } else {
                 Display::Flex

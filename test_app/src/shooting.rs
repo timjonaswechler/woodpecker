@@ -13,79 +13,68 @@ use bevy::{
     world_serialization::WorldInstanceReady,
 };
 
-pub const ENTRY: Vec2 = Vec2::new(0.0, -17.0);
+pub const ENTRY: Vec2 = Vec2::new(crate::blueprint::PRACTICE.x, crate::blueprint::PRACTICE.z);
 pub const TARGETS: [Vec3; 3] = [
-    Vec3::new(-8.0, 1.65, -22.9),
-    Vec3::new(0.0, 1.65, -22.9),
-    Vec3::new(8.0, 1.65, -22.9),
+    crate::blueprint::point(29., 51., 1.85),
+    crate::blueprint::point(35., 51., 1.85),
+    crate::blueprint::point(41., 51., 1.85),
 ];
-pub const ROUND_SECONDS: f32 = 30.0;
+pub const MIN_TARGET_DISTANCE: f32 = 6.0;
+const TARGET_RADIUS: f32 = 0.8;
+const TARGET_FRONT: f32 = 0.32;
 
-pub fn in_range(position: Vec2) -> bool {
-    position.y < -14.4
+/// A solid disk handles centre-line hits independently of glTF triangle seams.
+/// The closest scene intersection still stops shots at walls and other props.
+fn target_hit(
+    origin: Vec3,
+    direction: Vec3,
+    limit: f32,
+    destroyed: &[bool; 3],
+) -> Option<(usize, Vec3)> {
+    if direction.z >= -0.00001 {
+        return None;
+    }
+    TARGETS
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &center)| {
+            let distance = (center.z + TARGET_FRONT - origin.z) / direction.z;
+            let point = origin + direction * distance;
+            (!destroyed[i]
+                && distance > 0.
+                && distance <= limit + 0.001
+                && (point - center).xy().length_squared() <= TARGET_RADIUS * TARGET_RADIUS)
+                .then_some((i, point, distance))
+        })
+        .min_by(|a, b| a.2.total_cmp(&b.2))
+        .map(|(i, p, _)| (i, p))
+}
+pub fn in_range(p: Vec2) -> bool {
+    p.x > -15. && p.x < 11. && p.y > -27. && p.y < -11.
 }
 
-#[derive(Resource)]
+/// Always available. Each target stays broken until the level is reset.
+#[derive(Resource, Default)]
 pub struct Practice {
-    pub running: bool,
-    pub remaining: f32,
+    pub targets_hit: [bool; 3],
     pub shots: u32,
     pub hits: u32,
     pub score: u32,
-    pub best: u32,
-    pub respawn: [f32; 3],
     pub cooldown: f32,
     pub hit_flash: f32,
     pub recoil: f32,
     pub tracer: Option<(Vec3, Vec3, f32)>,
     was_captured: bool,
 }
-
-impl Default for Practice {
-    fn default() -> Self {
-        Self {
-            running: false,
-            remaining: ROUND_SECONDS,
-            shots: 0,
-            hits: 0,
-            score: 0,
-            best: 0,
-            respawn: [0.0; 3],
-            cooldown: 0.0,
-            hit_flash: 0.0,
-            recoil: 0.0,
-            tracer: None,
-            was_captured: false,
-        }
-    }
-}
-
 impl Practice {
     pub fn reset(&mut self) {
-        *self = Self {
-            best: self.best,
-            ..default()
-        };
+        *self = Self::default();
     }
-    pub fn start(&mut self) {
-        self.reset();
-        self.running = true;
-    }
-    pub fn accuracy(&self) -> f32 {
-        if self.shots == 0 {
-            0.0
-        } else {
-            100.0 * self.hits as f32 / self.shots as f32
-        }
-    }
-    pub fn finish(&mut self) {
-        self.running = false;
-        self.remaining = 0.0;
-        self.best = self.best.max(self.score);
-    }
-
-    pub fn hit(&mut self, index: usize, radius: f32) -> Option<u32> {
-        if !self.running || self.respawn[index] > 0.0 {
+    pub fn hit(&mut self, index: usize, radius: f32, distance: f32) -> Option<u32> {
+        if self.targets_hit.get(index) != Some(&false)
+            || !distance.is_finite()
+            || distance < MIN_TARGET_DISTANCE
+        {
             return None;
         }
         let points = if radius < 0.25 {
@@ -97,7 +86,7 @@ impl Practice {
         };
         self.score += points;
         self.hits += 1;
-        self.respawn[index] = 1.2;
+        self.targets_hit[index] = true;
         self.hit_flash = 0.18;
         Some(points)
     }
@@ -121,6 +110,23 @@ pub struct Debris {
 #[derive(Resource, Default)]
 pub struct Fragments(Vec<Handle<bevy::world_serialization::WorldAsset>>);
 
+pub fn stand_boxes(center: Vec3) -> [(Vec3, Vec3); 3] {
+    [
+        (
+            Vec3::new(1.3, 0.2, 1.0),
+            Vec3::new(center.x, 0.1, center.z - 0.35),
+        ),
+        (
+            Vec3::new(0.22, 1.45, 0.22),
+            Vec3::new(center.x, 0.825, center.z - 0.35),
+        ),
+        (
+            Vec3::new(0.8, 0.16, 0.8),
+            Vec3::new(center.x, 0.85, center.z - 0.1),
+        ),
+    ]
+}
+
 pub fn spawn_range(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -132,14 +138,7 @@ pub fn spawn_range(
     for (index, center) in TARGETS.into_iter().enumerate() {
         // KayKit's complete stand has a baked-in disk. Use a plain support so
         // only the destructible target remains visible above it.
-        for (size, position) in [
-            (Vec3::new(1.3, 0.2, 1.0), Vec3::new(center.x, 0.1, -23.4)),
-            (
-                Vec3::new(0.22, 1.45, 0.22),
-                Vec3::new(center.x, 0.825, -23.4),
-            ),
-            (Vec3::new(0.8, 0.16, 0.8), Vec3::new(center.x, 0.85, -23.15)),
-        ] {
+        for (size, position) in stand_boxes(center) {
             commands.spawn((
                 Mesh3d(meshes.add(Cuboid::from_size(size))),
                 MeshMaterial3d(stand_material.clone()),
@@ -156,15 +155,30 @@ pub fn spawn_range(
         ));
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(2.8, 0.035, 1.6))),
-            MeshMaterial3d(materials.add(Color::srgb(0.06, 0.38, 0.34))),
-            Transform::from_xyz(center.x, 0.025, -17.0),
+            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
+            Transform::from_xyz(center.x, 0.025, ENTRY.y),
         ));
-        // A yellow firing line is visible in both camera modes.
+        // Each lane marks the minimum ground distance to its target.
         commands.spawn((
-            Mesh3d(meshes.add(Cuboid::new(6.8, 0.045, 0.12))),
-            MeshMaterial3d(materials.add(crate::level::GOLD)),
-            Transform::from_xyz(center.x, 0.03, -18.0),
+            Mesh3d(meshes.add(Cuboid::new(4., 0.045, 0.12))),
+            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
+            Transform::from_xyz(center.x, 0.03, center.z + MIN_TARGET_DISTANCE),
         ));
+    }
+    {
+        let mut scene = crate::scenery::Scenery {
+            commands: &mut commands,
+            assets: &assets,
+            tracked: &mut tracked,
+            meshes: &mut meshes,
+            materials: &mut materials,
+        };
+        for center in TARGETS {
+            scene.item(
+                crate::items::ItemKind::Blueprint,
+                Transform::from_xyz(center.x, 0.65, center.z + 0.4).with_scale(Vec3::splat(0.55)),
+            );
+        }
     }
     let mut fragments = Fragments::default();
     for letter in ['A', 'B', 'C', 'D', 'E', 'F'] {
@@ -229,20 +243,7 @@ pub fn tag_scene_parts(
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "Practice observes player location and input gates."
-)]
-pub fn tick_practice(
-    time: Res<Time>,
-    window: Single<&Window>,
-    focus: Res<InputFocus>,
-    inputs: Query<(), With<EditableText>>,
-    mut practice: ResMut<Practice>,
-    player: Res<Player>,
-    view: Res<ViewState>,
-    mut ui: ResMut<UiState>,
-) {
+pub fn tick_practice(time: Res<Time>, mut practice: ResMut<Practice>) {
     let dt = time.delta_secs().min(0.05);
     practice.cooldown = (practice.cooldown - dt).max(0.0);
     practice.hit_flash = (practice.hit_flash - dt).max(0.0);
@@ -252,37 +253,6 @@ pub fn tick_practice(
         if *ttl <= 0.0 {
             practice.tracer = None;
         }
-    }
-    if !practice.running
-        || ui.menu
-        || !window.focused
-        || !view.first_person
-        || !view.captured
-        || focus.get().is_some_and(|e| inputs.contains(e))
-    {
-        return;
-    }
-    if !in_range(player.position) {
-        practice.finish();
-        ui.status = format!(
-            "Übung beendet: Schießstand verlassen. {} Punkte.",
-            practice.score
-        );
-        return;
-    }
-    practice.remaining = (practice.remaining - dt).max(0.0);
-    for timer in &mut practice.respawn {
-        *timer = (*timer - dt).max(0.0);
-    }
-    if practice.remaining <= 0.0 {
-        practice.finish();
-        ui.status = format!(
-            "Zeit vorbei! {} Punkte · {}/{} Treffer · {:.0}% Genauigkeit. E für eine neue Übung.",
-            practice.score,
-            practice.hits,
-            practice.shots,
-            practice.accuracy()
-        );
     }
 }
 
@@ -315,14 +285,9 @@ pub fn shoot(
         || !view.captured
         || ui.menu
         || !window.focused
-        || !in_range(player.position)
         || !was_captured
         || focus.get().is_some_and(|e| inputs.contains(e))
     {
-        return;
-    }
-    if !practice.running {
-        ui.status = "Drücke E, um die 30-Sekunden-Zielübung zu starten.".into();
         return;
     }
     if practice.cooldown > 0.0 {
@@ -332,13 +297,13 @@ pub fn shoot(
     practice.cooldown = 0.16;
     practice.recoil = 1.0;
     let rotation = Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.0);
-    let origin = ground(player.position, 1.5);
+    let origin = ground(player.position, player.height + 1.5);
     let direction = rotation * Vec3::NEG_Z;
     let filter = |entity| {
         !ignored.contains(entity)
             && parts
                 .get(entity)
-                .map_or(true, |part| practice.respawn[part.0] <= 0.0)
+                .map_or(true, |part| !practice.targets_hit[part.0])
     };
     let hit = raycast
         .cast_ray(
@@ -349,28 +314,37 @@ pub fn shoot(
         )
         .first()
         .map(|(entity, hit)| (*entity, hit.point, hit.distance));
-    let impact = hit
-        .filter(|(_, _, distance)| *distance <= 80.0)
-        .map_or(origin + direction * 80.0, |(_, point, _)| point);
+    let target = target_hit(
+        origin,
+        direction,
+        hit.map_or(80., |(_, _, distance)| distance.min(80.)),
+        &practice.targets_hit,
+    );
+    let impact = target.map(|(_, point)| point).unwrap_or_else(|| {
+        hit.filter(|(_, _, distance)| *distance <= 80.0)
+            .map_or(origin + direction * 80.0, |(_, point, _)| point)
+    });
     practice.tracer = Some((
         origin + rotation * Vec3::new(0.25, -0.19, -0.84),
         impact,
         0.1,
     ));
-    let Some((entity, point, distance)) = hit else {
+    let Some((index, point)) = target else {
         return;
     };
-    if distance > 80.0 {
+    let center = TARGETS[index];
+    let radius = (point - center).xy().length() / TARGET_RADIUS;
+    // Ground distance prevents a balcony or jump from bypassing the firing line.
+    let distance = player.position.distance(center.xz());
+    if distance < MIN_TARGET_DISTANCE {
+        ui.status = format!(
+            "Zu nah: {distance:.1} m. Geh auf mindestens {MIN_TARGET_DISTANCE:.0} m Abstand zurück."
+        );
         return;
     }
-    let Ok(part) = parts.get(entity) else {
-        return;
-    };
-    let center = TARGETS[part.0];
-    let radius = (point - center).xy().length() / 0.8;
-    if let Some(points) = practice.hit(part.0, radius) {
+    if let Some(points) = practice.hit(index, radius, distance) {
         ui.status = format!(
-            "{} +{points} Punkte · E startet eine neue Übung.",
+            "{} +{points} Punkte · Triff jede der drei Scheiben.",
             if points == 50 {
                 "Volltreffer!"
             } else {
@@ -446,7 +420,7 @@ pub fn update_visuals(
     .with_rotation(camera.rotation * Quat::from_rotation_x(practice.recoil * 0.10))
     .with_scale(Vec3::splat(0.55));
     for (target, mut visibility) in &mut targets {
-        *visibility = if practice.respawn[target.0] > 0.0 {
+        *visibility = if practice.targets_hit[target.0] {
             Visibility::Hidden
         } else {
             Visibility::Visible
@@ -475,87 +449,51 @@ mod tests {
     use super::*;
 
     #[test]
-    fn round_pauses_for_focus_menu_view_and_text_input_then_expires() {
-        let mut app = App::new();
-        app.init_resource::<Time>()
-            .init_resource::<InputFocus>()
-            .init_resource::<Practice>()
-            .insert_resource(Player {
-                position: ENTRY,
-                ..default()
-            })
-            .insert_resource(ViewState {
-                first_person: true,
-                captured: true,
-                ..default()
-            })
-            .init_resource::<UiState>()
-            .add_systems(Update, tick_practice);
-        app.world_mut()
-            .resource_mut::<Time>()
-            .advance_by(std::time::Duration::from_millis(50));
-        let window = app
-            .world_mut()
-            .spawn(Window {
-                focused: false,
-                ..default()
-            })
-            .id();
-        let field = app.world_mut().spawn(EditableText::new("Name")).id();
-        app.world_mut().resource_mut::<Practice>().start();
-
-        app.world_mut().run_schedule(Update);
-        assert_eq!(app.world().resource::<Practice>().remaining, ROUND_SECONDS);
-        app.world_mut().get_mut::<Window>(window).unwrap().focused = true;
-        for reason in 0..4 {
-            match reason {
-                0 => app.world_mut().resource_mut::<UiState>().menu = true,
-                1 => app.world_mut().resource_mut::<ViewState>().captured = false,
-                2 => app.world_mut().resource_mut::<ViewState>().first_person = false,
-                _ => app
-                    .world_mut()
-                    .resource_mut::<InputFocus>()
-                    .set(field, bevy::input_focus::FocusCause::Pressed),
-            }
-            app.world_mut().run_schedule(Update);
-            assert_eq!(app.world().resource::<Practice>().remaining, ROUND_SECONDS);
-            app.world_mut().resource_mut::<UiState>().menu = false;
-            let mut view = app.world_mut().resource_mut::<ViewState>();
-            view.captured = true;
-            view.first_person = true;
+    fn target_faces_accept_straight_and_oblique_hits_but_respect_blockers() {
+        let origin = ground(ENTRY, 1.5);
+        for (i, center) in TARGETS.into_iter().enumerate() {
+            let direction = (center - origin).normalize();
+            assert_eq!(
+                target_hit(origin, direction, 80., &[false; 3]).unwrap().0,
+                i
+            );
+            assert!(
+                target_hit(origin, direction, 2., &[false; 3]).is_none(),
+                "a wall blocks the shot"
+            );
+            let mut broken = [false; 3];
+            broken[i] = true;
+            assert!(target_hit(origin, direction, 80., &broken).is_none());
         }
-        app.world_mut().resource_mut::<InputFocus>().clear();
-        {
-            let mut practice = app.world_mut().resource_mut::<Practice>();
-            practice.remaining = 0.08;
-            practice.hit(1, 0.1);
-        }
-        app.world_mut().run_schedule(Update);
-        assert!(app.world().resource::<Practice>().running);
-        app.world_mut().run_schedule(Update);
-        let practice = app.world().resource::<Practice>();
-        assert!(!practice.running);
-        assert_eq!(practice.remaining, 0.0);
-        assert_eq!(practice.best, 50);
+        let direction = (TARGETS[1] + Vec3::Y * 1.2 - origin).normalize();
+        assert!(
+            target_hit(origin, direction, 80., &[false; 3]).is_none(),
+            "outside the disk"
+        );
+        assert!(
+            target_hit(origin, Vec3::Z, 80., &[false; 3]).is_none(),
+            "facing away"
+        );
     }
 
     #[test]
-    fn scoring_requires_a_round_and_prevents_duplicate_hits() {
+    fn every_target_requires_distance_and_only_counts_once() {
         let mut practice = Practice::default();
-        assert_eq!(practice.hit(0, 0.0), None);
-        practice.start();
-        assert_eq!(practice.hit(0, 0.0), Some(50));
-        assert_eq!(practice.hit(0, 0.0), None);
-        assert_eq!(practice.hit(1, 0.4), Some(25));
-        assert_eq!(practice.hit(2, 0.8), Some(10));
-        assert_eq!(practice.score, 85);
+        for i in 0..3 {
+            for distance in [0., MIN_TARGET_DISTANCE - 0.01, f32::NAN] {
+                assert_eq!(practice.hit(i, 0., distance), None);
+                assert!(!practice.targets_hit[i]);
+            }
+            assert!(!practice.targets_hit.iter().all(|&hit| hit));
+            assert_eq!(practice.hit(i, 0., MIN_TARGET_DISTANCE), Some(50));
+            assert_eq!(practice.hit(i, 0., 20.), None);
+        }
+        assert!(practice.targets_hit.iter().all(|&hit| hit));
         assert_eq!(practice.hits, 3);
-        practice.finish();
-        assert_eq!(practice.best, 85);
-        assert_eq!(practice.hit(0, 0.0), None);
-        practice.start();
+        assert_eq!(practice.score, 150);
+        practice.reset();
+        assert_eq!(practice.targets_hit, [false; 3]);
         assert_eq!(practice.score, 0);
-        assert_eq!(practice.best, 85);
-        assert_eq!(practice.respawn, [0.0; 3]);
+        assert_eq!(practice.hit(2, 0.4, 8.), Some(25));
     }
 }

@@ -1,12 +1,14 @@
 //! Optional rendered integration check. Exercises the same systems as normal gameplay.
 use crate::{
+    blueprint::{self as map, DATA},
     camera::{GameCamera, ViewState},
     coins::CoinRun,
-    level::{COINS, LevelLoad, START, ground},
+    expedition::Expedition,
+    level::LevelLoad,
     navigation::Navigation,
     player::Player,
     settings::Settings,
-    shooting::{self, Debris, Practice, Weapon},
+    shooting::{self, Practice},
     ui::{Action, Actions, NameInput, UiState},
 };
 use bevy::{
@@ -34,7 +36,8 @@ pub struct Smoke {
     position: Vec2,
     yaw: f32,
     coin: usize,
-    remaining: f32,
+    occlusion_checked: bool,
+    close_checked: bool,
 }
 
 #[derive(Resource)]
@@ -74,13 +77,11 @@ fn release(world: &mut World) {
         .release_all();
 }
 
-fn click_world(world: &mut World, point: Vec2) {
+fn click_world(world: &mut World, point: Vec3) {
     let cursor = {
         let mut query = world.query_filtered::<(&Camera, &GlobalTransform), With<GameCamera>>();
         let (camera, transform) = query.single(world).unwrap();
-        camera
-            .world_to_viewport(transform, ground(point, 0.0))
-            .unwrap()
+        camera.world_to_viewport(transform, point).unwrap()
     };
     world
         .query::<&mut Window>()
@@ -92,8 +93,8 @@ fn click_world(world: &mut World, point: Vec2) {
         .press(MouseButton::Left);
 }
 
-fn route_to(world: &mut World, point: Vec2) {
-    let position = world.resource::<Player>().position;
+fn route_to(world: &mut World, point: Vec3) {
+    let position = world.resource::<Player>().feet();
     let route = world
         .resource::<Navigation>()
         .path(position, point)
@@ -103,7 +104,9 @@ fn route_to(world: &mut World, point: Vec2) {
 
 fn aim_at(world: &mut World, point: Vec3) {
     let position = world.resource::<Player>().position;
-    let direction = (point - ground(position, 1.5)).normalize();
+    let direction = (point
+        - crate::level::ground(position, world.resource::<Player>().height + 1.5))
+    .normalize();
     world.resource_mut::<Player>().yaw = (-direction.x).atan2(-direction.z);
     world.resource_mut::<ViewState>().pitch = direction.y.asin();
 }
@@ -129,7 +132,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
     test.frames += 1;
     test.total += 1;
     assert!(
-        test.total < 9000,
+        test.total < 18000,
         "rendered smoke test timed out at stage {}",
         test.stage
     );
@@ -146,6 +149,15 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 world.query::<&Mesh3d>().iter(world).count() > 100,
                 "glTF scenes must instantiate"
             );
+            if std::env::args().any(|arg| arg == "--smoke-range") {
+                world
+                    .resource_mut::<Player>()
+                    .respawn(map::PRACTICE.xz(), 0.);
+                world.resource_mut::<Actions>().0.push(Action::View);
+                test.stage = 17;
+                test.frames = 0;
+                return;
+            }
             capture(world, "overview");
             press(world, KeyCode::ArrowUp);
             true
@@ -156,14 +168,14 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 .resource::<ButtonInput<KeyCode>>()
                 .pressed(KeyCode::ArrowUp);
             assert!(
-                world.resource::<Player>().position.y < START.y - 1.0,
+                world.resource::<Player>().position.y < map::START.z - 1.0,
                 "arrow-key movement: position={:?}, window_focused={focused}, held={held}, ui_focus={:?}, menu={}",
                 world.resource::<Player>().position,
                 world.resource::<InputFocus>().get(),
                 world.resource::<UiState>().menu
             );
             release(world);
-            click_world(world, COINS[0]);
+            click_world(world, DATA.coins[0].into());
             true
         }
         2 if test.frames > 2 => {
@@ -208,6 +220,8 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 window,
             });
             press(world, KeyCode::ArrowUp);
+            press(world, KeyCode::Space);
+            press(world, KeyCode::KeyE);
             press(world, KeyCode::KeyV);
             true
         }
@@ -221,6 +235,8 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 !world.resource::<ViewState>().first_person,
                 "typing must block shortcuts"
             );
+            assert_eq!(world.resource::<Player>().height, 0.0, "typing cannot jump");
+            assert_eq!(world.resource::<Expedition>().parts, [false; 2]);
             assert_eq!(
                 world.resource::<Settings>().player_name,
                 "Jäger ÄÖÜ",
@@ -339,222 +355,258 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             true
         }
         13 if test.frames > 3 => {
-            assert_eq!(world.resource::<Player>().position, START);
+            assert_eq!(world.resource::<Player>().position, map::START.xz());
             assert_eq!(world.resource::<CoinRun>().count(), 0);
             assert!(!world.resource::<ViewState>().first_person);
-            assert!(
-                world.resource::<LevelLoad>().is_ready(),
-                "restart keeps loaded assets ready"
-            );
-            assert_eq!(
-                world.resource::<Settings>().fov,
-                85.0,
-                "restart preserves settings"
-            );
-            test.coin = 0;
-            route_to(world, COINS[0]);
             true
         }
-        14 if world.resource::<Player>().route.is_empty() => {
-            assert!(
-                world.resource::<CoinRun>().collected[test.coin],
-                "autopilot collects objective"
-            );
-            test.coin += 1;
-            if test.coin < COINS.len() {
-                route_to(world, COINS[test.coin]);
-                false
-            } else {
-                route_to(world, START);
+        14 => {
+            release(world);
+            press(world, KeyCode::ShiftLeft);
+            if test.frames.is_multiple_of(400) {
+                info!(
+                    "Task route: player {:?}, destination {:?}, {} waypoints, {}",
+                    world.resource::<Player>().feet(),
+                    world.resource::<Expedition>().destination(),
+                    world.resource::<Player>().route.len(),
+                    world.resource::<UiState>().status
+                );
+            }
+            if world.resource::<Expedition>().finished {
+                assert_eq!(world.resource::<Expedition>().installed_cells(), 3);
+                capture(world, "signal-finished");
                 true
+            } else {
+                if world.resource::<Player>().route.is_empty() && test.frames.is_multiple_of(5) {
+                    let goal = world.resource::<Expedition>().destination();
+                    if world.resource::<Player>().feet().distance(goal) < 1.5 {
+                        world.resource_mut::<Actions>().0.push(Action::Interact);
+                    } else {
+                        route_to(world, goal);
+                    }
+                }
+                false
             }
         }
-        15 if world.resource::<CoinRun>().finished => {
-            assert_eq!(world.resource::<CoinRun>().count(), 6);
-            capture(world, "completed");
+        15 => {
+            release(world);
+            press(world, KeyCode::ShiftLeft);
+            if test.frames.is_multiple_of(400) {
+                info!(
+                    "Blueprint {}: player {:?}, {} waypoints",
+                    test.coin,
+                    world.resource::<Player>().feet(),
+                    world.resource::<Player>().route.len()
+                );
+            }
+            if test.coin >= 5 {
+                test.coin = 0;
+                true
+            } else {
+                if world.resource::<Expedition>().blueprints[test.coin] {
+                    test.coin += 1;
+                } else if world.resource::<Player>().route.is_empty() {
+                    route_to(world, DATA.blueprints[test.coin].into());
+                }
+                false
+            }
+        }
+        16 if test.frames == 1 => {
+            route_to(world, map::PRACTICE);
+            false
+        }
+        16 if world.resource::<Player>().route.is_empty() => {
+            world.resource_mut::<Actions>().0.push(Action::View);
             true
         }
-        16 if test.frames > 45 => {
-            world.resource_mut::<Actions>().0.push(Action::Range);
-            true
-        }
-        17 if test.frames > 3 && world.resource::<Player>().route.is_empty() => {
-            assert!(
-                world
+        17 => {
+            release(world);
+            if !test.occlusion_checked {
+                if test.frames == 5 {
+                    aim_at(world, shooting::TARGETS[2]);
+                    fire(world);
+                }
+                if test.frames >= 10 {
+                    assert_eq!(world.resource::<Practice>().shots, 1);
+                    assert_eq!(
+                        world.resource::<Practice>().hits,
+                        0,
+                        "the bridge support must block this shot"
+                    );
+                    test.occlusion_checked = true;
+                    test.frames = 0;
+                }
+                return;
+            }
+            // Shoot the middle target from up close, then physically walk back.
+            // No activation interaction is sent at any stage of this challenge.
+            if !test.close_checked {
+                world.resource_mut::<Player>().yaw = 0.;
+                world.resource_mut::<ViewState>().pitch = 0.;
+                let distance = world
                     .resource::<Player>()
                     .position
-                    .distance(shooting::ENTRY)
-                    < 0.1,
-                "range remains reachable after completing the coin game"
-            );
-            capture(world, "range-overview");
-            true
+                    .distance(shooting::TARGETS[1].xz());
+                if distance > 3. && test.frames <= 1 {
+                    press(world, KeyCode::KeyW);
+                    test.frames = 0;
+                } else if test.frames == 5 {
+                    aim_at(world, shooting::TARGETS[1]);
+                    fire(world);
+                } else if test.frames >= 10 {
+                    assert_eq!(
+                        world.resource::<Practice>().hits,
+                        0,
+                        "close shot cannot destroy target"
+                    );
+                    assert_eq!(world.resource::<Practice>().shots, 2);
+                    assert!(world.resource::<UiState>().status.starts_with("Zu nah:"));
+                    assert!(!world.resource::<Expedition>().practice_reward);
+                    capture(world, "range-too-close");
+                    test.close_checked = true;
+                    test.frames = 0;
+                }
+                return;
+            }
+            if world.resource::<Player>().position.y < map::PRACTICE.z - 0.15 {
+                world.resource_mut::<Player>().yaw = 0.;
+                world.resource_mut::<ViewState>().pitch = 0.;
+                press(world, KeyCode::KeyS);
+                test.frames = 0;
+                return;
+            }
+            if test.frames == 3 && test.coin == 0 {
+                capture(world, "range-ready");
+            }
+            if test.coin >= 3 {
+                assert_eq!(world.resource::<Practice>().hits, 3);
+                assert!(world.resource::<Expedition>().practice_reward);
+                capture(world, "practice");
+                if std::env::args().any(|arg| arg == "--smoke-range") {
+                    test.stage = 98;
+                }
+                world.resource_mut::<Actions>().0.push(Action::View);
+                true
+            } else if (shooting::TARGETS[test.coin].x - world.resource::<Player>().position.x).abs()
+                > 0.15
+            {
+                let dx = shooting::TARGETS[test.coin].x - world.resource::<Player>().position.x;
+                world.resource_mut::<Player>().yaw = 0.;
+                world.resource_mut::<ViewState>().pitch = 0.;
+                press(
+                    world,
+                    if dx > 0. {
+                        KeyCode::KeyD
+                    } else {
+                        KeyCode::KeyA
+                    },
+                );
+                test.frames = 0;
+                false
+            } else if test.frames == 5 {
+                aim_at(world, shooting::TARGETS[test.coin]);
+                fire(world);
+                false
+            } else if test.frames == 10 {
+                assert!(
+                    world.resource::<Practice>().targets_hit[test.coin],
+                    "loaded target {} raycast; shots={}, status={}",
+                    test.coin,
+                    world.resource::<Practice>().shots,
+                    world.resource::<UiState>().status
+                );
+                test.coin += 1;
+                test.frames = 0;
+                false
+            } else {
+                false
+            }
         }
-        18 if test.frames > 12 => {
-            press(world, KeyCode::KeyE);
+        18 if test.frames == 1 => {
+            release(world);
+            route_to(world, map::point(46., 49.5, 0.));
+            false
+        }
+        18 if world.resource::<Player>().route.is_empty() => {
+            world.resource_mut::<Actions>().0.push(Action::Interact);
             true
         }
         19 if test.frames > 5 => {
-            release(world);
-            assert!(world.resource::<Practice>().running);
+            assert_eq!(world.resource::<Expedition>().blueprint_count(), 6);
+            route_to(world, map::CHECKPOINT);
+            true
+        }
+        20 if world.resource::<Player>().route.is_empty() => {
+            world.resource_mut::<Actions>().0.push(Action::Interact);
+            true
+        }
+        21 if test.frames > 5 => {
+            assert!(world.resource::<Expedition>().checkpoint);
+            route_to(world, map::point(37., 33., 0.));
+            true
+        }
+        22 if world.resource::<Player>().route.is_empty() => {
             assert!(
-                world.resource::<CoinRun>().finished,
-                "target practice preserves the completed coin round"
+                world.resource::<Player>().height < 0.1,
+                "walk underneath the central gallery"
             );
+            capture(world, "under-gallery");
+            route_to(world, map::point(37., 33., 3.));
+            true
+        }
+        23 if world.resource::<Player>().route.is_empty() => {
             assert!(
-                world.resource::<ViewState>().first_person
-                    && world.resource::<ViewState>().captured
+                (world.resource::<Player>().height - 3.).abs() < 0.01,
+                "reach the same position upstairs via stairs"
             );
+            capture(world, "upper-gallery");
+            world.resource_mut::<Actions>().0.push(Action::Map);
+            true
+        }
+        24 if test.frames > 40 => {
+            capture(world, "playable-level");
+            true
+        }
+        25 if test.frames > 15 => {
+            world.resource_mut::<Actions>().0.push(Action::Checkpoint);
+            true
+        }
+        26 if test.frames > 5 => {
+            assert!(world.resource::<Player>().feet().distance(map::CHECKPOINT) < 0.01);
+            assert_eq!(world.resource::<Expedition>().installed_cells(), 3);
+            assert_eq!(world.resource::<Expedition>().blueprint_count(), 6);
+            world.resource_mut::<Actions>().0.push(Action::Restart);
+            true
+        }
+        27 if test.frames > 5 => {
+            let m = world.resource::<Expedition>();
+            assert!(
+                !m.finished && !m.rack_open && m.collected_cells() == 0 && m.blueprint_count() == 0
+            );
+            assert_eq!(world.resource::<CoinRun>().count(), 0);
+            assert_eq!(world.resource::<Practice>().targets_hit, [false; 3]);
+            assert_eq!(world.resource::<Player>().position, map::START.xz());
+            let nav = world.resource::<Navigation>();
+            let rack = nav
+                .obstacles
+                .iter()
+                .find(|o| o.name == "Movable storage rack")
+                .unwrap();
+            let original = DATA.obstacles.iter().find(|o| o.name == rack.name).unwrap();
             assert_eq!(
-                *world
-                    .query_filtered::<&Visibility, With<Weapon>>()
-                    .single(world)
-                    .unwrap(),
-                Visibility::Visible
+                rack.center, original.center,
+                "reset must restore the shelf collider"
             );
-            aim_at(world, shooting::TARGETS[1]);
-            capture(world, "range-ready");
-            true
-        }
-        20 if test.frames > 12 => {
-            fire(world);
-            true
-        }
-        21 if test.frames > 2 => {
-            release(world);
-            let practice = world.resource::<Practice>();
-            assert_eq!(practice.shots, 1, "one click fires one shot");
-            assert_eq!(
-                practice.hits, 1,
-                "ray hits the glTF target through the crosshair"
-            );
-            assert_eq!(practice.score, 50, "bullseye scores 50");
-            assert!(practice.respawn[1] > 0.0);
-            assert_eq!(world.query::<&Debris>().iter(world).count(), 6);
-            capture(world, "range-hit");
-            true
-        }
-        22 if test.frames > 30 => {
-            assert_eq!(
-                world.resource::<Practice>().respawn[1],
-                0.0,
-                "target respawns"
-            );
-            aim_at(world, shooting::TARGETS[1] + Vec3::X * 0.6);
-            true
-        }
-        23 if test.frames > 3 => {
-            fire(world);
-            true
-        }
-        24 if test.frames > 2 => {
-            release(world);
-            assert_eq!(
-                world.resource::<Practice>().score,
-                60,
-                "outer ring scores ten"
-            );
-            aim_at(world, shooting::TARGETS[2]);
-            true
-        }
-        25 if test.frames > 5 => {
-            fire(world);
-            true
-        }
-        26 if test.frames > 2 => {
-            release(world);
-            assert_eq!(world.resource::<Practice>().shots, 3);
-            assert_eq!(
-                world.resource::<Practice>().hits,
-                2,
-                "lane divider blocks the side target"
-            );
-            world.resource_mut::<Actions>().0.push(Action::Settings);
-            test.remaining = world.resource::<Practice>().remaining;
-            true
-        }
-        27 if test.frames > 12 => {
-            assert_eq!(
-                world.resource::<Practice>().remaining,
-                test.remaining,
-                "menu pauses the round"
-            );
-            fire(world);
-            true
-        }
-        28 if test.frames > 3 => {
-            assert_eq!(
-                world.resource::<Practice>().shots,
-                3,
-                "menu click does not shoot"
-            );
-            release(world);
-            world.resource_mut::<Actions>().0.push(Action::Resume);
-            aim_at(world, shooting::TARGETS[1]);
-            fire(world);
-            true
-        }
-        29 if test.frames == 4 => {
-            release(world);
-            assert_eq!(
-                world.resource::<Practice>().shots,
-                3,
-                "the click that resumes a round cannot fire"
-            );
-            false
-        }
-        29 if !world.resource::<Practice>().running => {
-            let practice = world.resource::<Practice>();
-            assert_eq!(practice.remaining, 0.0);
-            assert_eq!(practice.best, 60);
-            assert_eq!(practice.hits, 2);
-            fire(world);
-            capture(world, "range-result");
-            true
-        }
-        30 if test.frames > 12 => {
-            release(world);
-            assert_eq!(
-                world.resource::<Practice>().shots,
-                3,
-                "expired rounds cannot score"
-            );
-            press(world, KeyCode::KeyE);
-            true
-        }
-        31 if test.frames > 3 => {
-            release(world);
-            assert_eq!(world.resource::<Practice>().score, 0);
-            assert_eq!(world.resource::<Practice>().best, 60);
-            assert!(world.resource::<Practice>().running);
-            true
-        }
-        32 if test.frames > 20 => {
-            for name in [
-                "overview",
-                "pathfinding",
-                "text-input",
-                "settings",
-                "first-person",
-                "completed",
-                "range-overview",
-                "range-ready",
-                "range-hit",
-                "range-result",
-            ] {
-                assert!(
-                    std::path::Path::new(&format!(
-                        "{}/artifacts/{name}.png",
-                        env!("CARGO_MANIFEST_DIR")
-                    ))
-                    .exists()
-                );
-            }
             info!(
-                "SMOKE TEST PASSED: movement, text, settings, coin game, Blender blaster, range access, bullseye, outer ring, occlusion, fragments, respawn, pause, timed round and retry"
+                "SMOKE TEST PASSED: inputs, settings, all room tasks, six blueprints, shooting, both floors and reset"
             );
             world.write_message(AppExit::Success);
-            true
+            false
+        }
+        99 if test.frames > 15 => {
+            info!("RANGE SMOKE TEST PASSED");
+            world.write_message(AppExit::Success);
+            false
         }
         _ => false,
     };
@@ -563,4 +615,8 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
         test.stage += 1;
         test.frames = 0;
     }
+}
+pub fn prepare_artifacts() {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("artifacts");
+    std::fs::create_dir_all(dir).expect("smoke artifact directory");
 }

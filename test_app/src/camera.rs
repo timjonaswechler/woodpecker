@@ -1,8 +1,8 @@
 use crate::{
+    blueprint,
     level::{LevelLoad, ground},
     player::Player,
     settings::Settings,
-    shooting,
     ui::UiState,
 };
 use bevy::{
@@ -21,6 +21,7 @@ pub struct ViewState {
     pub first_person: bool,
     pub captured: bool,
     pub pitch: f32,
+    pub map: bool,
 }
 
 impl ViewState {
@@ -83,26 +84,58 @@ pub fn update_camera(
     player: Res<Player>,
     view: Res<ViewState>,
     settings: Res<Settings>,
+    time: Res<Time>,
+    mut previous_fpv: Local<bool>,
     mut camera: Single<(&mut Transform, &mut Projection), With<GameCamera>>,
 ) {
     let (ref mut camera_transform, ref mut projection) = *camera;
-    if let Projection::Perspective(perspective) = &mut **projection {
-        perspective.fov = if view.first_person {
-            settings.fov
-        } else {
-            50.0
-        }
-        .to_radians();
-    }
     if view.first_person {
-        **camera_transform = Transform::from_translation(ground(player.position, 1.5))
-            .with_rotation(Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.0));
+        **projection = Projection::Perspective(PerspectiveProjection {
+            fov: settings.fov.to_radians(),
+            near: 0.05,
+            far: 200.,
+            ..default()
+        });
+        **camera_transform =
+            Transform::from_translation(ground(player.position, player.height + 1.5))
+                .with_rotation(Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.));
     } else {
-        // A fixed overview keeps world directions aligned with the arrow keys and the click target stable.
-        **camera_transform = if shooting::in_range(player.position) {
-            Transform::from_xyz(0.0, 21.0, -5.0).looking_at(Vec3::new(0.0, 0.0, -20.0), Vec3::Y)
+        let (target, extent) = if view.map {
+            (Vec3::new(-2., 0., 1.), 100.)
+        } else if let Some(room) = blueprint::room(player.position) {
+            let [x0, y0, x1, y1] = room.bounds;
+            (
+                blueprint::point((x0 + x1) / 2. + 3., (y0 + y1) / 2., 1.),
+                (x1 - x0).max(y1 - y0) * 0.95 + 14.,
+            )
         } else {
-            Transform::from_xyz(0.0, 39.0, 24.0).looking_at(Vec3::new(0.0, 0.0, -5.0), Vec3::Y)
+            (ground(player.position, 1.), 32.)
         };
+        let blend = 1. - (-8. * time.delta_secs()).exp();
+        let extent = if let Projection::Orthographic(current) = &**projection
+            && let bevy::camera::ScalingMode::FixedVertical { viewport_height } =
+                current.scaling_mode
+        {
+            viewport_height + (extent - viewport_height) * blend
+        } else {
+            extent
+        };
+        **projection = Projection::Orthographic(OrthographicProjection {
+            scaling_mode: bevy::camera::ScalingMode::FixedVertical {
+                viewport_height: extent,
+            },
+            ..OrthographicProjection::default_3d()
+        });
+        let desired = Transform::from_translation(target + Vec3::new(12., 40., 32.))
+            .looking_at(target, Vec3::Y);
+        if *previous_fpv {
+            **camera_transform = desired;
+        } else {
+            camera_transform.translation = camera_transform
+                .translation
+                .lerp(desired.translation, blend);
+            camera_transform.rotation = camera_transform.rotation.slerp(desired.rotation, blend);
+        }
     }
+    *previous_fpv = view.first_person;
 }

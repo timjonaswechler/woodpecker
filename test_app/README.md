@@ -1,96 +1,99 @@
-# Münzparcours und Zieltraining
+# Signalstation
 
-Eigenständige Bevy-Demo mit den KayKit-Modellen aus `asset/`. Sammle die sechs Münzen und kehre zur grünen Startplattform zurück. Der Timer stoppt nach der erfolgreichen Runde.
+Eigenständige Bevy-Demo auf der Grundplatte aus dem [Levelplan](planning/grundplatte_levelplan.pdf). Acht Räume, Galerien auf drei Metern Höhe, sechs Treppen und Brücken verbinden die Aufgaben. Unter den Galerien bleibt der Boden begehbar. Drei versteckte Bereiche bieten zusätzliche Verbindungen und Fundstücke. Der Sprungparcours in der zentralen Halle ist freiwillig.
 
-Im Norden liegt ein Schießstand mit drei Bahnen. Der Trainingsblaster wurde in Blender passend zu den kantigen KayKit-Modellen gebaut. Beide Spielbereiche bleiben auch nach einer abgeschlossenen Runde zugänglich.
-
-## Starten
-
-Aus dem Repository-Verzeichnis:
+## Spielen
 
 ```sh
 cargo run --manifest-path test_app/Cargo.toml
 ```
 
-Oder direkt aus `test_app` mit `cargo run`. Der Asset-Pfad hängt nicht vom aktuellen Arbeitsverzeichnis ab. Für einen optimierten Build `cargo run --release` verwenden. Der erste Build kompiliert auch die 3D-Engine und dauert entsprechend länger.
+Die Demo verwendet Bevy 0.19.1 und Rust 1.97.1 oder neuer. Sie hat einen eigenen Cargo-Workspace und benötigt Woodpecker nicht. Der Asset-Pfad funktioniert unabhängig vom Arbeitsverzeichnis. Für einen optimierten Build `--release` ergänzen.
 
-Die Demo verwendet Bevy 0.19.1 und benötigt Rust 1.97.1 oder neuer sowie eine GPU mit Unterstützung für Bevy. Sie hat keine Abhängigkeit von Woodpecker und ist ein eigener Cargo-Workspace. Bevy ist auf 0.19.1 festgelegt, da die benötigten 3D-Pakete für 0.20.0 beim Einrichten nicht vollständig verfügbar waren.
+Der Auftrag ist, drei Energiezellen zu beschaffen und das Signal in H zu starten. Die Aufgaben lassen sich in beliebiger Reihenfolge erledigen:
+
+- In Werkhalle B und Lagerhalle D jeweils ein Bauteil aufnehmen. Der Hebel in D verschiebt das Regal und gibt das zweite Bauteil frei. An der Werkbank in B entsteht daraus eine Energiezelle.
+- Beide Bewässerungsventile im Gewächshaus E öffnen. Die Zelle liegt anschließend am Verteiler bereit.
+- Drei Tafeln im Archiv F scannen und die Zelle am Terminal abholen.
+- Die Zellen mit E aufnehmen und unten in H am Generator einsetzen. Man kann mehrere Zellen tragen oder einzeln liefern. Danach die Treppe zum Signalbalkon nehmen und mit E abschließen.
+
+24 Münzen und sechs Baupläne sind zusätzliche Sammelziele. Ein Bauplan liegt in der Truhe im Übungsraum G. Um sie zu entriegeln, jede Scheibe aus mindestens sechs Metern Entfernung treffen. Die übrigen Baupläne liegen in den Nebenbereichen und auf den Galerien. Eine Münze erfordert den Sprungparcours. Nach dem Signal bleiben alle Räume begehbar.
+
+Der Wartungsgang G1 verbindet A mit H. G3 führt hinter der Werkhalle ins Archiv. Oben verbindet der goldene Weg durch G2 das Archiv mit dem Gewächshaus. Der Checkpoint in C lässt sich mit E aktivieren.
 
 ## Steuerung
 
 | Eingabe | Aktion |
 | --- | --- |
-| Pfeiltasten | Figur in der Übersicht bewegen |
-| Linksklick auf freien Boden | Per A*-Pathfinding zum Ziel laufen |
-| V oder „Ansicht wechseln“ | Zwischen Übersicht und Egoperspektive wechseln |
+| Pfeiltasten | Figur bewegen |
+| Linksklick auf Boden, Treppe oder Galerie | Per A* zum angeklickten Stockwerk laufen |
+| V | Übersicht / Egoperspektive wechseln |
 | WASD + Maus | In FPV laufen und umsehen |
-| „Zum Schießstand“ | Automatisch zum Eingang des Schießstands laufen |
-| E am Schießstand | 30-Sekunden-Zielübung in FPV starten oder neu starten |
-| Linksklick in der Zielübung | Einen Schuss abgeben |
+| G | Gesamtkarte / Raumübersicht |
+| E | Angezeigte Station bedienen oder Gegenstand aufnehmen |
+| Leertaste | Springen |
 | Umschalt | Sprinten |
-| Esc in FPV | Maus freigeben |
-| Klick ins Level bei freier FPV-Maus | Maus wieder binden |
-| M oder „Einstellungen“ | Spiel pausieren und Einstellungen öffnen |
-| Esc bei freier Maus | Einstellungen öffnen oder schließen |
-| R oder „Neue Runde“ | Münzen, Figur und Timer zurücksetzen |
+| Backspace | Zum aktivierten Checkpoint oder Start zurückkehren; Fortschritt bleibt erhalten |
+| Linksklick in FPV | Blaster abfeuern |
+| Esc in FPV | Maus freigeben; Klick ins Level bindet sie wieder |
+| M | Einstellungen öffnen und Spiel pausieren |
+| R | Aufgaben, Sammelobjekte und Figur zurücksetzen |
 | Tab / Umschalt+Tab | UI-Fokus wechseln |
-| Enter / Leertaste | Fokussierten Button betätigen |
 
-Die Pfeiltasten funktionieren auch in FPV relativ zur Blickrichtung. Manuelle Bewegung bricht die automatische Route ab. Wände, Kisten, Fässer und der Rand des Levels blockieren die Figur. Die Navigation berücksichtigt den Körperradius und verhindert diagonale Abkürzungen durch Hindernisse.
+Manuelle Bewegung bricht eine Klickroute ab. Treppen werden automatisch bestiegen. Die Figur besitzt eine Kollisionsbox von 1,2 × 1,2 × 1,82 Metern. Auch ihre Arme und der Kopf bleiben innerhalb dieser Box. Wände, Ecken, Möbel, Zielständer und Galeriekanten halten sie auf. Klickwege verwenden dieselbe Körpergröße und berücksichtigen das Stockwerk; Sprünge steuert man selbst. Der Button „Zum nächsten Auftrag“ führt zum nächsten noch offenen Aufgabenziel. „Zum Schießstand“ führt nach G.
 
-## Zieltraining
+## Zielübung, Eingabe und Einstellungen
 
-Klicke auf **„Zum Schießstand“** und drücke dort **E**. Ziele mit dem Fadenkreuz auf eine Scheibe und schieße mit der linken Maustaste. Treffer in der Mitte geben 50, im mittleren Bereich 25 und außen 10 Punkte. Die Scheiben zerbrechen und erscheinen nach 1,2 Sekunden erneut. Die Trennwände blockieren Schüsse; mit WASD kannst du zwischen den Bahnen wechseln.
+Der Schießstand in G ist immer bereit. Mit V in FPV wechseln und mit Linksklick schießen. Jeder Treffer zählt erst ab sechs Metern Bodenabstand zur jeweiligen Scheibe. Blaue Linien markieren diesen Abstand vor den Zielen; die Anzeige nennt den Abstand zum nächsten stehenden Ziel. Zu nahe Treffer lassen die Scheibe stehen. Gültige Treffer zerbrechen sie dauerhaft. Die Mitte gibt 50 Punkte, die weiteren Ringe 25 oder 10. Sobald alle Scheiben gültig getroffen wurden, öffnet E die Bauplan-Truhe hinten rechts. Es gibt kein Zeitlimit und keine Startinteraktion. R setzt die Ziele zusammen mit dem Level zurück.
 
-Das HUD zeigt Restzeit, Punkte, Trefferquote und den Rekord der laufenden Sitzung. Nach 30 Sekunden endet die Wertung; E startet die nächste Runde. Das Menü, ein inaktives Fenster, die Übersicht und die freigegebene Maus pausieren die Übung. Beim Verlassen des Schießstands in FPV endet sie. Ein Klick zum Binden der Maus oder Fortsetzen aus dem Menü löst keinen Schuss aus.
+Brückenstützen und Wände blockieren Schüsse; mit WASD wechselst du zwischen den Schießbahnen. Die Übung ist für den Hauptauftrag nicht erforderlich. Menü, freie Maus, Texteingabe und ein inaktives Fenster sperren Schüsse.
 
-## Texteingabe und Einstellungen
+## Ressourcen und Stationszeichen
 
-Das Namensfeld rechts oben unterstützt Unicode, Textauswahl, Bearbeitung und die Systemzwischenablage. Enter oder Esc beendet die Eingabe. Während der Texteingabe bewegen die Tasten die Figur nicht und lösen keine Spielkürzel aus. Im Spiel erscheint der Name neben dem Timer und in der Erfolgsmeldung. In FPV blendet sich das Bedienfeld aus, solange die Maus gebunden ist; Esc macht es wieder zugänglich.
+Die Leiste am oberen Bildschirmrand zeigt den gesamten aktuellen Besitz, ohne Gesamtmengen oder Raumzähler. Gebaute Zellen verbrauchen Bauteile; eingesetzte Zellen verlassen das Inventar.
 
-Im Menü lassen sich Maus-Empfindlichkeit, FPV-Sichtfeld, Lauftempo, Schatten, Routenanzeige und die vertikale Mausachse ändern. Einstellungen und Name werden automatisch in `test_app/settings.json` gespeichert. „Standardwerte“ setzt die Einstellungen zurück und behält den Namen bei. Das Menü und ein inaktives Fenster pausieren Bewegung und Timer. In FPV pausiert auch die freigegebene Maus die Bewegung.
+| Zeichen | Gegenstand und zugehörige Stationen |
+| --- | --- |
+| Goldene Münze | Münzen zum Einsammeln |
+| Oranges Zahnrad | Bauteile, Lagerhebel und Eingang der Werkbank |
+| Grüne Batterie | Energiezellen, Werkbank-Ausgang, Ventile, Archivtafeln und Generator |
+| Blaues Blatt | Baupläne, Zielscheiben und Belohnungstruhe |
 
-## Prüfen
+Die Form bleibt auch ohne Farberkennung unterscheidbar. Markierungen an Ventilen, Archivtafeln, Werkbank und Generator leuchten nach Abschluss der jeweiligen Aufgabe stärker. Die UI-Symbole lassen sich mit `python3 test_app/planning/create_resource_icons.py` neu erzeugen. Die räumlichen Zeichen stehen in `src/items.rs`.
+
+Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der Eingabe bleiben Spieltasten gesperrt. Enter oder Esc beendet die Eingabe. Das Einstellungsmenü bietet Maus-Empfindlichkeit, Sichtfeld, Lauftempo, Schatten, Routenanzeige und eine umkehrbare vertikale Mausachse. Name und Einstellungen werden in `test_app/settings.json` gespeichert.
+
+## Level bearbeiten
+
+Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/custom/courtyard/courtyard.glb`; Blender muss zum Spielen nicht laufen.
 
 ```sh
-cargo test --manifest-path test_app/Cargo.toml
-cargo run --manifest-path test_app/Cargo.toml -- --smoke-test
-# Bildprüfung auch bei gesperrtem Desktop:
-cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --offscreen
+blender --background test_app/planning/groundplate/groundplate_concept.blend \
+  --python-exit-code 1 --python test_app/blender/export_level.py
 ```
 
-Die Unit-Tests prüfen Umwege, unerreichbare Ziele, enge diagonale Lücken, Kollision bei großen Bewegungsschritten, die Blickrichtung der Figur, die Erreichbarkeit aller Münzen und Schießbahnen sowie die Trefferwertung.
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. `layout.json` enthält die exportierten Kollisions- und Navigationsdaten und wird beim Kompilieren eingebunden.
 
-Der gerenderte Integrationstest öffnet das Spielfenster, führt synthetische Eingaben durch dieselben Spielsysteme aus und beendet sich nach einem vollständigen Durchlauf. Das Fenster muss dabei den Eingabefokus behalten. Geprüft werden Asset-Laden, Pfeiltasten, Klick-Pathfinding, Unicode-Texteingabe, Eingabefokus, das Einstellungsmenü einschließlich Speicherung, FPV mit WASD und Maus, Neustart und Spielabschluss. Anschließend prüft er den Weg zum Schießstand, Treffer auf den geladenen glTF-Scheiben, Punkte, Trümmer, Wiedererscheinen der Ziele, durch Wände blockierte Schüsse, Pause, Zeitablauf und eine neue Übungsrunde. Screenshots und separate Testeinstellungen landen in `test_app/artifacts/`; persönliche Einstellungen bleiben erhalten. Ein Fehler beendet den Test mit einem Fehlercode.
-
-Mit `--offscreen` bleibt das Testfenster verborgen. Derselbe Test rendert in eine GPU-Textur und simuliert auch den Fensterfokus. So entstehen vollständige Screenshots, wenn macOS für ein gesperrtes oder verdecktes Fenster keine Bilder bereitstellt. Der normale Spielstart nutzt weiterhin den tatsächlichen Fensterfokus.
-
-## Dateien und Assets
-
-- `src/game.rs`: Tastenkürzel und Koordination übergreifender Aktionen wie Neustart und Ansichtswechsel.
-- `src/player.rs`: Spielerposition, Ausrichtung, Laufroute, Bewegung und Figurendarstellung.
-- `src/camera.rs`: Perspektive, Maussteuerung, Mausbindung und Kameradarstellung.
-- `src/coins.rs`: Münzrunde, Timer, Abschluss und Münzendarstellung.
-- `src/navigation.rs`: A*, Routenvereinfachung und Kollision.
-- `src/level.rs`: Level-Aufbau, Ladezustand, Beleuchtung und Münzpositionen.
-- `src/ui.rs`: UI-Zustand, Statusmeldung, HUD, Namensfeld und Einstellungsmenü.
-- `src/settings.rs`: Laden und Speichern der Einstellungen.
-- `src/shooting.rs`: Blaster, Raycast-Treffer, Zielscheiben und Übungsrunden.
-- `src/smoke.rs`: Gerenderter Integrationstest.
-- `blender/training_blaster.blend`: Bearbeitbares Blaster-Modell mit Vorschaukamera und Licht.
-- `blender/export_blaster.py`: Exportiert das bearbeitete Modell für die Demo.
-- `blender/create_blaster.py`: Erzeugt den ursprünglichen Blaster-Entwurf erneut.
-- `asset/custom/training_blaster.glb`: Export für das Spiel; Blender muss zum Spielen nicht laufen.
-
-Nach Änderungen die Blender-Datei speichern und aus dem Repository-Verzeichnis exportieren:
+Der bearbeitete Blaster bleibt in [blender/training_blaster.blend](blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
 ```sh
 blender --background test_app/blender/training_blaster.blend \
   --python-exit-code 1 --python test_app/blender/export_blaster.py
 ```
 
-Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Mit `-- --preview` am Ende entsteht zusätzlich eine Modellvorschau unter `artifacts/blaster.png`. Der Export verwendet die Collection `Training Blaster` aus der gespeicherten Datei. Anschließend die Demo neu starten.
+## Prüfen
 
-Die vorhandenen Modelle und Texturen stammen aus **KayKit: Prototype Bits** von Kay Lousberg. Die mitgelieferte CC0-Lizenz steht in [`asset/License.txt`](asset/License.txt). Der Blaster unter `asset/custom/` wurde für diese Demo erstellt.
+```sh
+cargo test --manifest-path test_app/Cargo.toml
+cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --offscreen
+```
 
-Für die Oberfläche liegt die Schrift Barlow unter `asset/fonts/`. Sie stammt aus dem [Google-Fonts-Repository](https://github.com/google/fonts/tree/main/ofl/barlow) und enthält auch deutsche Umlaute. Die SIL Open Font License liegt als [`asset/fonts/OFL.txt`](asset/fonts/OFL.txt) bei.
+Die Tests laufen mit der tatsächlichen Levelgeometrie und Bewegungsphysik. Sie prüfen Aufgaben und Sammelwege, alle Treppen, den Sprungparcours, getrennte Laufwege unter und auf einer Galerie, Kollision mit deren Unterseite, Blickrichtung, den sichtbaren Körper innerhalb der Kollisionsbox, Inventarverbrauch und den Mindestabstand jedes Zieltreffers.
+
+Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellungen und FPV. Anschließend erledigt er den Hauptauftrag, sammelt die Baupläne, trifft alle drei Scheiben und öffnet die Truhe. Er prüft den Checkpoint, die beiden Galerieebenen und den Neustart. Mit `--smoke-test --smoke-range --offscreen` lässt sich die Zielübung separat prüfen, einschließlich verdeckter Schüsse, abgewiesener Nahschüsse und seitlicher Bewegung. Bilder und separate Testeinstellungen landen in `test_app/artifacts/`. Ohne `--offscreen` öffnet der Test ein sichtbares Fenster, das den Eingabefokus behalten muss.
+
+## Code und Assets
+
+`blueprint.rs` lädt die exportierten Raumdaten. `navigation.rs` verwaltet Kollision und Wege, `player.rs` Bewegung und Sprünge. `expedition.rs` enthält Aufgaben und Inventar, `course.rs` deren Darstellung. `items.rs` verbindet Inventar, Farben und Objektformen. `game.rs` koordiniert Befehle; Kamera, Münzen, Zielübung, Oberfläche und Einstellungen haben eigene Module.
+
+Die KayKit-Modelle stammen aus **KayKit: Prototype Bits** von Kay Lousberg, siehe [CC0-Lizenz](asset/License.txt). Blaster, Level und Stationsmodelle wurden für diese Demo erstellt. Die Schrift Barlow liegt mit ihrer [SIL Open Font License](asset/fonts/OFL.txt) unter `asset/fonts/`.

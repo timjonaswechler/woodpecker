@@ -1,12 +1,14 @@
 //! Coordinates user commands that span the demo's modules.
 use crate::{
+    blueprint,
     camera::ViewState,
     coins::CoinRun,
+    expedition::Expedition,
     level::LevelLoad,
     navigation::Navigation,
     player::Player,
     settings::Settings,
-    shooting::{self, Practice},
+    shooting::Practice,
     ui::{Action, Actions, UiState},
 };
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
@@ -27,9 +29,20 @@ pub fn handle_actions(
     mut exit: MessageWriter<AppExit>,
     nav: Res<Navigation>,
     mut practice: ResMut<Practice>,
+    mut expedition: ResMut<Expedition>,
 ) {
     for action in actions.0.drain(..) {
         focus.clear();
+        let save_settings = matches!(
+            action,
+            Action::Sensitivity(_)
+                | Action::Speed(_)
+                | Action::Fov(_)
+                | Action::Path
+                | Action::Shadows
+                | Action::Invert
+                | Action::Defaults
+        );
         match action {
             Action::View => {
                 view.toggle();
@@ -48,37 +61,54 @@ pub fn handle_actions(
                 *player = Player::default();
                 *view = ViewState::default();
                 *run = CoinRun::default();
+                *expedition = Expedition::default();
                 *ui = UiState {
-                    status: "Neue Runde. Sammle alle sechs Münzen.".into(),
+                    status: "Neue Runde. Erkunde die Räume und finde die drei Energiezellen."
+                        .into(),
                     ..default()
                 };
                 practice.reset();
             }
-            Action::Range => {
-                if let Some(route) = nav.path(player.position, shooting::ENTRY) {
+            Action::Map => {
+                view.first_person = false;
+                view.captured = false;
+                view.map = !view.map;
+            }
+            Action::Interact => {
+                if !load.is_ready() || ui.menu {
+                    continue;
+                }
+                let action = expedition.interaction(&player, &nav);
+                ui.status = expedition.apply(action);
+            }
+            Action::Checkpoint => {
+                let p = if expedition.checkpoint {
+                    blueprint::CHECKPOINT
+                } else {
+                    blueprint::START
+                };
+                player.respawn(p.xz(), p.y);
+                ui.status = "Zurück am sicheren Punkt. Dein Fortschritt bleibt erhalten.".into();
+            }
+            Action::Objective | Action::Range => {
+                if (player.height - nav.support(player.position, player.height + 0.02)).abs() > 0.15
+                {
+                    ui.status = "Lande zuerst, bevor du einen Laufweg auswählst.".into();
+                    continue;
+                }
+                let goal = if matches!(action, Action::Range) {
+                    blueprint::PRACTICE
+                } else {
+                    expedition.destination()
+                };
+                if let Some(route) = nav.path(player.feet(), goal) {
                     view.first_person = false;
                     view.captured = false;
                     player.route = route;
-                    ui.status = "Unterwegs zum Schießstand. Dort startet E die Zielübung.".into();
-                }
-            }
-            Action::Practice => {
-                if !load.is_ready() {
-                    continue;
-                }
-                if shooting::in_range(player.position) {
-                    practice.start();
-                    view.first_person = true;
-                    view.captured = true;
-                    player.yaw = 0.0;
-                    view.pitch = 0.0;
-                    player.route.clear();
-                    ui.status =
-                        "30 Sekunden! Linksklick schießt. Die Mitte zählt 50 Punkte.".into();
+                    ui.status = "Unterwegs. Pfeiltasten übernehmen jederzeit die Steuerung.".into();
                 } else {
                     ui.status =
-                        "Betritt zuerst den Schießstand im Norden. Der Button bringt dich hin."
-                            .into();
+                        "Kein Laufweg gefunden. Wähle einen freien Boden oder eine Treppe.".into();
                 }
             }
             Action::Sensitivity(delta) => {
@@ -100,7 +130,7 @@ pub fn handle_actions(
                 exit.write(AppExit::Success);
             }
         }
-        if let Err(error) = settings.save() {
+        if save_settings && let Err(error) = settings.save() {
             ui.status = format!("Einstellungen konnten nicht gespeichert werden: {error}");
         }
     }
@@ -144,10 +174,16 @@ pub fn keyboard_shortcuts(
     if !ui.menu && keys.just_pressed(KeyCode::KeyM) {
         actions.0.push(Action::Settings);
     }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyG) {
+        actions.0.push(Action::Map);
+    }
     if !ui.menu && keys.just_pressed(KeyCode::KeyR) {
         actions.0.push(Action::Restart);
     }
+    if !ui.menu && keys.just_pressed(KeyCode::Backspace) {
+        actions.0.push(Action::Checkpoint);
+    }
     if !ui.menu && keys.just_pressed(KeyCode::KeyE) {
-        actions.0.push(Action::Practice);
+        actions.0.push(Action::Interact);
     }
 }
