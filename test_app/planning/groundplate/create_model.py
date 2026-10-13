@@ -6,6 +6,7 @@ from math import pi
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import layout as plan
+from scene_collections import organize_scene
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT/'artifacts/groundplate-plan'
@@ -265,6 +266,7 @@ scene.render.resolution_x=2000;scene.render.resolution_y=1350;scene.render.resol
 scene.render.image_settings.file_format='PNG';scene.render.film_transparent=False
 scene.view_settings.view_transform='AgX'
 scene.render.filepath=str(OUT/'raeumlicher_entwurf.png')
+organize_scene(scene)
 bpy.ops.wm.save_as_mainfile(filepath=str(Path(__file__).with_name('groundplate_concept.blend')))
 bpy.ops.render.render(write_still=True)
 # Second view makes passing below the elevated route easier to understand.

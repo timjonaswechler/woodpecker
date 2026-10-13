@@ -67,12 +67,25 @@ Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der E
 
 Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/custom/courtyard/courtyard.glb`; Blender muss zum Spielen nicht laufen.
 
+Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol unabhängig ausblenden. Das Kamerasymbol steuert die Sichtbarkeit im Renderbild.
+
+| Collection | Inhalt |
+| --- | --- |
+| `01 Notwendig` | Grundplatte, Wände, Treppen, Brücken, Geländer, Parcours, Aufgabenstationen und Sammelobjekte |
+| `02 Deko` | Kisten, Bänke, nicht bedienbare Maschinen, Bücherregale, Ordner, Schränke und Pflanzen samt Kübeln |
+| `03 Planung` | Raumbeschriftungen, Größenvergleichsfigur und die alte Startkonsole des Schießstands |
+| `04 Kamera und Licht` | Kamera und Renderbeleuchtung |
+
+Für die reine Spielstruktur `02 Deko` und `03 Planung` ausblenden. Für die Dekoration allein `01 Notwendig` und `03 Planung` ausblenden. Funktionsobjekte bleiben samt Details zusammen, etwa der Generator mit seinen Zellensockeln. Das versteckende Regal an G2 gehört ebenfalls zur Spielstruktur. Dekorative Möbel behalten ihre Kollision im Spiel. Die Aufteilung in [scene_collections.py](planning/groundplate/scene_collections.py) gilt auch beim Neuerstellen mit `create_model.py`.
+
 ```sh
 blender --background test_app/planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python test_app/blender/export_level.py
 ```
 
 Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. `layout.json` enthält die exportierten Kollisions- und Navigationsdaten und wird beim Kompilieren eingebunden.
+
+Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
 Der bearbeitete Blaster bleibt in [blender/training_blaster.blend](blender/training_blaster.blend). Nach Änderungen separat exportieren:
 

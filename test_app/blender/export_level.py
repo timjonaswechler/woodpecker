@@ -17,6 +17,28 @@ import layout as plan
 OUT = ROOT / 'asset/custom/courtyard'
 OUT.mkdir(parents=True, exist_ok=True)
 
+# Collections may be hidden for structural/decorative inspection in Blender.
+# Always export the complete level; these changes only affect this process.
+def include_collections(layer):
+    layer.exclude = False
+    layer.hide_viewport = False
+    for child in layer.children:
+        include_collections(child)
+
+for collection in bpy.data.collections:
+    collection.hide_viewport = False
+    collection.hide_render = False
+    collection.hide_select = False
+include_collections(bpy.context.view_layer.layer_collection)
+bpy.context.view_layer.update()
+for obj in bpy.context.scene.objects:
+    obj.hide_set(False)
+    obj.hide_viewport = False
+    obj.hide_render = False
+    obj.hide_select = False
+bpy.context.view_layer.update()
+bpy.ops.object.select_all(action='DESELECT')
+
 def point(x,y,z=0):
     return [round(x-39,5), round(z,5), round(27-y,5)]
 
