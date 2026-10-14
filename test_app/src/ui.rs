@@ -1,3 +1,6 @@
+mod fonts;
+pub use fonts::apply as apply_font;
+
 use crate::{
     camera::ViewState,
     coins::CoinRun,
@@ -42,12 +45,6 @@ const MUTED: Color = Color::srgb(0.57, 0.66, 0.69);
 const INK: Color = Color::srgb(0.89, 0.94, 0.93);
 const BORDER: Color = Color::srgb(0.19, 0.29, 0.31);
 const BUTTON: Color = Color::srgb(0.095, 0.15, 0.17);
-
-pub fn apply_font(assets: Res<AssetServer>, mut fonts: Query<&mut TextFont, Added<TextFont>>) {
-    for mut font in &mut fonts {
-        font.font = assets.load("fonts/Barlow-Regular.ttf").into();
-    }
-}
 
 #[derive(Component)]
 pub struct UiBlock;
@@ -249,6 +246,7 @@ pub fn spawn_ui(
     assets: Res<AssetServer>,
     mut tracked: ResMut<crate::level::LevelAssets>,
 ) {
+    commands.insert_resource(fonts::load(&assets, &mut tracked));
     // Draw the HUD after both the level and the FPV weapon pass.
     commands.spawn((
         Name::new("HUD-Kamera"),
