@@ -202,11 +202,17 @@ mod tests {
                 assert!(!observation.initialized());
                 assert!(received.try_recv().is_err());
                 observation
-                    .ready(Capabilities { screenshot: true })
+                    .ready(Capabilities {
+                        screenshot: true,
+                        ..Default::default()
+                    })
                     .unwrap();
             } else {
                 observation
-                    .ready(Capabilities { screenshot: true })
+                    .ready(Capabilities {
+                        screenshot: true,
+                        ..Default::default()
+                    })
                     .unwrap();
                 assert!(!observation.initialized());
                 assert!(received.try_recv().is_err());

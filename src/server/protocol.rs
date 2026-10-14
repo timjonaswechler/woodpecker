@@ -17,7 +17,7 @@ impl Create {
     pub fn validate(&self) -> std::result::Result<(), session::Error> {
         self.launch.validate()?;
         self.report.validate()?;
-        if !self.tick.pace.is_valid() {
+        if !self.tick.pace.is_valid() || !self.tick.clock.is_valid() {
             return Err(session::Error::new("invalid_config", "invalid pace"));
         }
         Ok(())

@@ -55,7 +55,7 @@ fn app() -> (App, mpsc::Sender<String>, Responses) {
     app.insert_sub_app(RenderApp, render);
     let (sender, input) = mpsc::channel();
     let (output, receiver) = mpsc::channel();
-    install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+    install(&mut app, input, output, tick::Config::default());
     (app, sender, receiver)
 }
 

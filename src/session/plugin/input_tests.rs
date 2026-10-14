@@ -53,7 +53,7 @@ fn app() -> (App, Entity, mpsc::Sender<String>) {
     let window = app.world_mut().spawn((window, PrimaryWindow)).id();
     let (tx, input) = mpsc::channel();
     let (output, _rx) = mpsc::channel();
-    install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+    install(&mut app, input, output, tick::Config::default());
     (app, window, tx)
 }
 

@@ -10,6 +10,7 @@ fn parse(text: &str) -> Result<loader::Plan, Error> {
         Cursor::new(text),
         "records/test.jsonl",
         &AtomicBool::new(false),
+        &Default::default(),
     )
     .map(Option::unwrap)
 }
@@ -42,10 +43,75 @@ fn successful(output: Value) -> Value {
 }
 
 #[test]
+fn replay_requires_the_recorded_clock_before_any_commands_are_loaded() {
+    use crate::command::tick::Clock;
+    let fixed = Clock::Fixed {
+        seconds_per_tick: 0.016666667,
+    };
+    let header = json!({"type":"recording_started","format_version":2,"clock":fixed}).to_string();
+    let parse_with = |text: &str, clock: &Clock| {
+        loader::parse(
+            Cursor::new(text),
+            "clock.jsonl",
+            &AtomicBool::new(false),
+            clock,
+        )
+    };
+    assert!(
+        parse_with(&format!("{header}\n{FOOTER}"), &fixed)
+            .unwrap()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        parse_with(
+            &format!("{header}\n{FOOTER}"),
+            &Clock::Fixed {
+                seconds_per_tick: 0.0166666671
+            }
+        )
+        .is_ok(),
+        "equal nanosecond durations represent the same effective clock"
+    );
+    for (recorded, current) in [
+        (HEADER, fixed.clone()),
+        (header.as_str(), Clock::Application {}),
+        (
+            header.as_str(),
+            Clock::Fixed {
+                seconds_per_tick: 0.02,
+            },
+        ),
+    ] {
+        assert_eq!(
+            parse_with(&format!("{recorded}\nnot a valid command"), &current)
+                .unwrap_err()
+                .code(),
+            "replay_clock_mismatch"
+        );
+    }
+    for invalid in [
+        json!({"type":"recording_started","format_version":2}),
+        json!({"type":"recording_started","format_version":2,"clock":null}),
+        json!({"type":"recording_started","format_version":2,"clock":{"kind":"fixed","seconds_per_tick":0.0}}),
+        json!({"type":"recording_started","format_version":2,"clock":{"kind":"fixed","seconds_per_tick":-0.02}}),
+        json!({"type":"recording_started","format_version":1,"clock":{"kind":"application"}}),
+        json!({"type":"recording_started","format_version":1,"clock":null}),
+    ] {
+        assert_eq!(
+            parse_with(&format!("{invalid}\n{FOOTER}"), &fixed)
+                .unwrap_err()
+                .code(),
+            "invalid_recording"
+        );
+    }
+}
+
+#[test]
 fn header_is_validated_before_any_version_specific_content() {
     assert!(parse(&format!("{HEADER}\n{FOOTER}")).unwrap().is_empty());
     assert!(parse(&format!("{HEADER}\n{FOOTER}\n")).unwrap().is_empty());
-    for version in ["2", "0", "18446744073709551615"] {
+    for version in ["3", "0", "18446744073709551615"] {
         let error = parse(&format!(
             "{{\"type\":\"recording_started\",\"format_version\":{version}}}\nnot json"
         ))
@@ -256,7 +322,7 @@ fn loader_opens_only_regular_files_without_following_any_symlink() {
         .unwrap();
     let cancel = AtomicBool::new(false);
     assert!(
-        loader::load(&root, "ok.jsonl", &cancel)
+        loader::load(&root, "ok.jsonl", &cancel, &Default::default())
             .unwrap()
             .unwrap()
             .is_empty()
@@ -274,20 +340,22 @@ fn loader_opens_only_regular_files_without_following_any_symlink() {
         "a\0.jsonl",
     ] {
         assert_eq!(
-            loader::load(&root, path, &cancel).unwrap_err().code(),
+            loader::load(&root, path, &cancel, &Default::default())
+                .unwrap_err()
+                .code(),
             "invalid_recording_path",
             "{path}"
         );
     }
     root.create_dir("directory.jsonl").unwrap();
     assert_eq!(
-        loader::load(&root, "directory.jsonl", &cancel)
+        loader::load(&root, "directory.jsonl", &cancel, &Default::default())
             .unwrap_err()
             .code(),
         "invalid_recording_path"
     );
     assert_eq!(
-        loader::load(&root, "missing/file.jsonl", &cancel)
+        loader::load(&root, "missing/file.jsonl", &cancel, &Default::default())
             .unwrap_err()
             .code(),
         "io"
@@ -306,7 +374,9 @@ fn loader_opens_only_regular_files_without_following_any_symlink() {
             "outside/ok.jsonl",
         ] {
             assert_eq!(
-                loader::load(&root, path, &cancel).unwrap_err().code(),
+                loader::load(&root, path, &cancel, &Default::default())
+                    .unwrap_err()
+                    .code(),
                 "invalid_recording_path",
                 "{path}"
             );
@@ -315,7 +385,7 @@ fn loader_opens_only_regular_files_without_following_any_symlink() {
             .unwrap();
         assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o600) }, 0);
         assert_eq!(
-            loader::load(&root, "pipe.jsonl", &cancel)
+            loader::load(&root, "pipe.jsonl", &cancel, &Default::default())
                 .unwrap_err()
                 .code(),
             "invalid_recording_path"
@@ -324,13 +394,20 @@ fn loader_opens_only_regular_files_without_following_any_symlink() {
         root.rename("ok.jsonl", &root, "original.jsonl").unwrap();
         root.symlink("original.jsonl", "ok.jsonl").unwrap();
         assert!(
-            loader::parse(std::io::BufReader::new(file), "ok.jsonl", &cancel)
-                .unwrap()
-                .unwrap()
-                .is_empty()
+            loader::parse(
+                std::io::BufReader::new(file),
+                "ok.jsonl",
+                &cancel,
+                &Default::default()
+            )
+            .unwrap()
+            .unwrap()
+            .is_empty()
         );
         assert_eq!(
-            loader::load(&root, "ok.jsonl", &cancel).unwrap_err().code(),
+            loader::load(&root, "ok.jsonl", &cancel, &Default::default())
+                .unwrap_err()
+                .code(),
             "invalid_recording_path"
         );
     }
@@ -348,19 +425,25 @@ fn read_failures_include_path_and_line_and_cancellation_is_acknowledged() {
         std::io::BufReader::new(Broken),
         "a.jsonl",
         &AtomicBool::new(false),
+        &Default::default(),
     )
     .unwrap_err();
     assert_eq!(error.code(), "io");
     assert!(error.message().contains("a.jsonl: line 1"));
     assert!(
-        loader::parse(Cursor::new("invalid"), "a.jsonl", &AtomicBool::new(true))
-            .unwrap()
-            .is_none()
+        loader::parse(
+            Cursor::new("invalid"),
+            "a.jsonl",
+            &AtomicBool::new(true),
+            &Default::default()
+        )
+        .unwrap()
+        .is_none()
     );
 }
 
 fn running(plan: Vec<Command>) -> Replay {
-    let mut replay = Replay::new(Arc::new(directory().1));
+    let mut replay = Replay::new(Arc::new(directory().1), Default::default());
     replay.run = Some(Run {
         start: 1,
         phase: Phase::Running(plan.into()),
@@ -483,7 +566,7 @@ fn preparing_stop_waits_for_loader_ack_and_prior_load_errors_win() {
 
 #[test]
 fn file_barriers_hold_preparing_and_all_active_phases_reject_another_start() {
-    let mut replay = Replay::new(Arc::new(directory().1));
+    let mut replay = Replay::new(Arc::new(directory().1), Default::default());
     let start = Command::from(replay::Start {
         path: "missing.jsonl".into(),
     });

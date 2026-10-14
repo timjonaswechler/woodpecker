@@ -9,6 +9,8 @@ pub const VERSION: u32 = 3;
 #[serde(deny_unknown_fields)]
 pub struct Capabilities {
     pub screenshot: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub fixed_clock: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -109,6 +111,21 @@ pub fn completed(id: u64, command: &str, output: impl Serialize) -> Message {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn legacy_ready_has_no_fixed_clock_support_and_default_shape_is_preserved() {
+        let value =
+            serde_json::json!({"status":"ready","version":3,"capabilities":{"screenshot":false}});
+        let message: Message = serde_json::from_value(value.clone()).unwrap();
+        assert!(
+            matches!(&message, Message::Ready { capabilities, .. } if !capabilities.fixed_clock)
+        );
+        assert_eq!(serde_json::to_value(message).unwrap(), value);
+        let accepted: Capabilities =
+            serde_json::from_value(serde_json::json!({"screenshot":false,"fixed_clock":true}))
+                .unwrap();
+        assert!(accepted.fixed_clock);
+    }
 
     #[test]
     fn text_codec_preserves_unicode_and_requires_a_string_and_null_output() {

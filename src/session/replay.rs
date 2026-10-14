@@ -37,14 +37,16 @@ struct Run {
 
 pub(super) struct Replay {
     root: Arc<Dir>,
+    clock: crate::command::tick::Clock,
     run: Option<Run>,
     notices: Vec<(u64, Outcome)>,
 }
 
 impl Replay {
-    pub fn new(root: Arc<Dir>) -> Self {
+    pub fn new(root: Arc<Dir>, clock: crate::command::tick::Clock) -> Self {
         Self {
             root,
+            clock,
             run: None,
             notices: Vec::new(),
         }
@@ -100,12 +102,13 @@ impl Replay {
                     run.phase = Phase::Running(Default::default());
                 } else if !file_barrier {
                     let root = self.root.clone();
+                    let clock = self.clock.clone();
                     let path = path.clone();
                     let cancel = Arc::new(AtomicBool::new(false));
                     let abort = cancel.clone();
                     let (reply, result) = mpsc::channel();
                     std::thread::spawn(move || {
-                        let _ = reply.send(loader::load(&root, &path, &abort));
+                        let _ = reply.send(loader::load(&root, &path, &abort, &clock));
                     });
                     run.phase = Phase::Preparing { cancel, result };
                 }

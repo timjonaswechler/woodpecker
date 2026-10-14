@@ -1,5 +1,8 @@
 use super::protocol::{self, Diagnostic, Message};
-use crate::command::{Command, tick::warp};
+use crate::command::{
+    Command,
+    tick::{self, warp},
+};
 use bevy::{
     app::{AppExit, MainScheduleOrder},
     ecs::schedule::{InternedScheduleLabel, ScheduleLabel},
@@ -27,6 +30,7 @@ struct Bridge {
     output: mpsc::Sender<(Message, Option<mpsc::Sender<()>>)>,
     schedules: Vec<InternedScheduleLabel>,
     pace: warp::Pace,
+    clock: tick::Clock,
     active: Option<Active>,
     ticks: u64,
     pointer: super::input::pointer::State,
@@ -59,6 +63,10 @@ impl bevy::app::Plugin for Plugin {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
+        let clock: tick::Clock = std::env::var("WOODPECKER_TICK_CLOCK")
+            .map(|value| serde_json::from_str(&value).expect("invalid tick clock"))
+            .unwrap_or_default();
+        assert!(clock.is_valid(), "invalid tick clock");
         let (input, rx) = mpsc::channel();
         std::thread::spawn(move || {
             for line in std::io::stdin().lock().lines() {
@@ -87,7 +95,7 @@ impl bevy::app::Plugin for Plugin {
                 }
             }
         });
-        install(app, rx, output, pace);
+        install(app, rx, output, tick::Config { pace, clock });
     }
 
     fn finish(&self, app: &mut App) {
@@ -104,8 +112,9 @@ pub(super) fn install(
     app: &mut App,
     input: mpsc::Receiver<String>,
     output: mpsc::Sender<(Message, Option<mpsc::Sender<()>>)>,
-    pace: warp::Pace,
+    tick: tick::Config,
 ) {
+    super::clock::validate(app, &tick.clock);
     super::input::install(app);
     let schedules = {
         let mut order = app.world_mut().resource_mut::<MainScheduleOrder>();
@@ -115,7 +124,8 @@ pub(super) fn install(
         input: Mutex::new(input),
         output,
         schedules,
-        pace,
+        pace: tick.pace,
+        clock: tick.clock,
         active: None,
         ticks: 0,
         pointer: Default::default(),
@@ -139,6 +149,7 @@ fn ready(world: &World) {
             version: protocol::VERSION,
             capabilities: protocol::Capabilities {
                 screenshot: super::screenshot::available(world),
+                fixed_clock: bridge.clock.duration().is_some(),
             },
         },
         None,
@@ -198,6 +209,7 @@ fn run(world: &mut World) {
             bridge.pointer.flush(world);
             bridge.keyboard.flush(world);
             bridge.text.flush(world);
+            super::clock::before_tick(world, &bridge.clock);
             for label in &bridge.schedules {
                 let _ = world.try_run_schedule(*label);
             }
@@ -399,7 +411,7 @@ mod tests {
             .id();
         let (tx, input) = mpsc::channel();
         let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+        install(&mut app, input, output, tick::Config::default());
         let send = |id, command: Command| tx.send(protocol::encode(id, &command)).unwrap();
         send(
             1,
@@ -500,7 +512,7 @@ mod tests {
         app.insert_resource(receiver);
         let (_tx, input) = mpsc::channel();
         let (output, _rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+        install(&mut app, input, output, tick::Config::default());
         for _ in 0..10 {
             sender
                 .0
@@ -535,7 +547,7 @@ mod tests {
         let entity = app.world_mut().spawn((Name::new("button"), State(0))).id();
         let (tx, input) = mpsc::channel();
         let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+        install(&mut app, input, output, tick::Config::default());
         let request = inspect::Command::Entities {
             entity: Some(entity.into()),
             with: vec![],
@@ -614,7 +626,7 @@ mod tests {
             .add_systems(Update, |mut counter: ResMut<Counter>| counter.ticks += 1);
         let (tx, input) = mpsc::channel();
         let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
+        install(&mut app, input, output, tick::Config::default());
         for _ in 0..5 {
             app.update();
         }

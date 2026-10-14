@@ -7,6 +7,8 @@ use std::time::Duration;
 struct Counter {
     ticks: u64,
     process_id: u32,
+    elapsed_nanos: u64,
+    delta_nanos: u64,
 }
 
 #[derive(Resource, Reflect, Default)]
@@ -32,6 +34,7 @@ fn main() {
         .insert_resource(Counter {
             ticks: 0,
             process_id: std::process::id(),
+            ..default()
         })
         .register_type::<Counter>()
         .insert_resource(Medium {
@@ -42,12 +45,17 @@ fn main() {
             text: "x".repeat(5 * 1024 * 1024),
         })
         .register_type::<Large>()
-        .add_systems(Update, move |mut counter: ResMut<Counter>| {
-            counter.ticks += 1;
-            if continuous || counter.ticks == 1 {
-                error!(target: "activity_fixture", "large report snapshot fixture");
-            }
-        })
+        .add_systems(
+            Update,
+            move |mut counter: ResMut<Counter>, time: Res<Time>| {
+                counter.ticks += 1;
+                counter.elapsed_nanos = time.elapsed().as_nanos().try_into().unwrap();
+                counter.delta_nanos = time.delta().as_nanos().try_into().unwrap();
+                if continuous || counter.ticks == 1 {
+                    error!(target: "activity_fixture", "large report snapshot fixture");
+                }
+            },
+        )
         .add_plugins(woodpecker::session::Plugin)
         .run();
 }

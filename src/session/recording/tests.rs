@@ -96,6 +96,34 @@ fn stop() -> Command {
 }
 
 #[test]
+fn controlled_clock_is_persisted_and_legacy_application_clock_keeps_version_one() {
+    use crate::command::tick::Clock;
+    let root = Root::new();
+    for (name, clock, header) in [
+        (
+            "application.jsonl",
+            Clock::Application {},
+            json!({"type":"recording_started","format_version":1}),
+        ),
+        (
+            "fixed.jsonl",
+            Clock::Fixed {
+                seconds_per_tick: 0.016666667,
+            },
+            json!({"type":"recording_started","format_version":2,"clock":{"kind":"fixed","seconds_per_tick":0.016666667}}),
+        ),
+    ] {
+        let mut recorder = Recorder::new(root.dir(), clock);
+        recorder.control(1, &start(name), false).unwrap();
+        completion(&mut recorder, 1).unwrap();
+        recorder.control(2, &stop(), false).unwrap();
+        completion(&mut recorder, 2).unwrap();
+        assert_eq!(root.lines(name)[0], header);
+        assert!(recorder.end(&AtomicBool::new(false)).is_empty());
+    }
+}
+
+#[test]
 fn state_transitions_require_file_acknowledgements() {
     let (operations, input) = mpsc::channel();
     let (output, replies) = mpsc::channel();
@@ -156,19 +184,19 @@ fn paths_reject_traversal_symlinks_and_existing_targets() {
         "a\0.jsonl",
     ] {
         assert_eq!(
-            file::Recording::start(&dir, path.into())
+            file::Recording::start(&dir, path.into(), &Default::default())
                 .err()
                 .unwrap()
                 .code(),
             "invalid_recording_path"
         );
     }
-    file::Recording::start(&dir, "nested/ä.jsonl".into())
+    file::Recording::start(&dir, "nested/ä.jsonl".into(), &Default::default())
         .unwrap()
         .finish("stopped")
         .unwrap();
     assert_eq!(
-        file::Recording::start(&dir, "nested/ä.jsonl".into())
+        file::Recording::start(&dir, "nested/ä.jsonl".into(), &Default::default())
             .err()
             .unwrap()
             .code(),
@@ -176,7 +204,7 @@ fn paths_reject_traversal_symlinks_and_existing_targets() {
     );
     dir.create_dir("directory.jsonl").unwrap();
     assert_eq!(
-        file::Recording::start(&dir, "directory.jsonl".into())
+        file::Recording::start(&dir, "directory.jsonl".into(), &Default::default())
             .err()
             .unwrap()
             .code(),
@@ -193,7 +221,7 @@ fn paths_reject_traversal_symlinks_and_existing_targets() {
         ] {
             symlink(target, root.0.join(link)).unwrap();
             assert_eq!(
-                file::Recording::start(&dir, path.into())
+                file::Recording::start(&dir, path.into(), &Default::default())
                     .err()
                     .unwrap()
                     .code(),
@@ -208,23 +236,27 @@ fn paths_reject_traversal_symlinks_and_existing_targets() {
 fn header_and_footer_failures_are_io_and_header_failure_removes_the_new_file() {
     let root = Root::new();
     let dir = root.dir();
-    let result = file::Recording::start_with(&dir, "header.jsonl".into(), |file| Fault {
-        file,
-        writes: 0,
-        fail_at: 1,
-        fail_sync: false,
-    });
+    let result =
+        file::Recording::start_with(&dir, "header.jsonl".into(), &Default::default(), |file| {
+            Fault {
+                file,
+                writes: 0,
+                fail_at: 1,
+                fail_sync: false,
+            }
+        });
     assert!(matches!(result, Err(Error::Io { .. })));
     assert!(!dir.exists("header.jsonl"));
     for (path, fail_at, fail_sync) in [("footer.jsonl", 2, false), ("sync.jsonl", usize::MAX, true)]
     {
-        let recording = file::Recording::start_with(&dir, path.into(), |file| Fault {
-            file,
-            writes: 0,
-            fail_at,
-            fail_sync,
-        })
-        .unwrap();
+        let recording =
+            file::Recording::start_with(&dir, path.into(), &Default::default(), |file| Fault {
+                file,
+                writes: 0,
+                fail_at,
+                fail_sync,
+            })
+            .unwrap();
         assert!(matches!(recording.finish("stopped"), Err(Error::Io { .. })));
         assert!(dir.exists(path));
     }
@@ -238,7 +270,7 @@ fn active_write_failure_emits_only_event_and_returns_idle() {
     let (output, replies) = mpsc::channel();
     let worker = std::thread::spawn(move || {
         worker::run(dir, input, output, |root, path| {
-            file::Recording::start_with(root, path, |file| Fault {
+            file::Recording::start_with(root, path, &Default::default(), |file| Fault {
                 file,
                 writes: 0,
                 fail_at: 2,
@@ -296,7 +328,7 @@ fn end_failure_is_reported_before_end_acknowledgement() {
     let (output, replies) = mpsc::channel();
     let worker = std::thread::spawn(move || {
         worker::run(dir, input, output, |root, path| {
-            file::Recording::start_with(root, path, |file| Fault {
+            file::Recording::start_with(root, path, &Default::default(), |file| Fault {
                 file,
                 writes: 0,
                 fail_at: 2,

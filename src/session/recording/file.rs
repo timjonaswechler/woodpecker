@@ -1,6 +1,6 @@
-//! Version 1 persistence. The coordinator never performs file IO.
+//! Versioned persistence. The coordinator never performs file IO.
 use super::super::{Error, Outcome};
-use crate::command::Command;
+use crate::command::{Command, tick::Clock};
 use cap_fs_ext::{DirExt, FollowSymlinks, OpenOptionsFollowExt};
 use cap_std::fs::{Dir, File, OpenOptions};
 use serde_json::{Value, json};
@@ -99,8 +99,8 @@ pub(super) struct Recording<W: Write = File> {
 }
 
 impl Recording {
-    pub fn start(root: &Dir, path: String) -> Result<Self, Error> {
-        Self::start_with(root, path, |file| file)
+    pub fn start(root: &Dir, path: String, clock: &Clock) -> Result<Self, Error> {
+        Self::start_with(root, path, clock, |file| file)
     }
 }
 
@@ -108,6 +108,7 @@ impl<W: Sink> Recording<W> {
     pub(super) fn start_with(
         root: &Dir,
         path: String,
+        clock: &Clock,
         wrap: impl FnOnce(File) -> W,
     ) -> Result<Self, Error> {
         let (directory, name) = parent(root, &path)?;
@@ -133,8 +134,16 @@ impl<W: Sink> Recording<W> {
             path,
             count: 0,
         };
+        // Keep application-clock recordings compatible with existing readers.
+        // A fixed clock changes replay semantics, so it requires a new version.
+        let header = match clock {
+            Clock::Application {} => json!({"type":"recording_started","format_version":1}),
+            Clock::Fixed { .. } => {
+                json!({"type":"recording_started","format_version":2,"clock":clock})
+            }
+        };
         if let Err(error) = recording
-            .line(&json!({"type":"recording_started","format_version":1}))
+            .line(&header)
             .and_then(|_| recording.stream.flush())
         {
             let path = recording.path.clone();

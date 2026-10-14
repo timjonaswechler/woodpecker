@@ -56,6 +56,10 @@ fn launch(
         .env(
             "WOODPECKER_TICK_PACE",
             serde_json::to_string(&config.tick.pace).unwrap(),
+        )
+        .env(
+            "WOODPECKER_TICK_CLOCK",
+            serde_json::to_string(&config.tick.clock).unwrap(),
         );
     let context = crate::report::Context {
         application,
@@ -128,8 +132,8 @@ pub(super) fn run(
     shared.state.lock().unwrap().report_destination = Some(Arc::new(
         crate::report::Destination::new(replay_root.clone(), config.report.clone(), project),
     ));
-    let mut replay = replay::Replay::new(replay_root);
-    let mut recorder = recording::Recorder::new(root);
+    let mut replay = replay::Replay::new(replay_root, config.tick.clock.clone());
+    let mut recorder = recording::Recorder::new(root, config.tick.clock.clone());
     let mut deferred = VecDeque::<(u64, Command)>::new();
     loop {
         recording_notices(&shared, &mut reason, recorder.poll());
@@ -173,6 +177,12 @@ pub(super) fn run(
                                 version: protocol::VERSION,
                                 capabilities,
                             }) => {
+                                if config.tick.clock.duration().is_some()
+                                    && !capabilities.fixed_clock
+                                {
+                                    let _ = ready.send(Err(Error::new("unsupported_feature", "application bridge does not support the requested fixed tick clock")));
+                                    return;
+                                }
                                 if let Err(error) = observation.ready(capabilities) {
                                     let _ = ready.send(Err(error));
                                     return;

@@ -335,7 +335,7 @@ mod tests {
             &mut app,
             input,
             output,
-            crate::command::tick::warp::Pace::AsFastAsPossible,
+            crate::command::tick::Config::default(),
         );
         app.update();
         let before = app.world().resource::<Time<Real>>().elapsed();

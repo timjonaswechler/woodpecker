@@ -45,6 +45,36 @@ fn wait(mut condition: impl FnMut() -> bool) {
 }
 
 #[test]
+fn session_rejects_an_invalid_clock_before_launching() {
+    let mut configuration = config("normal");
+    configuration.tick.clock = crate::command::tick::Clock::Fixed {
+        seconds_per_tick: 0.0,
+    };
+    assert_eq!(
+        configuration.validate().unwrap_err().code(),
+        "invalid_config"
+    );
+    assert!(!configuration.artifact_dir.exists());
+}
+
+#[test]
+fn fixed_clock_requires_acknowledgement_from_the_application_bridge() {
+    let mut configuration = config("normal");
+    configuration.tick.clock = crate::command::tick::Clock::Fixed {
+        seconds_per_tick: 0.016666667,
+    };
+    let error = Session::start(configuration)
+        .err()
+        .expect("legacy bridge cannot accept a fixed clock");
+    assert_eq!(error.code(), "invalid_config");
+    assert!(
+        error
+            .message()
+            .contains("does not support the requested fixed tick clock")
+    );
+}
+
+#[test]
 fn pending_correlation_history_and_drop() {
     let mut first = Session::start(config("normal")).unwrap();
     let mut second = Session::start(config("normal")).unwrap();

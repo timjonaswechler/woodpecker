@@ -44,8 +44,8 @@ pub(super) struct Recorder {
 }
 
 impl Recorder {
-    pub fn new(root: Dir) -> Self {
-        let (operations, replies) = worker::spawn(root);
+    pub fn new(root: Dir, clock: crate::command::tick::Clock) -> Self {
+        let (operations, replies) = worker::spawn(root, clock);
         Self {
             state: State::Idle,
             path: String::new(),

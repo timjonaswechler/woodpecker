@@ -1,4 +1,5 @@
 //! Synchronous typed sessions backed by a private, continuously progressing coordinator.
+mod clock;
 mod coordinator;
 mod error;
 pub mod history;
@@ -42,7 +43,10 @@ impl Config {
     pub fn validate(&self) -> Result<(), Error> {
         self.launch.validate()?;
         self.report.validate()?;
-        if self.artifact_dir.as_os_str().is_empty() || !self.tick.pace.is_valid() {
+        if self.artifact_dir.as_os_str().is_empty()
+            || !self.tick.pace.is_valid()
+            || !self.tick.clock.is_valid()
+        {
             return Err(Error::new(
                 "invalid_config",
                 "artifact directory and valid tick pace required",
