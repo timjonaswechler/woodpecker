@@ -274,6 +274,10 @@ fn hierarchy_depth_counts_edges_and_preserves_children_order() {
         .entity_mut(root)
         .add_children(&[second, first]);
     app.world_mut().entity_mut(first).add_child(grandchild);
+    // Resources share the ECS but must stay out of application hierarchies,
+    // even when application code attaches their backing entity as a child.
+    let resource = app.world().resource_entities().iter().next().unwrap().1;
+    app.world_mut().entity_mut(root).add_child(resource);
     let node = |id: Entity, name: Option<&str>, children: Vec<serde_json::Value>| json!({"entity":Handle::from(id),"name":name,"children":children});
     for (depth, expected) in [
         (0, node(root, Some("root"), vec![])),

@@ -3,7 +3,7 @@ use bevy::{
     camera::NormalizedRenderTarget,
     ecs::schedule::ScheduleCleanupPolicy,
     input::InputSystems,
-    picking::pointer::{PointerId, PointerLocation},
+    picking::pointer::{PointerLocation, PointerMap},
     prelude::*,
     ui::{UiPlugin, UiSystems, ui_focus_system},
 };
@@ -34,10 +34,10 @@ pub(super) fn install(app: &mut App) {
 
 fn focus(world: &mut World) {
     let location = world
-        .query::<(&PointerId, &PointerLocation)>()
-        .iter(world)
-        .find(|(id, _)| **id == super::pointer::ID)
-        .and_then(|(_, pointer)| pointer.location.clone());
+        .resource::<PointerMap>()
+        .get_entity(super::pointer::ID)
+        .and_then(|entity| world.get::<PointerLocation>(entity))
+        .and_then(|pointer| pointer.location.clone());
     let mut positions = Vec::new();
     for (entity, mut window) in world.query::<(Entity, &mut Window)>().iter_mut(world) {
         positions.push((entity, window.internal));
@@ -67,7 +67,8 @@ mod tests {
     #[test]
     fn ui_focus_restores_native_cursor_state_exactly() {
         let mut app = App::new();
-        app.init_resource::<ButtonInput<MouseButton>>()
+        app.add_plugins(bevy::picking::PickingPlugin)
+            .init_resource::<ButtonInput<MouseButton>>()
             .init_resource::<Touches>()
             .init_resource::<bevy::ui::UiStack>();
         let mut window = Window::default();
@@ -75,15 +76,18 @@ mod tests {
         window.set_physical_cursor_position(Some(bevy::math::DVec2::new(9000.123456789, -2.)));
         let before = window.internal;
         let entity = app.world_mut().spawn(window).id();
-        app.world_mut().spawn((
-            super::super::pointer::ID,
-            PointerLocation::new(bevy::picking::pointer::Location {
-                target: NormalizedRenderTarget::Window(
-                    WindowRef::Entity(entity).normalize(None).unwrap(),
-                ),
-                position: Vec2::new(12., 17.),
-            }),
-        ));
+        let pointer = app
+            .world_mut()
+            .spawn((
+                super::super::pointer::ID,
+                PointerLocation::new(bevy::picking::pointer::Location {
+                    target: NormalizedRenderTarget::Window(
+                        WindowRef::Entity(entity).normalize(None).unwrap(),
+                    ),
+                    position: Vec2::new(12., 17.),
+                }),
+            ))
+            .id();
         let changed = app
             .world()
             .entity(entity)
@@ -99,6 +103,16 @@ mod tests {
                 .unwrap()
                 .changed,
             changed
+        );
+        // PickingPlugin maintains the lookup when a virtual device disappears.
+        app.world_mut().despawn(pointer);
+        focus(app.world_mut());
+        assert_eq!(app.world().get::<Window>(entity).unwrap().internal, before);
+        assert_eq!(
+            app.world()
+                .resource::<PointerMap>()
+                .get_entity(super::super::pointer::ID),
+            None
         );
     }
 }

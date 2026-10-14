@@ -403,7 +403,6 @@ mod tests {
             active.job.window,
             active.surface.clone(),
         ));
-        render.insert_resource(bevy::render::view::window::ExtractedWindows::default());
         render.run_system_cached(super::surface::check).unwrap();
         let mut black = image();
         black.data.as_mut().unwrap().fill(0);
@@ -437,7 +436,6 @@ mod tests {
             active.job.window,
             active.surface.clone(),
         ));
-        render.insert_resource(bevy::render::view::window::ExtractedWindows::default());
         render.run_system_cached(super::surface::check).unwrap();
         assert_eq!(active.surface.get(), Some(&true));
         let mut black = image();
