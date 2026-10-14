@@ -10,11 +10,11 @@ from tests.session.signalstation import (
 )
 
 
-@scenario("workflows", "signalstation", capabilities=("signalstation", "screenshot", "keyboard", "pointer"),
+@scenario("workflows", "signalstation", capabilities=("signalstation", "screenshot", "keyboard", "pointer", "text"),
           commands=("inspect.query", "screenshot.capture", "tick.warp.start", "tick.warp.stop",
                     "tick.warp.set_pace", "input.keyboard.press", "input.keyboard.release",
                     "input.pointer.move_to", "input.pointer.move_by",
-                    "input.pointer.press", "input.pointer.release"))
+                    "input.pointer.press", "input.pointer.release", "input.pointer.scroll", "input.text.input"))
 def signalstation(ctx):
     # The app must seed its own workspace; tests never replace the user's settings.
     personal = ROOT / "test_app/settings.json"
@@ -149,6 +149,7 @@ def signalstation(ctx):
 
         steps.run("1.invalid_screenshot_paths", invalid_paths, requires=("0.baseline",),
                   precondition=lambda: game.unchanged(before, "before_invalid_paths"))
-        from tests.workflows import fpv, movement
+        from tests.workflows import fpv, movement, settings
         movement.run(ctx, game)
         fpv.run(ctx, game)
+        settings.run(ctx, game)
