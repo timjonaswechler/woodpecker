@@ -13,6 +13,36 @@ use std::{
 static NEXT: AtomicU64 = AtomicU64::new(0);
 
 #[test]
+fn session_launch_passes_its_workspace_and_refuses_to_reuse_saved_data() {
+    let config = config("workspace");
+    let root = config.artifact_dir.clone();
+    let mut session = Session::start(config.clone()).unwrap();
+    let actual: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(root.join("workspace.json")).unwrap()).unwrap();
+    let workspace = root.canonicalize().unwrap().join("workspace");
+    assert_eq!(
+        actual["directory"],
+        serde_json::to_value(&workspace).unwrap()
+    );
+    assert_eq!(
+        actual["temporary"],
+        serde_json::to_value(workspace.join("tmp")).unwrap()
+    );
+    std::fs::write(workspace.join("data/save.json"), "saved game").unwrap();
+    session.shutdown().unwrap();
+    drop(session);
+    let error = Session::start(config)
+        .err()
+        .expect("a new session must not adopt an existing workspace");
+    assert_eq!(error.code(), "invalid_config");
+    assert!(error.message().contains("fresh session workspace"));
+    assert_eq!(
+        std::fs::read_to_string(workspace.join("data/save.json")).unwrap(),
+        "saved game"
+    );
+}
+
+#[test]
 fn engine_startup_refuses_control_until_ready_and_reports_failure_or_stall() {
     let mut launch = config("engine_ready");
     launch.startup = session::startup::Config::Engine {

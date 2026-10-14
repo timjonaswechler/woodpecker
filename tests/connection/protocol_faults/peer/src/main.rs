@@ -17,6 +17,12 @@ fn main() {
     let mode = std::env::args().nth(1).unwrap_or_default();
     let root = std::path::PathBuf::from(std::env::var_os("WOODPECKER_ARTIFACT_DIR").unwrap());
     std::fs::write(root.join("pid"), std::process::id().to_string()).unwrap();
+    if mode == "workspace" {
+        std::fs::write(root.join("workspace.json"), serde_json::to_vec(&json!({
+            "directory": std::env::var_os("WOODPECKER_SESSION_DIR").map(std::path::PathBuf::from),
+            "temporary": std::env::temp_dir(),
+        })).unwrap()).unwrap();
+    }
     if mode == "delayed" {
         std::thread::sleep(Duration::from_secs(60));
     }

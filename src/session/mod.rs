@@ -15,6 +15,7 @@ mod replay;
 mod screenshot;
 pub mod startup;
 mod window;
+mod workspace;
 
 use crate::command::{self, Command};
 pub use crate::report::capture::tracing_error_layer;

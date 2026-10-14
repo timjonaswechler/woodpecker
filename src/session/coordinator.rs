@@ -42,6 +42,7 @@ fn launch(
     let root = root.canonicalize().map_err(Error::io)?;
     let directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
         .map_err(Error::io)?;
+    super::workspace::prepare(&root, &directory, &mut command)?;
     command
         .env("WOODPECKER_ARTIFACT_DIR", root)
         .env(

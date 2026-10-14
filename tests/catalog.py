@@ -35,7 +35,7 @@ def scenario(feature, name, commands=(), capabilities=("state",),
 
 def scenarios():
     for module in (
-        "connection.lifecycle", "connection.clock", "connection.startup", "interfaces.contracts", "commands.warp",
+        "connection.lifecycle", "connection.clock", "connection.startup", "connection.workspace", "interfaces.contracts", "commands.warp",
         "commands.inspect", "commands.keyboard", "commands.pointer",
         "commands.text", "commands.screenshot", "commands.shutdown",
         "recording.contracts", "replay.contracts", "reports.contracts", "workflows.recorded_input",
