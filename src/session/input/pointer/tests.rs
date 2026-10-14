@@ -20,10 +20,6 @@ fn world() -> (World, Entity) {
 fn coordinates_are_logical_finite_and_rejection_preserves_accepted_state() {
     let (world, window) = world();
     let mut state = State::default();
-    assert_eq!(
-        state.move_by(&world, [0., 0.]).unwrap_err().code,
-        "pointer_location_unavailable"
-    );
     for position in [[f32::NAN, 0.], [0., f32::INFINITY]] {
         assert_eq!(
             state.move_to(&world, position).unwrap_err().code,
@@ -37,13 +33,23 @@ fn coordinates_are_logical_finite_and_rejection_preserves_accepted_state() {
             state.move_to(&world, position).unwrap_err().code,
             "pointer_position_out_of_bounds"
         );
-        assert_eq!(state.location, Some((window, Vec2::new(12., 17.))));
+        assert_eq!(
+            state.cursor.location(&world).unwrap(),
+            (window, Vec2::new(12., 17.))
+        );
         assert_eq!(state.pending.len(), 2);
     }
-    assert_eq!(
-        state.move_by(&world, [100., 0.]).unwrap_err().code,
-        "pointer_position_out_of_bounds"
-    );
+    for delta in [[f32::NAN, 0.], [0., f32::INFINITY], [f32::NEG_INFINITY, 0.]] {
+        assert_eq!(
+            state.move_by(&world, delta).unwrap_err().code,
+            "invalid_arguments"
+        );
+        assert_eq!(
+            state.cursor.location(&world).unwrap(),
+            (window, Vec2::new(12., 17.))
+        );
+        assert_eq!(state.pending.len(), 2);
+    }
     assert!(
         world
             .get::<Window>(window)
@@ -51,6 +57,38 @@ fn coordinates_are_logical_finite_and_rejection_preserves_accepted_state() {
             .cursor_position()
             .is_none()
     );
+}
+
+#[test]
+fn relative_motion_starts_at_center_and_clamps_after_resize_without_overflow() {
+    let (mut world, window) = world();
+    let mut state = State::default();
+    state.move_by(&world, [5., -3.]).unwrap();
+    assert_eq!(
+        state.cursor.location(&world).unwrap(),
+        (window, Vec2::new(55., 22.))
+    );
+    state.move_by(&world, [f32::MAX, -f32::MAX]).unwrap();
+    assert_eq!(
+        state.cursor.location(&world).unwrap(),
+        (window, Vec2::new(100_f32.next_down(), 0.))
+    );
+    state.move_by(&world, [f32::MAX, -f32::MAX]).unwrap();
+    assert_eq!(
+        state.cursor.location(&world).unwrap(),
+        (window, Vec2::new(100_f32.next_down(), 0.))
+    );
+    world
+        .get_mut::<Window>(window)
+        .unwrap()
+        .resolution
+        .set(10., 10.);
+    state.move_by(&world, [0., 2.]).unwrap();
+    assert_eq!(
+        state.cursor.location(&world).unwrap(),
+        (window, Vec2::new(10_f32.next_down(), 2.))
+    );
+    state.button(&world, "left", true).unwrap();
 }
 
 #[test]
@@ -90,7 +128,7 @@ fn buttons_scroll_windows_and_isolation() {
         "invalid_arguments"
     );
     assert_eq!(state.pending.len(), len);
-    let PointerAction::Scroll { unit, x, y, .. } = &state.pending[len - 2].action else {
+    let PointerAction::Scroll { unit, x, y, .. } = &state.pending[len - 2].pointer.action else {
         panic!("scroll")
     };
     assert_eq!(*unit, MouseScrollUnit::Line);
@@ -130,9 +168,11 @@ fn buttons_scroll_windows_and_isolation() {
         state.move_to(&world, [0., 0.]).unwrap_err().code,
         "pointer_window_unavailable"
     );
-    world.spawn((Window::default(), PrimaryWindow));
+    let replacement = world.spawn((Window::default(), PrimaryWindow)).id();
+    state.move_by(&world, [0., 0.]).unwrap();
+    let size = world.get::<Window>(replacement).unwrap();
     assert_eq!(
-        state.move_by(&world, [0., 0.]).unwrap_err().code,
-        "pointer_location_unavailable"
+        state.cursor.location(&world).unwrap(),
+        (replacement, Vec2::new(size.width(), size.height()) * 0.5)
     );
 }

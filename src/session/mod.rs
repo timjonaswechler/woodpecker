@@ -20,6 +20,7 @@ mod workspace;
 use crate::command::{self, Command};
 pub use crate::report::capture::tracing_error_layer;
 pub use error::Error;
+pub use input::pointer::ID as VIRTUAL_POINTER_ID;
 pub use plugin::Plugin;
 pub use protocol::Capabilities;
 use serde::Serialize;

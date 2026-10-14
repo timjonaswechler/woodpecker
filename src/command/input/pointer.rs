@@ -10,6 +10,8 @@ pub struct MoveTo {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MoveBy {
+    /// Full relative mouse motion; the virtual cursor is clamped independently.
+    /// A first relative move starts at the primary window's center.
     pub delta: [f32; 2],
 }
 

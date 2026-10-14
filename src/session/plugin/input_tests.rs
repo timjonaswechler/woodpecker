@@ -5,7 +5,7 @@ use bevy::{
     input::{
         ButtonState,
         keyboard::{Key, KeyboardFocusLost, KeyboardInput},
-        mouse::MouseButtonInput,
+        mouse::{AccumulatedMouseMotion, MouseButtonInput, MouseMotion},
     },
     picking::{
         input::PointerInputPlugin,
@@ -20,6 +20,9 @@ struct Seen {
     text: usize,
     resizes: usize,
     keyboard_events: Vec<KeyboardInput>,
+    motion_frames: Vec<Vec2>,
+    motions: Vec<Vec2>,
+    pointer_events: Vec<PointerInput>,
 }
 
 fn app() -> (App, Entity, mpsc::Sender<String>) {
@@ -33,6 +36,9 @@ fn app() -> (App, Entity, mpsc::Sender<String>) {
             |mut keys: MessageReader<KeyboardInput>,
              mut text: MessageReader<Ime>,
              mut windows: MessageReader<WindowEvent>,
+             motion: Res<AccumulatedMouseMotion>,
+             mut motions: MessageReader<MouseMotion>,
+             mut pointers: MessageReader<PointerInput>,
              mut seen: ResMut<Seen>| {
                 for event in keys.read() {
                     seen.keys += 1;
@@ -43,6 +49,9 @@ fn app() -> (App, Entity, mpsc::Sender<String>) {
                     .read()
                     .filter(|event| matches!(event, WindowEvent::WindowResized(_)))
                     .count();
+                seen.motion_frames.push(motion.delta);
+                seen.motions.extend(motions.read().map(|event| event.delta));
+                seen.pointer_events.extend(pointers.read().cloned());
             },
         );
     let mut window = Window {
@@ -66,6 +75,11 @@ fn native_input(app: &mut App, window: Entity) {
     };
     world.write_message(moved.clone());
     world.write_message(WindowEvent::CursorMoved(moved));
+    let motion = MouseMotion {
+        delta: Vec2::splat(123.),
+    };
+    world.write_message(motion);
+    world.write_message(WindowEvent::MouseMotion(motion));
     let button = MouseButtonInput {
         window,
         button: MouseButton::Left,
@@ -117,6 +131,152 @@ fn warp(app: &mut App, tx: &mpsc::Sender<String>, id: u64) {
 }
 
 #[test]
+fn relative_pointer_motion_is_tick_bound_unbounded_and_isolated_from_native_input() {
+    let (mut app, window, tx) = app();
+    let (mut other, _, other_tx) = self::app();
+    let window_size = {
+        let window = app.world().get::<Window>(window).unwrap();
+        Vec2::new(window.width(), window.height())
+    };
+    let send_delta = |id, delta| {
+        tx.send(protocol::encode(id, &pointer::MoveBy { delta }.into()))
+            .unwrap();
+    };
+    send_delta(1, [12., -4.]);
+    app.update();
+    assert!(app.world().resource::<Seen>().motion_frames.is_empty());
+    assert_eq!(
+        app.world().resource::<AccumulatedMouseMotion>().delta,
+        Vec2::ZERO
+    );
+    native_input(&mut app, window);
+    warp(&mut app, &tx, 2);
+    assert_eq!(
+        app.world().resource::<Seen>().motion_frames,
+        [Vec2::new(12., -4.)]
+    );
+    assert_eq!(
+        app.world().resource::<Seen>().pointer_events[0]
+            .location
+            .position,
+        window_size * 0.5 + Vec2::new(12., -4.)
+    );
+
+    let full_delta = Vec2::new(window_size.x * 10., -window_size.y * 10.);
+    let edge = Vec2::new(window_size.x.next_down(), 0.);
+    for tick in 0..3 {
+        send_delta(3 + tick * 2, full_delta.to_array());
+        native_input(&mut app, window);
+        warp(&mut app, &tx, 4 + tick * 2);
+        let seen = app.world().resource::<Seen>();
+        assert_eq!(seen.motion_frames.last(), Some(&full_delta));
+        assert_eq!(seen.pointer_events.last().unwrap().location.position, edge);
+        if tick > 0 {
+            assert!(matches!(
+                seen.pointer_events.last().unwrap().action,
+                PointerAction::Move { delta } if delta == Vec2::ZERO
+            ));
+        }
+    }
+    send_delta(9, [7., 9.]);
+    send_delta(10, [3., -2.]);
+    warp(&mut app, &tx, 11);
+    assert_eq!(
+        app.world().resource::<Seen>().motion_frames.last(),
+        Some(&Vec2::new(10., 7.))
+    );
+
+    let motion_count = app.world().resource::<Seen>().motions.len();
+    for id in 12..15 {
+        native_input(&mut app, window);
+        warp(&mut app, &tx, id);
+        assert_eq!(
+            app.world().resource::<AccumulatedMouseMotion>().delta,
+            Vec2::ZERO
+        );
+        assert_eq!(app.world().resource::<Seen>().motions.len(), motion_count);
+    }
+    warp(&mut other, &other_tx, 1);
+    assert_eq!(
+        other.world().resource::<AccumulatedMouseMotion>().delta,
+        Vec2::ZERO
+    );
+    assert!(other.world().resource::<Seen>().motions.is_empty());
+    let window = app.world().get::<Window>(window).unwrap();
+    assert!(!window.focused);
+    assert_eq!(window.cursor_position(), Some(Vec2::new(90., 80.)));
+}
+
+#[test]
+fn absolute_pointer_placement_preserves_picking_order_without_raw_mouse_motion() {
+    let (mut app, _, tx) = app();
+    for (id, command) in [
+        (
+            1,
+            pointer::MoveTo {
+                position: [10., 15.],
+            }
+            .into(),
+        ),
+        (
+            2,
+            pointer::Press {
+                button: "left".into(),
+            }
+            .into(),
+        ),
+        (3, pointer::MoveBy { delta: [5., 2.] }.into()),
+        (
+            4,
+            pointer::MoveTo {
+                position: [30., 40.],
+            }
+            .into(),
+        ),
+        (
+            5,
+            pointer::Release {
+                button: "left".into(),
+            }
+            .into(),
+        ),
+    ] {
+        tx.send(protocol::encode(id, &command)).unwrap();
+    }
+    warp(&mut app, &tx, 6);
+    let seen = app.world().resource::<Seen>();
+    assert_eq!(seen.motions, [Vec2::new(5., 2.)]);
+    assert_eq!(seen.motion_frames, [Vec2::new(5., 2.)]);
+    assert_eq!(
+        seen.pointer_events
+            .iter()
+            .map(|event| event.location.position)
+            .collect::<Vec<_>>(),
+        [
+            Vec2::new(10., 15.),
+            Vec2::new(10., 15.),
+            Vec2::new(15., 17.),
+            Vec2::new(30., 40.),
+            Vec2::new(30., 40.)
+        ]
+    );
+    let events = &seen.pointer_events;
+    assert!(matches!(events[0].action, PointerAction::Move { delta } if delta == Vec2::ZERO));
+    assert!(matches!(
+        events[1].action,
+        PointerAction::Press(bevy::picking::pointer::PointerButton::Primary)
+    ));
+    assert!(matches!(events[2].action,
+        PointerAction::Move { delta } if delta == Vec2::new(5., 2.)));
+    assert!(matches!(events[3].action,
+        PointerAction::Move { delta } if delta == Vec2::new(15., 23.)));
+    assert!(matches!(
+        events[4].action,
+        PointerAction::Release(bevy::picking::pointer::PointerButton::Primary)
+    ));
+}
+
+#[test]
 fn independent_virtual_devices_ignore_native_input_without_window_focus() {
     let mut sessions = [app(), app()];
     for (index, (app, window, tx)) in sessions.iter_mut().enumerate() {
@@ -140,6 +300,17 @@ fn independent_virtual_devices_ignore_native_input_without_window_focus() {
             }));
         app.update(); // accept, but no tick
         assert!(
+            app.world_mut()
+                .query::<(&PointerId, &PointerLocation)>()
+                .iter(app.world())
+                .find(|(id, _)| **id == crate::session::VIRTUAL_POINTER_ID)
+                .unwrap()
+                .1
+                .location()
+                .is_none(),
+            "applications must not observe cursor commands before their tick"
+        );
+        assert!(
             !app.world()
                 .resource::<ButtonInput<MouseButton>>()
                 .pressed(MouseButton::Left)
@@ -150,7 +321,7 @@ fn independent_virtual_devices_ignore_native_input_without_window_focus() {
             .world_mut()
             .query::<(&PointerId, &PointerLocation)>()
             .iter(app.world())
-            .find(|(id, _)| id.is_custom())
+            .find(|(id, _)| **id == crate::session::VIRTUAL_POINTER_ID)
             .unwrap()
             .1
             .location()
