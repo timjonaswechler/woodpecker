@@ -7,6 +7,8 @@ disconnect without stopping accepted work.
 Local clients are trusted. No access key or environment setup is required.
 Remote operation is not supported.
 
+The current integration targets Bevy 0.20.0 and requires Rust 1.97.1 or newer.
+
 ## Current implementation
 
 The experimental v3 slice supports tick warps, pace changes, stop, reflected
@@ -18,14 +20,15 @@ The v2 API and its `host`/`driver` features have been removed.
 
 Controlled sessions ignore native mouse, touch, keyboard and IME input. Their pointers
 do not move the OS cursor or require window focus. Applications using Bevy UI must
-enable `woodpecker/ui`, which also enables focused text input. The context-menu fixture
-enables it through `slice`.
+enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0.20
+text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
 - [Target contract](docs/api/target.md)
 - [Completion plan and coverage](docs/api/implementation-plan.md)
 - [Handoff and remaining tasks](docs/api/next-steps.md)
 - [CLI usage and acceptance tests](docs/api/usage.md)
 - [Test suite and shared application contract](tests/README.md)
+- [Playable collection game and shared test app](test_app/README.md)
 
 ## Build and run
 
@@ -78,9 +81,9 @@ python3 -m tests.run --all --allow-rendered
 
 Python 3.11 or later is required. See [tests/README.md](tests/README.md) for the
 feature matrix and [the shared test application contract](tests/application/README.md).
-The previous scene applications have been removed. The common Bevy application
-is being developed separately; system scenarios report unavailable prerequisites
-until it is configured. Missing scenarios never count as a passed complete suite.
+The shared collection game in `test_app/` is configured for both session modes.
+System scenarios use its actual input, text and gameplay state. Missing scenarios
+never count as a passed complete suite.
 Rendered runs need an awake desktop and explicit permission for that run.
 
 The process contracts launch real children. macOS Gatekeeper can delay or reject

@@ -2,8 +2,8 @@
 
 Die Suite prüft Produktverhalten über Session-Modus, Command-Zugang und Feature.
 Gemeinsame Verträge laufen über Rendered/Headless und JSON/REPL. Die gemeinsame
-Bevy-App wird separat entwickelt; ihre [Anbindung](application/README.md) ist
-festgelegt. Fehlende Modi oder Fähigkeiten ergeben keine bestandene Gesamtsuite.
+Bevy-App ist das [Sammelspiel](../test_app/README.md); ihre [Anbindung](application/README.md)
+verwendet `application/app.json`. Fehlende Modi oder Fähigkeiten ergeben keine bestandene Gesamtsuite.
 
 ## Einstieg
 
@@ -45,7 +45,7 @@ Ein PTY-Vertrag prüft auch echte Terminaleingabe und Terminal-Restoration.
 | `replay` | Frische Session, ungültiger Footer ohne Präfixausführung, Stop während Warp |
 | `json` | Vorvalidierung, Command-Indizes und Script-Pipeline von Warp/Stop |
 | `repl` | Parsefehler, Disconnect, echte Terminaleingabe während fremder Activity |
-| `workflows` | Input aufnehmen und in frischem Prozess über den anderen Zugang wiedergeben |
+| `workflows` | Input und Spielabläufe aufnehmen und in frischem Prozess wiedergeben; Bewegung, Treffer, Fehlschüsse und Neustart |
 | `reports` | Automatische Reports, Panic-/Tracing-Ursprünge, Filter, Launch-Diagnostik, echtes Panic-Abort und Persistenz nach Stop |
 | `rust` | Alle modulnahen/öffentlichen Rust-Nachweise, Doctests, Stand ohne Default-Features |
 
@@ -139,7 +139,7 @@ Neue Features erweitern den passenden Command-Vertrag oder Workflow und dessen
 Registrierung. Die erforderlichen Kombinationen und der Gesamtlauf müssen am
 finalen Stand bestehen. Eigenständige Negativnachweise bleiben gezielt testbar.
 
-CI prüft Rust-Verträge, Suite-Auswahl und die Fehlerfälle über JSON/REPL. Ein separat auslösbarer Headless-
-Matrix-Job verwendet die gemeinsame App und scheitert, solange sie fehlt.
-Nach App-Anbindung wird er zum Pflichtcheck. Technische CI allein ist keine
-bestandene Gesamtabnahme; Grafik bleibt eine ausdrücklich bediente Prüfung.
+CI prüft Rust-Verträge, Suite-Auswahl und die Fehlerfälle über JSON/REPL. Ein
+separat auslösbarer Headless-Matrix-Job verwendet das gemeinsame Sammelspiel.
+Dieser Job ist noch kein automatischer Pflichtcheck. Technische CI allein ist
+keine bestandene Gesamtabnahme; Grafik bleibt eine ausdrücklich bediente Prüfung.

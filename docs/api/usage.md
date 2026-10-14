@@ -29,6 +29,12 @@ zwei Textfelder per virtuellem Pointer und prüft getrennte Unicode-Eingaben.
 Erfolg liefert `null`; das Textfeld bleibt bis zum Tick unverändert. Leerer Text ist
 zulässig. Voraussetzung sind ein eindeutiges primäres Fenster und ein lebender
 Bevy-Fokus auf einer `EditableText`-Entity. Die Anwendung benötigt `woodpecker/ui`.
+In Bevy 0.20 besteht ein vollständiges Textfeld aus `bevy::text::EditableText`
+und `bevy::ui_widgets::TextInput`. Die Anwendung aktiviert dafür
+`bevy/bevy_ui_widgets` und installiert `bevy::ui_widgets::TextInputPlugin`.
+Der Adapter prüft den Editierzustand und stellt
+den Edit direkt in dessen Queue; das Widget und seine normalen Bevy-Systeme
+gehören zur Anwendung.
 Ohne diese Unterstützung wird die Eingabe mit `text_focus_unavailable` abgelehnt,
 bei fehlendem Fenster mit `text_window_unavailable`. Übergröße ergibt `text_too_large`.
 Der Adapter stellt den Edit erst beim Tick dem geprüften Feld zu. Er verändert
@@ -108,7 +114,7 @@ verworfen. Die Frist gilt nicht für bereits laufendes Encoding oder Schreiben.
 
 Für jeden Request prüft der Adapter im tatsächlichen Capture-Frame nach der
 Render-Vorbereitung, ob der Fenster-View und sein Format verfügbar sind.
-Bevy 0.19.1 überspringt ohne diese Ressourcen die Bildkopie, liefert aber trotzdem
+Bevy 0.20.0 überspringt ohne diese Daten die Bildkopie, liefert aber trotzdem
 einen nullinitialisierten Readback. Der Adapter lehnt diesen Fall mit
 `screenshot_window_unavailable` ab, ohne eine PNG-Datei zu schreiben oder eine
 vorhandene Datei zu ersetzen. Der Befund bleibt an diesen Request/Frame gebunden:
@@ -364,7 +370,8 @@ python3 -m tests.acceptance.headless.session_lifecycle
 Die direkte Session und das Plugin brauchen kein Feature. `server` aktiviert HTTP
 und WebSocket, `client` den synchronen Netzwerkclient, `cli` das Binary `woodpecker`.
 Anwendungen mit Bevy UI müssen zusätzlich `woodpecker/ui` aktivieren. Damit verwendet
-auch die ältere `Interaction`-Logik den virtuellen Pointer statt der nativen Maus.
+auch die ältere, in Bevy 0.20 deprecated `Interaction`-Logik den virtuellen Pointer
+statt der nativen Maus. Neue Anwendungs-Widgets sollten Bevys Picking-Events verwenden.
 Die Pointerposition wird über `PointerLocation` gelesen; `Window` bleibt die
 Beschreibung des nativen Fensters, kein virtueller Eingabestatus.
 Die Prozessverwaltung dieses Durchstichs unterstützt Unix-Prozessgruppen.
@@ -377,8 +384,32 @@ ohne PNG-Capability. `screenshot` aktiviert den Readback-/PNG-Adapter, installie
 aber keinen Renderer.
 Die übrigen Render-/UI-Abhängigkeiten der Testanwendungen gehören zu deren eigenem Manifest.
 
-Die Lockfiles halten die geprüfte Auflösung auf Bevy 0.19.1 fest.
-Das Testpackage hat weiterhin seine eigene Cargo-Auflösung.
+Die aktuelle Abhängigkeit ist Bevy 0.20.0. Root und Panic-Abort-Testprogramm
+haben getrennte Lockfiles und müssen dieselbe Bevy-Version auflösen.
+Bevy benötigt dafür mindestens Rust 1.97.1; beide Manifeste deklarieren diese Grenze.
+Historische Research-Berichte und Diagnostik beziehen sich weiterhin auf ihren
+dokumentierten Bevy-0.19-Prüfstand.
+
+Beim Upgrade wurden die [API-Änderungen von 0.19 auf 0.20](https://bevy.org/learn/migration-guides/0-19-to-0-20/)
+gegen die verwendeten Bevy-Systeme geprüft. Render-Fenster sind jetzt ECS-Komponenten
+statt einer `ExtractedWindows`-Resource. Die Capture-Prüfung ordnet sie über `MainEntity`
+dem angefragten Hauptfenster zu und prüft weiterhin genau dessen ersten Capture-Frame.
+Die explizite Reihenfolge nach `RenderSystems::Prepare` bleibt erhalten, auch wenn
+Bevys eigene Schedule-Sets jetzt teilweise schwach geordnet sind.
+
+Entity-Inspect erkennt Resource-Entities direkt über `IsResource`, auch bei Handles
+und Hierarchien. Dadurch entfällt der zuvor für jede Abfrage aufgebaute `HashSet`
+aller Resource-Entities. Das Ausgabeformat bleibt unverändert.
+Die ältere UI-Anbindung findet den virtuellen Pointer über die von Bevys
+Komponenten-Hooks gepflegte `PointerMap`, statt alle Pointer zu durchsuchen.
+Der Textadapter verwendet weiterhin `EditableText::queue_edit`, damit eigene
+Headless-Editoren ohne vollständiges UI-Widget möglich bleiben. Die ältere
+`Interaction`-Anbindung bleibt für bestehende Anwendungen erhalten; für neue Widgets
+gelten die flachen Pointer-Events aus Bevy 0.20, etwa `PointerPress` statt `Pointer<Press>`.
+
+Kontrollierte Rendered-Anwendungen können mit `Window { focused: false, ..default() }`
+starten. Bevy 0.20 aktiviert sie unter macOS dann nicht automatisch im Vordergrund.
+Virtueller Input und der interne Bevy-`InputFocus` funktionieren unabhängig davon.
 
 ## Ausführen
 

@@ -3,8 +3,12 @@
 Die App stellt eine kleine, deterministische Bevy-Welt bereit, an der Woodpecker
 getestet wird. Eine gemeinsame App läuft mit `--mode rendered` oder
 `--mode headless`. Beide Modi verwenden dieselben Regeln und beobachtbaren
-Zustände. Die App wird noch separat entwickelt; die Beispieldateien starten
-keine vorhandene App.
+Zustände. Das [Sammelspiel](../../test_app/README.md) implementiert die normale
+App-Matrix. `app.json`, `rendered.toml` und `headless.toml` binden es an;
+die `.example`-Dateien bleiben Vorlagen für andere Anwendungen.
+
+Die gemeinsame App verwendet Bevy 0.20.0 wie Woodpecker. Die ältere Diagnostik
+unter `tests/diagnostics` bleibt ein gesonderter historischer Prüfstand.
 
 ## Was die App selbst implementieren muss
 
@@ -15,9 +19,12 @@ keine vorhandene App.
 | Inspect-Welt | Die Resource und einen eindeutig benannten Entity mit lesbarem `Name` anbieten. | Resource-/Entity-Projektionen und Filter |
 | Tastatur | Tatsächliche Bevy-Tastenereignisse beobachten; gehaltene Tasten und Press-/Release-Zähler aktualisieren. | Input wird erst beim Tick wirksam, Halten wiederholt keinen Press |
 | Pointer | Tatsächliche Pointer-/Mausereignisse beobachten; Position, Buttons und Scroll-Deltas abbilden. | Bewegung, Buttons, Scroll und keine unbeabsichtigte Wiederholung |
-| Texteingabe | Ein echtes, fokussiertes Bevy-`EditableText` bereitstellen und dessen verarbeiteten Inhalt beobachten. | Unicode, Eingabegrenze und echte Textverarbeitung |
+| Texteingabe | Ein echtes, fokussiertes Bevy-Textfeld mit `EditableText` und `TextInput` bereitstellen und dessen verarbeiteten Inhalt beobachten. | Unicode, Eingabegrenze und echte Textverarbeitung |
 | Fehlerauslösung | Ein neuer Press von `b` löst im Update genau einen Tracing-Error aus und erhöht `failures`. | Automatischer Report und Persistenz nach Session-Ende |
 | Render-Szene | Ein festes Bild mit vorab bekannten Abmessungen und Pixeln erzeugen. | Screenshot-Inhalt, Overwrite und keine zusätzlichen Simulationsticks |
+
+Für lesbare Bevy-`Name`-Werte aktiviert die App `bevy_ecs/serialize` und
+registriert `Name` in ihrem Typregister.
 
 Die App implementiert keinen eigenen Server, JSON-Parser, REPL, Recorder oder
 Replay-Player. Diese Aufgaben übernimmt Woodpecker. Die Test-App führt selbst
@@ -46,7 +53,16 @@ Das logische Fenster soll wie das Rendered-Fenster 640 × 360 logische Pixel hab
 Die Ressourcen und Systeme für Input und Textverarbeitung müssen in beiden Modi
 vorhanden sein.
 
-`woodpecker/ui` wird für Texteingabe benötigt. Der Screenshot-Pfad benötigt
+Das Rendered-Fenster soll mit `Window { focused: false, ..default() }` starten.
+Bevy 0.20 berücksichtigt dies unter macOS bei der App-Aktivierung, sodass ein
+Testlauf den Desktop-Fokus nicht übernimmt. Der virtuelle Input benötigt keinen
+nativen Fensterfokus. `InputFocus` auf dem Bevy-Textfeld wird davon unabhängig gesetzt.
+Das Sammelspiel hält kontrollierte Rendered-Fenster oben, damit andere
+Desktop-Fenster die geprüfte Renderoberfläche nicht vollständig verdecken.
+
+`woodpecker/ui` wird für Texteingabe benötigt. Die App aktiviert zusätzlich
+`bevy/bevy_ui_widgets` und installiert `bevy::ui_widgets::TextInputPlugin` für
+ihr vollständiges Textfeld. Der Screenshot-Pfad benötigt
 `woodpecker/screenshot` und im Rendered-Modus einen Renderer. Das kann dieselbe
 Binary mit unterschiedlicher Plugin-Konfiguration sein. Die Laufzeitmodi sind
 keine zwei unterschiedlichen Szenen.
@@ -111,7 +127,9 @@ Die Textsuite prüft 16.384 UTF-8-Bytes als erlaubte Grenze, beispielsweise
 kleinere Textlängengrenze oder einen Filter einstellen, der diese Eingaben kürzt.
 
 Für das Textfeld gilt: Spätestens nach einem ausdrücklichen Initialisierungstick
-existiert ein lebender `EditableText`-Entity und `InputFocus` verweist auf ihn.
+existiert ein lebender Entity mit `bevy::text::EditableText` und
+`bevy::ui_widgets::TextInput`; `InputFocus` verweist auf ihn. In Bevy 0.20 hält
+`EditableText` den Editierzustand, während `TextInput` das Eingabe-Widget ergänzt.
 Die normalen Bevy-Textedit-Systeme müssen die eingereichten Edits verarbeiten.
 Die Zustandsresource liest den Inhalt nach deren Verarbeitung, damit die Änderung
 nach diesem einen Tick sichtbar ist. Das gilt auch im Headless-Modus.
@@ -144,9 +162,14 @@ Die Beispielkonfiguration erwartet im Rendered-Modus:
 Logische Fenstergröße und Screenshot-Auflösung müssen hierzu passen; eine
 Desktop-Skalierung darf die erwartete Bildgröße nicht unbemerkt ändern.
 Die Sollwerte werden beim Szenenentwurf festgelegt und nicht aus einem gerade
-erzeugten Screenshot übernommen. Nach einem ausdrücklichen Tick prüft die Suite
-den ersten Capture und das Überschreiben derselben Datei ohne Capture-Retries.
-Wann vor diesem Tick das erste Bild möglich ist, bleibt eine spätere Diagnostik.
+erzeugten Screenshot übernommen. `screenshot.initialization_ticks` legt die
+ausdrücklichen Vorbereitungsticks dieses Bildvertrags fest; ohne Feld gilt eins.
+Beim Sammelspiel sind es zwei: Auf dem geprüften Bevy-0.20-/Metal-System war
+Tick eins schwarz und ab Tick zwei die Szene sichtbar. Beide Ticks erscheinen
+im beobachtbaren Zustand. Es gibt keine versteckten Warm-up-Ticks.
+Danach prüft die Suite den ersten Capture und das Überschreiben derselben Datei
+mit unveränderten Sollpixeln und ohne Capture-Retries oder weitere Ticks.
+Die früheste allgemein mögliche Aufnahme bleibt eine gesonderte Diagnostik.
 
 Im aktuellen Headless-Vertrag liefert Screenshot `screenshot_unavailable`,
 erzeugt keine Datei und verändert den Zustand nicht. Headless-Rendering ist
@@ -194,8 +217,9 @@ den echten Fehler; sie implementiert keinen künstlichen GitHub-Provider.
 
 ## Konfiguration und schrittweise Anbindung
 
-`app.example.json` als `app.json` übernehmen und die beiden Launch-TOMLs auf
-das echte App-Manifest und Target einstellen. `state_type`, `entity_name`,
+Das Sammelspiel ist bereits über `app.json` und beide Launch-TOMLs angebunden.
+Für eine andere App `app.example.json` übernehmen und die Launch-TOMLs auf
+deren Manifest und Target einstellen. `state_type`, `entity_name`,
 `failure_message` und Screenshot-Sollwerte müssen zur App passen. TOML-Pfade in
 `modes` sind relativ zur JSON-Datei, Manifest-Pfade relativ zum Repository-Root
 oder absolut.
