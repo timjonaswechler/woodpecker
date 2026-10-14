@@ -21,6 +21,84 @@ struct RenderFrame;
 
 type Responses = mpsc::Receiver<(Message, Option<mpsc::Sender<()>>)>;
 
+#[test]
+fn idle_extraction_retains_shadow_tables_but_counted_ticks_allow_removal() {
+    use bevy::render::{
+        Render,
+        view::visibility::{
+            RenderExtractedShadowMapVisibleEntities, RenderShadowMapVisibleEntities,
+        },
+    };
+    let (mut app, sender, _receiver) = app();
+    // Exercise the same command/extraction boundary as Bevy's changed-light
+    // cleanup. Its deferred removal must be repaired before render preparation.
+    let render_app = app.sub_app_mut(RenderApp);
+    render_app.world_mut().spawn((
+        RenderExtractedShadowMapVisibleEntities::default(),
+        RenderShadowMapVisibleEntities::default(),
+    ));
+    render_app.add_systems(RenderFrame, |world: &mut World| {
+        world.run_schedule(Render);
+    });
+    let mut wrapped = render_app.take_extract().unwrap();
+    render_app.set_extract(move |main, render| {
+        wrapped(main, render);
+        let entities: Vec<_> = render
+            .iter_entities()
+            .filter(|entity| entity.contains::<RenderShadowMapVisibleEntities>())
+            .map(|entity| entity.id())
+            .collect();
+        for entity in entities {
+            render.entity_mut(entity).remove::<(
+                RenderExtractedShadowMapVisibleEntities,
+                RenderShadowMapVisibleEntities,
+            )>();
+        }
+    });
+    sender
+        .send(protocol::encode(
+            1,
+            &warp::Start {
+                ticks: 1,
+                pace: None,
+            }
+            .into(),
+        ))
+        .unwrap();
+    app.update();
+    let render_world = app.sub_app_mut(RenderApp).world_mut();
+    let light = render_world
+        .spawn((
+            RenderExtractedShadowMapVisibleEntities::default(),
+            RenderShadowMapVisibleEntities::default(),
+        ))
+        .id();
+    app.update();
+    assert!(
+        app.sub_app(RenderApp)
+            .world()
+            .get::<RenderShadowMapVisibleEntities>(light)
+            .is_some()
+    );
+    sender
+        .send(protocol::encode(
+            2,
+            &warp::Start {
+                ticks: 1,
+                pace: None,
+            }
+            .into(),
+        ))
+        .unwrap();
+    app.update();
+    assert!(
+        app.sub_app(RenderApp)
+            .world()
+            .get::<RenderShadowMapVisibleEntities>(light)
+            .is_none()
+    );
+}
+
 fn app() -> (App, mpsc::Sender<String>, Responses) {
     let mut app = App::new();
     app.add_plugins(MinimalPlugins)
