@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import tomllib
 
+from tests.catalog import MODES
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -22,8 +24,8 @@ class Application:
         if not isinstance(self.type_path, str) or not self.type_path:
             raise ValueError("state_type muss ein vollständiger Reflection-Type-Path sein")
         self.modes = self.data["modes"]
-        if not isinstance(self.modes, dict) or set(self.modes) - {"rendered", "headless"}:
-            raise ValueError("modes unterstützt rendered und headless")
+        if not isinstance(self.modes, dict) or set(self.modes) - set(MODES):
+            raise ValueError("modes unterstützt nur rendered")
 
     def mode(self, name):
         if name not in self.modes:

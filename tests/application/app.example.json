@@ -15,10 +15,6 @@
     "rendered": {
       "config": "rendered.example.toml",
       "capabilities": ["state", "entities", "keyboard", "pointer", "text", "reports", "screenshot"]
-    },
-    "headless": {
-      "config": "headless.example.toml",
-      "capabilities": ["state", "entities", "keyboard", "pointer", "text", "reports"]
     }
   }
 }

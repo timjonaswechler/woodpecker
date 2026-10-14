@@ -11,11 +11,10 @@ import time
 import tomllib
 import traceback
 
-from tests.catalog import scenarios, select
+from tests.catalog import select
 from tests.session.application import Application, ROOT, Unavailable
 from tests.session.runtime import Context, Server
 
-MODES = ("rendered", "headless")
 INTERFACES = ("json", "repl")
 
 
@@ -51,10 +50,10 @@ def rust_jobs(features):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--all", action="store_true", help="Alle Verhaltensbereiche und beide Modi/Zugänge")
+    parser.add_argument("--all", action="store_true", help="Alle Verhaltensbereiche in Rendered über beide Zugänge")
     parser.add_argument("--feature", type=csv, help="connection,warp,inspect,keyboard,pointer,text,screenshot,shutdown,recording,replay,reports,json,repl,workflows,rust")
     parser.add_argument("--scenario", type=csv)
-    parser.add_argument("--mode", type=csv)
+    parser.add_argument("--mode", type=csv, help="Session-Modus: rendered (Standard)")
     parser.add_argument("--interface", type=csv)
     parser.add_argument("--layer", choices=("all", "system", "rust"), default="all")
     parser.add_argument("--app", type=Path, default=ROOT / "tests/application/app.json")
@@ -71,8 +70,6 @@ def main(argv=None):
         parser.error("Rust-Verträge haben keine Session-Modus-/Zugangs-Matrix")
     if args.layer == "rust" and args.faults_only:
         parser.error("--faults-only wählt System-Szenarien; --layer rust ist damit nicht kombinierbar")
-    if args.mode and set(args.mode) - set(MODES):
-        parser.error("--mode unterstützt rendered,headless")
     if args.interface and set(args.interface) - set(INTERFACES):
         parser.error("--interface unterstützt json,repl")
     try:
@@ -166,7 +163,7 @@ def main(argv=None):
         builds = []
         programs = {p for item, _, _ in cells for p in item.programs}
         if jobs:
-            programs.update(("protocol", "observation"))
+            programs.update(("protocol", "observation", "activity"))
         if signals:
             programs.add("protocol")
         program_builds = {

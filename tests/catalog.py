@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 from importlib import import_module
 
+MODES = ("rendered",)
+
 
 @dataclass(frozen=True)
 class Scenario:
@@ -10,7 +12,7 @@ class Scenario:
     function: object
     commands: tuple
     capabilities: tuple = ("state",)
-    modes: tuple = ("rendered", "headless")
+    modes: tuple = MODES
     interfaces: tuple = ("json", "repl")
     programs: tuple = ()
     independent: bool = False
@@ -20,7 +22,7 @@ SCENARIOS = []
 
 
 def scenario(feature, name, commands=(), capabilities=("state",),
-             modes=("rendered", "headless"), interfaces=("json", "repl"),
+             modes=MODES, interfaces=("json", "repl"),
              programs=(), independent=False):
     def register(function):
         identifier = f"{feature}.{name}"
@@ -47,6 +49,8 @@ def scenarios():
 
 
 def select(features=None, modes=None, interfaces=None, names=None):
+    if modes is not None and set(modes) - set(MODES):
+        raise ValueError("--mode unterstützt nur rendered")
     available = scenarios()
     known = {s.feature for s in available} | {"reports", "rust"}
     if features is not None and set(features) - known:
@@ -59,7 +63,7 @@ def select(features=None, modes=None, interfaces=None, names=None):
             continue
         if names is not None and item.name not in names:
             continue
-        for mode in (None,) if item.independent else modes or ("rendered", "headless"):
+        for mode in (None,) if item.independent else modes or MODES:
             for interface in interfaces or ("json", "repl"):
                 if (item.independent or mode in item.modes) and interface in item.interfaces:
                     selected.append((item, mode, interface))

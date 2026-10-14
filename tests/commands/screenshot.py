@@ -4,16 +4,6 @@ from tests.commands._png import rgb_pixels
 COMMAND = "screenshot.capture"
 
 
-@scenario("screenshot", "unavailable_without_renderer", commands=(COMMAND,), modes=("headless",))
-def unavailable_without_renderer(ctx):
-    with ctx.session() as driver:
-        before = ctx.probe(driver)
-        relative = "screenshots/unavailable.png"
-        driver.command(COMMAND, {"path": relative}, expected_error="screenshot_unavailable")
-        assert not (driver.session.artifacts / relative).exists()
-        assert ctx.probe(driver) == before
-
-
 @scenario("screenshot", "known_pixels_without_simulation_progress", commands=(COMMAND,),
           modes=("rendered",), capabilities=("state", "screenshot"))
 def known_pixels_without_simulation_progress(ctx):

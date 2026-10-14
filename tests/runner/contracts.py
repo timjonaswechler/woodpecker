@@ -21,15 +21,40 @@ class SuiteTests(unittest.TestCase):
         self.assertTrue(commands)
         self.assertEqual(commands, covered, "Ein neues Command benötigt einen dauerhaften Verhaltensvertrag")
 
-    def test_warp_uses_same_contract_in_four_combinations(self):
+    def test_warp_uses_same_rendered_contract_through_both_interfaces(self):
         selected = select(["warp"])
         for name in {s.name for s, _, _ in selected}:
             self.assertEqual({(mode, interface) for s, mode, interface in selected if s.name == name},
-                             {("rendered", "json"), ("rendered", "repl"),
-                              ("headless", "json"), ("headless", "repl")})
-        targeted = select(["warp"], ["headless"], ["repl"])
+                             {("rendered", "json"), ("rendered", "repl")})
+        targeted = select(["warp"], ["rendered"], ["repl"])
         self.assertEqual(len(targeted), 3)
-        self.assertTrue(all(mode == "headless" and interface == "repl" for _, mode, interface in targeted))
+        self.assertTrue(all(mode == "rendered" and interface == "repl" for _, mode, interface in targeted))
+
+    def test_default_and_all_selections_only_include_rendered_app_sessions(self):
+        selections = []
+        for arguments in ([], ["--all"]):
+            result = subprocess.run([sys.executable, "-m", "tests.run", "--layer", "system",
+                                     "--list", *arguments], cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = result.stdout.splitlines()
+            self.assertTrue(lines)
+            self.assertTrue(all("[rendered/" in line or "[mode-independent" in line for line in lines))
+            self.assertIn("warp.exact_ticks_and_idle [rendered/json]", lines)
+            self.assertIn("warp.exact_ticks_and_idle [rendered/repl]", lines)
+            self.assertIn("screenshot.known_pixels_without_simulation_progress [rendered/json]", lines)
+            selections.append(lines)
+        self.assertEqual(*selections)
+
+    def test_headless_is_rejected_before_running_scenarios(self):
+        with self.assertRaisesRegex(ValueError, "nur rendered"):
+            select(modes=["headless"])
+        for arguments in (["--mode", "headless"], ["--mode", "rendered,headless"],
+                          ["--mode", "headless", "--faults-only"]):
+            result = subprocess.run([sys.executable, "-m", "tests.run", "--list", *arguments],
+                                    cwd=ROOT, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn("nur rendered", result.stderr)
+            self.assertEqual(result.stdout, "")
 
     def test_unknown_feature_or_scenario_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -68,18 +93,23 @@ class SuiteTests(unittest.TestCase):
             path = Path(directory) / "app.json"
             (path.parent / "app.toml").write_text("version = 1\n")
             path.write_text(json.dumps({"version": 1, "state_type": "app::TestState", "modes": {
-                "headless": {"config": "app.toml", "capabilities": ["state"]}}}))
+                "rendered": {"config": "app.toml", "capabilities": ["state"]}}}))
             app = Application(path)
             with self.assertRaises(Unavailable):
-                app.require("rendered", ["state"])
+                app.require("headless", ["state"])
             with self.assertRaises(Unavailable):
-                app.require("headless", ["state", "keyboard"])
+                app.require("rendered", ["state", "keyboard"])
+            data = json.loads(path.read_text())
+            data["modes"]["headless"] = data["modes"]["rendered"]
+            path.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, "nur rendered"):
+                Application(path)
 
     def test_missing_app_produces_incomplete_report_and_nonzero_exit(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             run = subprocess.run([sys.executable, "-m", "tests.run", "--layer", "system",
-                                  "--feature", "warp", "--mode", "headless", "--interface", "json",
+                                  "--feature", "warp", "--interface", "json",
                                   "--no-build", "--app", str(root / "missing.json"),
                                   "--output", str(root / "run")], cwd=ROOT, capture_output=True, text=True)
             self.assertEqual(run.returncode, 2, run.stdout + run.stderr)
