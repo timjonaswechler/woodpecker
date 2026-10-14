@@ -165,8 +165,10 @@ class Session:
 
 
 class Context:
-    def __init__(self, server, app, mode, interface):
+    def __init__(self, server, app, mode, interface, steps=None):
         self.server, self.app, self.mode, self.interface = server, app, mode, interface
+        from tests.session.steps import Steps
+        self.steps = steps if steps is not None else Steps(server.directory / "steps.json")
 
     @contextmanager
     def session(self, config=None, ready=True):
@@ -212,6 +214,9 @@ kind = {json.dumps(provider)}
         return path
 
     def probe(self, driver):
+        if self.app.type_path is None:
+            from tests.session.application import Unavailable
+            raise Unavailable("Dieses Altszenario benötigt noch TestState; auf Signalstation-Abfragen umstellen")
         output = driver.command("inspect.query", {
             "source": "resources", "selector": {"kind": "type", "type_path": self.app.type_path},
             "projection": {"kind": "value"},

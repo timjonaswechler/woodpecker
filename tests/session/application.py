@@ -20,8 +20,9 @@ class Application:
         self.data = json.loads(self.path.read_text())
         if self.data.get("version") != 1:
             raise ValueError("Test-App-Konfiguration benötigt version=1")
-        self.type_path = self.data["state_type"]
-        if not isinstance(self.type_path, str) or not self.type_path:
+        self.type_path = self.data.get("state_type")
+        if self.data.get("application") != "signalstation" and (
+                not isinstance(self.type_path, str) or not self.type_path):
             raise ValueError("state_type muss ein vollständiger Reflection-Type-Path sein")
         self.modes = self.data["modes"]
         if not isinstance(self.modes, dict) or set(self.modes) - set(MODES):

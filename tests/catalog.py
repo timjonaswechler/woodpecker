@@ -40,7 +40,7 @@ def scenarios():
         "connection.lifecycle", "connection.clock", "connection.startup", "connection.workspace", "interfaces.contracts", "commands.warp",
         "commands.inspect", "commands.keyboard", "commands.pointer",
         "commands.text", "commands.screenshot", "commands.shutdown",
-        "recording.contracts", "replay.contracts", "reports.contracts", "workflows.recorded_input",
+        "recording.contracts", "replay.contracts", "reports.contracts", "workflows.recorded_input", "workflows.game", "workflows.signalstation",
         "connection.protocol_faults.contracts", "connection.activity_retention.contracts",
         "recording.failures", "replay.failures", "reports.observation", "reports.panic_abort.contracts",
     ):

@@ -14,6 +14,7 @@ import traceback
 from tests.catalog import select
 from tests.session.application import Application, ROOT, Unavailable
 from tests.session.runtime import Context, Server
+from tests.session.steps import Steps
 
 INTERFACES = ("json", "repl")
 
@@ -111,7 +112,7 @@ def main(argv=None):
                                       cwd=ROOT, text=True).splitlines()
     report["source_sha256"] = {
         path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest()
-        for path in sources if (path.startswith(("src/", "tests/")) or path in ("Cargo.toml", "Cargo.lock"))
+        for path in sources if (path.startswith(("src/", "tests/", "test_app/")) or path in ("Cargo.toml", "Cargo.lock"))
         and not path.startswith("tests/diagnostics/") and (ROOT / path).is_file()
         and Path(path).suffix in (".rs", ".py", ".toml", ".lock", ".json")
     }
@@ -129,17 +130,21 @@ def main(argv=None):
             report["status"] = "failed"
         (output / "results.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
 
-    def execute(name, callback):
+    def execute(name, callback, steps=None):
         started = time.monotonic()
         result = {"name": name}
         try:
             callback()
+            if steps is not None:
+                steps.finish()
             result["status"] = "passed"
         except Unavailable as error:
             result.update(status="unavailable", error=str(error))
         except Exception as error:
             result.update(status="failed", error=str(error), traceback=traceback.format_exc())
         result["seconds"] = round(time.monotonic() - started, 3)
+        if steps is not None and steps.results:
+            result["steps"] = steps.results
         results.append(result)
         save()
         print(f"{result['status'].upper():11} {name}", flush=True)
@@ -215,6 +220,7 @@ def main(argv=None):
     for index, (item, mode, interface) in enumerate(cells):
         name = f"{item.name} [{mode or 'mode-independent'}/{interface}]"
         directory = output / f"{index:03}-{item.name}-{mode or 'independent'}-{interface}"
+        steps = Steps(directory / "steps.json")
         def run_cell(s=item, m=mode, i=interface, d=directory):
             if not prepared:
                 raise Unavailable("Build-Voraussetzungen fehlgeschlagen")
@@ -229,8 +235,8 @@ def main(argv=None):
             if not args.cli.is_file():
                 raise Unavailable(f"CLI-Binary fehlt: {args.cli}")
             with Server(args.cli, d) as server:
-                s.function(Context(server, app, m, i))
-        execute(name, run_cell)
+                s.function(Context(server, app, m, i, steps))
+        execute(name, run_cell, steps)
     save()
     print(f"Ergebnis: {report['status']}; Bericht: {output / 'results.json'}")
     if report["status"] == "passed":

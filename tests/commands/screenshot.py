@@ -8,10 +8,13 @@ COMMAND = "screenshot.capture"
           modes=("rendered",), capabilities=("state", "screenshot"))
 def known_pixels_without_simulation_progress(ctx):
     with ctx.session() as driver:
-        driver.command("tick.warp.start", {"ticks": 1})
-        before = ctx.probe(driver)
-        relative = "screenshots/known.png"
         expected = ctx.app.data["screenshot"]
+        initialization_ticks = expected.get("initialization_ticks", 1)
+        assert type(initialization_ticks) is int and initialization_ticks > 0, expected
+        driver.command("tick.warp.start", {"ticks": initialization_ticks})
+        before = ctx.probe(driver)
+        assert before["ticks"] == initialization_ticks, before
+        relative = "screenshots/known.png"
         assert expected["pixels"], "Screenshot-Vertrag benötigt unabhängig bekannte Sollpixel"
         for overwritten in (False, True):
             result = driver.command(COMMAND, {"path": relative})
