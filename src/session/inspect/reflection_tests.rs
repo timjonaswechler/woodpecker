@@ -123,6 +123,43 @@ fn not_serializable() -> Value {
     }
 }
 
+#[test]
+fn pointer_location_exposes_the_applied_position_without_mutating_it() {
+    use bevy::{
+        camera::NormalizedRenderTarget,
+        picking::pointer::{Location, PointerLocation},
+    };
+    let mut app = App::new();
+    app.register_type::<Fixture<PointerLocation>>()
+        .register_type::<Location>();
+    check_in(
+        &mut app,
+        PointerLocation::default(),
+        readable(json!({"location": null})),
+    );
+    let location = |position| PointerLocation {
+        location: Some(Location {
+            target: NormalizedRenderTarget::None {
+                width: 640,
+                height: 360,
+            },
+            position,
+        }),
+    };
+    check_in(
+        &mut app,
+        location(Vec2::new(120.0, 80.0)),
+        readable(json!({
+            "location": {"target": {"None": {"width": 640, "height": 360}}, "position": [120.0, 80.0]}
+        })),
+    );
+    check_in(
+        &mut app,
+        location(Vec2::new(f32::INFINITY, 80.0)),
+        not_serializable(),
+    );
+}
+
 #[derive(Clone, Reflect)]
 struct Numbers {
     single: Vec<f32>,

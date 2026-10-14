@@ -3,12 +3,16 @@ use bevy::{
         EphemeralHandleBehavior, HandleSerializeProcessor, ReflectHandle, UntypedAssetId,
         UntypedHandle,
     },
+    picking::pointer::PointerLocation,
     reflect::{
         PartialReflect, ReflectRef, TypeRegistry,
         serde::{ReflectSerializerProcessor, TypedReflectSerializer},
     },
 };
-use serde::{Serialize, ser::Error};
+use serde::{
+    Serialize,
+    ser::{Error, SerializeStruct},
+};
 
 pub(super) fn serialize(
     reflected: &dyn PartialReflect,
@@ -42,6 +46,25 @@ impl ReflectSerializerProcessor for Processor {
                 .is_some_and(|n| !n.is_finite())
         {
             return Err(S::Error::custom("non-finite reflected float"));
+        }
+        if let Some(pointer) = value.try_downcast_ref::<PointerLocation>() {
+            if pointer
+                .location
+                .as_ref()
+                .is_some_and(|location| !location.position.is_finite())
+            {
+                return Err(S::Error::custom("non-finite pointer position"));
+            }
+            // Bevy excludes this public field from reflection. Inspect must expose
+            // the applied position, including None before the first pointer input.
+            let mut output = serializer.serialize_struct("PointerLocation", 1)?;
+            output.serialize_field(
+                "location",
+                &pointer.location.as_ref().map(|location| {
+                    TypedReflectSerializer::with_processor(location, registry, self)
+                }),
+            )?;
+            return Ok(Ok(output.end()?));
         }
         if let ReflectRef::Set(set) = value.reflect_ref() {
             let mut items = set
