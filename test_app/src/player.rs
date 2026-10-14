@@ -39,7 +39,8 @@ pub fn pose_player(
 }
 
 /// Locomotion state for the demo's single player.
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct Player {
     pub position: Vec2,
     pub yaw: f32,
@@ -137,8 +138,10 @@ impl Player {
     reason = "Bevy injects the input and movement resources."
 )]
 pub fn click_to_move(
+    mode: Res<crate::input::InputMode>,
+    cursor: crate::input::Cursor,
     buttons: Res<ButtonInput<MouseButton>>,
-    window: Single<&Window, With<PrimaryWindow>>,
+    window: Single<(Entity, &Window), With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<GameCamera>>,
     blocks: Query<(&ComputedNode, &UiGlobalTransform), With<UiBlock>>,
     nav: Res<Navigation>,
@@ -148,12 +151,18 @@ pub fn click_to_move(
     mut ui: ResMut<UiState>,
     mut focus: ResMut<InputFocus>,
 ) {
+    let (window_entity, window) = window.into_inner();
     if !buttons.just_pressed(MouseButton::Left)
-        || !window.focused
+        || !mode.accepts_input(window)
         || ui.menu
         || !load.is_ready()
-        || pointer_over_ui(&window, &blocks)
     {
+        return;
+    }
+    let Some(cursor) = cursor.position(window_entity, window) else {
+        return;
+    };
+    if pointer_over_ui(cursor, window.scale_factor(), &blocks) {
         return;
     }
     focus.clear();
@@ -161,9 +170,6 @@ pub fn click_to_move(
         view.captured = true;
         return;
     }
-    let Some(cursor) = window.cursor_position() else {
-        return;
-    };
     let Ok(ray) = camera.0.viewport_to_world(camera.1, cursor) else {
         return;
     };
@@ -193,6 +199,7 @@ pub fn click_to_move(
     reason = "Bevy injects the input and movement resources."
 )]
 pub fn move_player(
+    mode: Res<crate::input::InputMode>,
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -207,7 +214,7 @@ pub fn move_player(
 ) {
     if !load.is_ready()
         || ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || focus.get().is_some_and(|e| inputs.contains(e))
         || (view.first_person && !view.captured)
     {
@@ -333,6 +340,7 @@ mod tests {
         {
             let mut app = App::new();
             app.init_resource::<Time>()
+                .init_resource::<crate::input::InputMode>()
                 .init_resource::<ButtonInput<KeyCode>>()
                 .init_resource::<InputFocus>()
                 .init_resource::<Navigation>()

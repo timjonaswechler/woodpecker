@@ -1,4 +1,5 @@
 /target/
+/test_app/target/
 /bevy_test_apps/target/
 /tests/connection/protocol_faults/peer/target/
 /tests/reports/panic_abort/program/target/

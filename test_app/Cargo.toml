@@ -7,8 +7,16 @@ publish = false
 
 [workspace]
 
+[profile.dev]
+# Keep debug checks while making the rendered automation workflow practical.
+opt-level = 1
+
+[features]
+automation = ["dep:woodpecker"]
+
 [dependencies]
-bevy = { version = "=0.19.1", default-features = false, features = [
+woodpecker = { path = "..", optional = true, features = ["ui", "screenshot"] }
+bevy = { version = "=0.20.0", default-features = false, features = [
     "std", "async_executor", "multi_threaded", "bevy_asset", "bevy_window",
     "bevy_camera", "bevy_render", "bevy_core_pipeline", "bevy_sprite",
     "bevy_sprite_render", "bevy_ui", "bevy_ui_render", "bevy_ui_widgets",
@@ -17,6 +25,7 @@ bevy = { version = "=0.19.1", default-features = false, features = [
     "bevy_pbr", "bevy_gltf", "bevy_scene", "bevy_light", "bevy_gizmos",
     "bevy_gizmos_render", "system_clipboard", "reflect_auto_register",
     "mesh_picking",
+    "complex_script_segmentation",
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

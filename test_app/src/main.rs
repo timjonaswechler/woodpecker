@@ -1,13 +1,17 @@
+#[cfg(feature = "automation")]
+mod automation;
 mod blueprint;
 mod camera;
 mod coins;
 mod course;
 mod expedition;
 mod game;
+mod input;
 mod interactions;
 mod items;
 mod level;
 mod navigation;
+mod options;
 mod player;
 #[cfg(test)]
 mod playtests;
@@ -30,7 +34,21 @@ fn main() {
     }
     let smoke_test = std::env::args().any(|arg| arg == "--smoke-test");
     let offscreen = smoke_test && std::env::args().any(|arg| arg == "--offscreen");
+    let fixed_window = std::env::args().any(|arg| arg == "--fixed-window");
+    let scale = options::value::<f32>("--scale-factor");
+    assert!(
+        scale.is_none_or(|value| value.is_finite() && value > 0.0),
+        "invalid scale factor"
+    );
+    let resolution = match scale.or(offscreen.then_some(1.0)) {
+        Some(scale) => WindowResolution::new(1440, 900).with_scale_factor_override(scale),
+        None => WindowResolution::new(1440, 900),
+    };
     let mut app = App::new();
+    #[cfg(feature = "automation")]
+    let log_plugin = automation::log_plugin();
+    #[cfg(not(feature = "automation"))]
+    let log_plugin = bevy::log::LogPlugin::default();
     app.insert_resource(ClearColor(Color::srgb(0.63, 0.66, 0.63)))
         .insert_resource(if smoke_test {
             settings::Settings::default()
@@ -44,11 +62,13 @@ fn main() {
         .init_resource::<ui::UiState>()
         .init_resource::<level::LevelLoad>()
         .init_resource::<ui::Actions>()
+        .init_resource::<input::InputMode>()
         .init_resource::<shooting::Practice>()
         .init_resource::<level::LevelAssets>()
         .insert_resource(level::layout())
         .add_plugins(
             DefaultPlugins
+                .set(log_plugin)
                 .set(AssetPlugin {
                     file_path: format!("{}/asset", env!("CARGO_MANIFEST_DIR")),
                     ..default()
@@ -56,16 +76,23 @@ fn main() {
                 .set(WindowPlugin {
                     primary_window: Some(Window {
                         title: "Signalstation | Räume und Entdeckungen".into(),
+                        focused: !std::env::args().any(|arg| arg == "--start-unfocused"),
+                        resizable: !fixed_window,
                         visible: !offscreen,
-                        resolution: if offscreen {
-                            WindowResolution::new(1440, 900).with_scale_factor_override(1.0)
+                        resolution,
+                        resize_constraints: if fixed_window {
+                            bevy::window::WindowResizeConstraints {
+                                min_width: 1440.0,
+                                max_width: 1440.0,
+                                min_height: 900.0,
+                                max_height: 900.0,
+                            }
                         } else {
-                            WindowResolution::new(1440, 900)
-                        },
-                        resize_constraints: bevy::window::WindowResizeConstraints {
-                            min_width: 960.0,
-                            min_height: 640.0,
-                            ..default()
+                            bevy::window::WindowResizeConstraints {
+                                min_width: 960.0,
+                                min_height: 640.0,
+                                ..default()
+                            }
                         },
                         ..default()
                     }),
@@ -137,5 +164,7 @@ fn main() {
                 .after(ui::spawn_ui),
         );
     }
+    #[cfg(feature = "automation")]
+    automation::install(&mut app);
     app.run();
 }

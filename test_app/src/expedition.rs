@@ -10,7 +10,7 @@ use crate::{
 };
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Reflect)]
 pub enum CellState {
     #[default]
     Locked,
@@ -18,7 +18,8 @@ pub enum CellState {
     Carried,
     Installed,
 }
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct Expedition {
     pub parts: [bool; 2],
     pub valves: [bool; 2],
@@ -273,6 +274,7 @@ impl Expedition {
     reason = "Mission updates share the gameplay input gates."
 )]
 pub fn tick_expedition(
+    mode: Res<crate::input::InputMode>,
     time: Res<Time>,
     window: Single<&Window, With<PrimaryWindow>>,
     focus: Res<InputFocus>,
@@ -287,7 +289,7 @@ pub fn tick_expedition(
 ) {
     if !load.is_ready()
         || ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || focus.get().is_some_and(|e| inputs.contains(e))
         || (view.first_person && !view.captured)
     {

@@ -4,7 +4,8 @@ use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::Prim
 #[derive(Component)]
 pub struct Coin(pub usize);
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct CoinRun {
     pub collected: [bool; 24],
 }
@@ -23,6 +24,7 @@ impl CoinRun {
     reason = "Coin collection observes the same input gates as movement."
 )]
 pub fn tick_run(
+    mode: Res<crate::input::InputMode>,
     window: Single<&Window, With<PrimaryWindow>>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
@@ -34,7 +36,7 @@ pub fn tick_run(
 ) {
     if !load.is_ready()
         || ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || focus.get().is_some_and(|e| inputs.contains(e))
         || (view.first_person && !view.captured)
     {

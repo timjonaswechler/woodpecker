@@ -26,6 +26,7 @@ use bevy::{
         view::screenshot::{Screenshot, save_to_disk},
     },
     text::{EditableText, TextEdit},
+    ui::Pressed,
     window::CursorOptions,
 };
 
@@ -76,6 +77,13 @@ fn release(world: &mut World) {
     world
         .resource_mut::<ButtonInput<MouseButton>>()
         .release_all();
+    let buttons: Vec<_> = world
+        .query_filtered::<Entity, (With<Action>, With<Pressed>)>()
+        .iter(world)
+        .collect();
+    for button in buttons {
+        world.entity_mut(button).remove::<Pressed>();
+    }
 }
 
 fn click_world(world: &mut World, point: Vec3) {
@@ -285,7 +293,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 .find(|(_, action)| matches!(action, Action::Settings))
                 .unwrap()
                 .0;
-            *world.get_mut::<Interaction>(entity).unwrap() = Interaction::Pressed;
+            world.entity_mut(entity).insert(Pressed);
             true
         }
         7 if test.frames > 3 => {

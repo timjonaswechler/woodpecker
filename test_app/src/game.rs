@@ -4,6 +4,7 @@ use crate::{
     camera::ViewState,
     coins::CoinRun,
     expedition::Expedition,
+    input::InputMode,
     level::LevelLoad,
     navigation::Navigation,
     player::Player,
@@ -138,23 +139,29 @@ pub fn handle_actions(
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Shortcuts read the input mode, focus and gameplay state."
+)]
 pub fn keyboard_shortcuts(
+    mode: Res<InputMode>,
     keys: Res<ButtonInput<KeyCode>>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut focus: ResMut<InputFocus>,
-    inputs: Query<(), With<EditableText>>,
+    inputs: Query<&EditableText>,
     mut view: ResMut<ViewState>,
     ui: Res<UiState>,
     mut actions: ResMut<Actions>,
 ) {
-    if !window.focused {
+    if !mode.accepts_input(&window) {
         view.captured = false;
         return;
     }
-    let editing = focus.get().is_some_and(|e| inputs.contains(e));
-    if editing {
+    if let Some(input) = focus.get().and_then(|entity| inputs.get(entity).ok()) {
         view.captured = false;
-        if keys.just_pressed(KeyCode::Escape) || keys.just_pressed(KeyCode::Enter) {
+        if keys.just_pressed(KeyCode::Escape)
+            || (keys.just_pressed(KeyCode::Enter) && !input.allow_newlines)
+        {
             focus.clear();
         }
         return;

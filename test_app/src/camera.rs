@@ -1,5 +1,6 @@
 use crate::{
     blueprint,
+    input::InputMode,
     level::{LevelLoad, ground},
     player::Player,
     settings::Settings,
@@ -16,7 +17,8 @@ use bevy::{
 #[derive(Component)]
 pub struct GameCamera;
 
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct ViewState {
     pub first_person: bool,
     pub captured: bool,
@@ -38,6 +40,7 @@ impl ViewState {
 )]
 pub fn mouse_look(
     mouse: Res<AccumulatedMouseMotion>,
+    mode: Res<InputMode>,
     window: Single<&Window, With<PrimaryWindow>>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
@@ -49,7 +52,7 @@ pub fn mouse_look(
 ) {
     if !load.is_ready()
         || ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || !view.first_person
         || !view.captured
         || focus.get().is_some_and(|e| inputs.contains(e))
@@ -66,12 +69,17 @@ pub fn mouse_look(
 }
 
 pub fn sync_cursor(
+    mode: Res<InputMode>,
     view: Res<ViewState>,
     ui: Res<UiState>,
     window: Single<(&Window, &mut CursorOptions), With<PrimaryWindow>>,
 ) {
     let (window, mut cursor) = window.into_inner();
-    let captured = view.first_person && view.captured && !ui.menu && window.focused;
+    let captured = *mode == InputMode::Native
+        && view.first_person
+        && view.captured
+        && !ui.menu
+        && window.focused;
     cursor.visible = !captured;
     cursor.grab_mode = if captured {
         CursorGrabMode::Locked

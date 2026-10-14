@@ -6,7 +6,8 @@ use bevy::{light::CascadeShadowConfigBuilder, prelude::*};
 
 pub const TEAL: Color = Color::srgb(0.15, 0.65, 0.59);
 pub const GOLD: Color = Color::srgb(1.0, 0.73, 0.25);
-#[derive(Resource, Default, PartialEq, Eq)]
+#[derive(Resource, Default, PartialEq, Eq, Reflect)]
+#[reflect(Resource)]
 pub enum LevelLoad {
     #[default]
     Loading,

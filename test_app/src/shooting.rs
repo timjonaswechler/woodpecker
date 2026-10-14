@@ -54,7 +54,8 @@ pub fn in_range(p: Vec2) -> bool {
 }
 
 /// Always available. Each target stays broken until the level is reset.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct Practice {
     pub targets_hit: [bool; 3],
     pub shots: u32,
@@ -262,6 +263,7 @@ pub fn tick_practice(time: Res<Time>, mut practice: ResMut<Practice>) {
     reason = "Shooting reads Bevy input, scene meshes and target metadata."
 )]
 pub fn shoot(
+    mode: Res<crate::input::InputMode>,
     mut commands: Commands,
     buttons: Res<ButtonInput<MouseButton>>,
     window: Single<&Window>,
@@ -285,7 +287,7 @@ pub fn shoot(
         || !view.first_person
         || !view.captured
         || ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || !was_captured
         || focus.get().is_some_and(|e| inputs.contains(e))
     {

@@ -13,11 +13,15 @@ use bevy::{
         InputFocus,
         tab_navigation::{TabGroup, TabIndex},
     },
+    picking::hover::Hovered,
     prelude::*,
     text::{EditableText, TextCursorStyle},
+    ui::Pressed,
+    ui_widgets::{Button, TextInput},
 };
 
-#[derive(Resource)]
+#[derive(Resource, Reflect)]
+#[reflect(Resource)]
 pub struct UiState {
     pub menu: bool,
     pub status: String,
@@ -133,6 +137,7 @@ fn button(parent: &mut ChildSpawnerCommands, title: &str, action: Action, tab: i
     parent
         .spawn((
             Button,
+            Hovered::default(),
             action,
             TabIndex(tab),
             Node {
@@ -299,6 +304,7 @@ pub fn spawn_ui(
             p.spawn((
                 NameInput,
                 Name::new("Spielername"),
+                TextInput,
                 EditableText {
                     max_characters: Some(24),
                     visible_width: Some(14.0),
@@ -421,8 +427,8 @@ pub fn spawn_ui(
         display: Display::None, justify_content: JustifyContent::Center, align_items: AlignItems::Center, ..default()
     }, BackgroundColor(Color::srgba(0.015, 0.025, 0.035, 0.83))))
         .with_children(|p| {
-            p.spawn(panel()).insert(Node { width: px(490), padding: px(28).all(), flex_direction: FlexDirection::Column,
-                row_gap: px(15), border: px(1).all(), border_radius: BorderRadius::all(px(14)), ..default() })
+            p.spawn(panel()).insert(Node { width: px(540), padding: px(24).all(), flex_direction: FlexDirection::Column,
+                row_gap: px(12), border: px(1).all(), border_radius: BorderRadius::all(px(14)), ..default() })
                 .with_children(|p| {
                     p.spawn(text("PAUSE", 12.0, TEAL));
                     p.spawn(text("Einstellungen", 30.0, INK));
@@ -431,25 +437,30 @@ pub fn spawn_ui(
                     setting_row(p, Label::Fov, Action::Fov(-5.0), Action::Fov(5.0), 12);
                     setting_row(p, Label::Speed, Action::Speed(-0.5), Action::Speed(0.5), 14);
                     for (label, action, index) in [(Label::Path, Action::Path, 16), (Label::Shadows, Action::Shadows, 17), (Label::Invert, Action::Invert, 18)] {
-                        p.spawn((Button, action, TabIndex(index), Node { width: percent(100), min_height: px(39),
+                        p.spawn((Button, Hovered::default(), action, TabIndex(index), Node { width: percent(100), min_height: px(39),
                             padding: UiRect::axes(px(14), px(9)), border: px(1).all(), border_radius: BorderRadius::all(px(6)), ..default() },
                             BackgroundColor(BUTTON), BorderColor::all(BORDER)))
                             .with_children(|p| { p.spawn((text("", 14.0, INK), label)); });
                     }
                     p.spawn(text("FPV: WASD + Maus · Umschalt: sprinten\nEsc gibt die Maus frei. Klick ins Level bindet sie wieder.", 12.0, MUTED));
                     p.spawn(Node { column_gap: px(10), ..default() }).with_children(|row| {
-                        button(row, "Zurück zum Spiel", Action::Resume, 19);
-                        button(row, "Standardwerte", Action::Defaults, 20);
+                        button(row, "Zurück zum Spiel", Action::Resume, 20);
+                        button(row, "Standardwerte", Action::Defaults, 21);
                     });
-                    button(p, "Spiel beenden", Action::Quit, 21);
+                    button(p, "Spiel beenden", Action::Quit, 22);
                 });
         });
 }
 
+#[expect(
+    clippy::type_complexity,
+    reason = "Button activation and styling share the same Bevy query."
+)]
 pub fn buttons(
     mut buttons: Query<(
         Entity,
-        Ref<Interaction>,
+        &Hovered,
+        Option<Ref<Pressed>>,
         &Action,
         &mut BackgroundColor,
         &mut BorderColor,
@@ -459,10 +470,10 @@ pub fn buttons(
     mut actions: ResMut<Actions>,
 ) {
     let mut keyboard_activation = false;
-    for (entity, interaction, action, mut background, mut border) in &mut buttons {
+    for (entity, hovered, pressed, action, mut background, mut border) in &mut buttons {
         let focused = focus.get() == Some(entity);
-        let hovered = *interaction != Interaction::None;
-        background.0 = if *interaction == Interaction::Pressed {
+        let hovered = hovered.get() || pressed.is_some();
+        background.0 = if pressed.is_some() {
             Color::srgb(0.12, 0.34, 0.3)
         } else if hovered {
             Color::srgb(0.15, 0.24, 0.26)
@@ -470,7 +481,7 @@ pub fn buttons(
             BUTTON
         };
         border.set_all(if focused || hovered { TEAL } else { BORDER });
-        if (interaction.is_changed() && *interaction == Interaction::Pressed)
+        if pressed.as_ref().is_some_and(|pressed| pressed.is_added())
             || (focused && keys.any_just_pressed([KeyCode::Enter, KeyCode::Space]))
         {
             actions.0.push(*action);
@@ -518,6 +529,7 @@ pub fn sync_name(
     reason = "UI markers select which visibility rule applies to each node."
 )]
 pub fn update_ui(
+    mode: Res<crate::input::InputMode>,
     player: Res<Player>,
     view: Res<ViewState>,
     run: Res<CoinRun>,
@@ -551,7 +563,7 @@ pub fn update_ui(
         scale.0 = desired_scale;
     }
     let interaction = if ui.menu
-        || !window.focused
+        || !mode.accepts_input(&window)
         || focus.get().is_some_and(|entity| inputs.contains(entity))
     {
         crate::expedition::Interaction::None
@@ -658,13 +670,11 @@ pub fn update_ui(
 
 /// Hit test the actual UI layout, including display scale and window resizing.
 pub fn pointer_over_ui(
-    window: &Window,
+    pointer: Vec2,
+    scale_factor: f32,
     blocks: &Query<(&ComputedNode, &UiGlobalTransform), With<UiBlock>>,
 ) -> bool {
-    let Some(pointer) = window.cursor_position() else {
-        return false;
-    };
-    let pointer = pointer * window.scale_factor();
+    let pointer = pointer * scale_factor;
     blocks.iter().any(|(node, transform)| {
         node.size().min_element() > 0.0
             && transform.try_inverse().is_some_and(|inverse| {
