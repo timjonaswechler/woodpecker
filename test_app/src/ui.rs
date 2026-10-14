@@ -9,13 +9,14 @@ use crate::{
     shooting::{self, Practice},
 };
 use bevy::{
+    input::mouse::MouseScrollUnit,
     input_focus::{
         InputFocus,
         tab_navigation::{TabGroup, TabIndex},
     },
     picking::hover::Hovered,
     prelude::*,
-    text::{EditableText, TextCursorStyle},
+    text::{EditableText, TextCursorStyle, TextEdit},
     ui::Pressed,
     ui_widgets::{Button, TextInput},
 };
@@ -52,6 +53,8 @@ pub fn apply_font(assets: Res<AssetServer>, mut fonts: Query<&mut TextFont, Adde
 pub struct UiBlock;
 #[derive(Component)]
 pub struct NameInput;
+#[derive(Component)]
+pub struct NotesInput;
 #[derive(Component)]
 pub struct SettingsPanel;
 #[derive(Component)]
@@ -183,6 +186,61 @@ fn setting_row(
             button(row, "−", minus, tab);
             button(row, "+", plus, tab + 1);
         });
+}
+
+fn notes_input(parent: &mut ChildSpawnerCommands, value: &str) {
+    parent.spawn(text("NOTIZEN", 11.0, MUTED));
+    parent
+        .spawn((
+            NotesInput,
+            Name::new("Notizen"),
+            TextInput,
+            EditableText {
+                allow_newlines: true,
+                visible_lines: Some(5.0),
+                ..EditableText::new(value)
+            },
+            TextLayout {
+                linebreak: LineBreak::WordOrCharacter,
+                ..default()
+            },
+            TextCursorStyle::default(),
+            TabIndex(19),
+            TextFont {
+                font_size: FontSize::Px(16.0),
+                ..default()
+            },
+            TextColor(INK),
+            Node {
+                width: percent(100),
+                flex_shrink: 0.0,
+                padding: px(10).all(),
+                border: px(1).all(),
+                border_radius: BorderRadius::all(px(5)),
+                overflow: Overflow::clip(),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.03, 0.055, 0.065)),
+            BorderColor::all(BORDER),
+        ))
+        .observe(
+            |mut event: On<PointerScroll>,
+             mut inputs: Query<&mut EditableText, With<NotesInput>>| {
+                let Ok(mut input) = inputs.get_mut(event.entity) else {
+                    return;
+                };
+                input.queue_edit(match event.unit {
+                    MouseScrollUnit::Line => TextEdit::ScrollByLines(-event.y),
+                    MouseScrollUnit::Pixel => TextEdit::ScrollBy(Vec2::new(0.0, -event.y)),
+                });
+                event.propagate(false);
+            },
+        );
+    parent.spawn(text(
+        "Enter: neue Zeile · Mausrad: scrollen · Esc: verlassen",
+        11.0,
+        MUTED,
+    ));
 }
 
 pub fn spawn_ui(
@@ -442,6 +500,7 @@ pub fn spawn_ui(
                             BackgroundColor(BUTTON), BorderColor::all(BORDER)))
                             .with_children(|p| { p.spawn((text("", 14.0, INK), label)); });
                     }
+                    notes_input(p, &settings.notes);
                     p.spawn(text("FPV: WASD + Maus · Umschalt: sprinten\nEsc gibt die Maus frei. Klick ins Level bindet sie wieder.", 12.0, MUTED));
                     p.spawn(Node { column_gap: px(10), ..default() }).with_children(|row| {
                         button(row, "Zurück zum Spiel", Action::Resume, 20);
@@ -493,33 +552,47 @@ pub fn buttons(
     }
 }
 
-pub fn sync_name(
-    inputs: Query<(Entity, &EditableText), With<NameInput>>,
+#[expect(
+    clippy::type_complexity,
+    reason = "Both persisted text fields share focus styling and saving."
+)]
+pub fn sync_text_fields(
+    mut inputs: Query<
+        (Entity, Ref<EditableText>, Has<NameInput>, &mut BorderColor),
+        Or<(With<NameInput>, With<NotesInput>)>,
+    >,
     focus: Res<InputFocus>,
-    mut borders: Query<&mut BorderColor, With<NameInput>>,
     mut settings: ResMut<Settings>,
     mut ui: ResMut<UiState>,
 ) {
-    for (entity, editable) in &inputs {
-        if let Ok(mut border) = borders.get_mut(entity) {
-            border.set_all(if focus.get() == Some(entity) {
-                TEAL
-            } else {
-                BORDER
-            });
+    let mut changed = false;
+    for (entity, editable, name, mut border) in &mut inputs {
+        border.set_all(if focus.get() == Some(entity) {
+            TEAL
+        } else {
+            BORDER
+        });
+        if !editable.is_changed() {
+            continue;
         }
         let value = editable.value().to_string();
-        let name = if value.trim().is_empty() {
-            "Spieler"
+        let (stored, value) = if name {
+            let value = if value.trim().is_empty() {
+                "Spieler"
+            } else {
+                value.trim()
+            };
+            (&mut settings.player_name, value)
         } else {
-            value.trim()
+            (&mut settings.notes, value.as_str())
         };
-        if settings.player_name != name {
-            settings.player_name = name.to_owned();
-            if let Err(error) = settings.save() {
-                ui.status = format!("Name konnte nicht gespeichert werden: {error}");
-            }
+        if stored != value {
+            *stored = value.to_owned();
+            changed = true;
         }
+    }
+    if changed && let Err(error) = settings.save() {
+        ui.status = format!("Texteingabe konnte nicht gespeichert werden: {error}");
     }
 }
 

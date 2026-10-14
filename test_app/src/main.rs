@@ -120,7 +120,7 @@ fn main() {
                     level::check_assets,
                     ui::apply_font,
                     ui::buttons,
-                    ui::sync_name,
+                    ui::sync_text_fields,
                     game::keyboard_shortcuts,
                     game::handle_actions,
                     course::update_course,

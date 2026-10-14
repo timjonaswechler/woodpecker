@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn parallel_sessions_copy_the_seed_once_and_save_independently() {
         let fixture = Fixture::new();
-        let seed = br#"{"player_name":"Baseline","speed":6.0}"#;
+        let seed = br#"{"player_name":"Baseline","speed":6.0,"notes":"initial"}"#;
         std::fs::write(fixture.0.join("settings.json"), seed).unwrap();
         let a = fixture.session("session-a");
         let b = fixture.session("session-b");
@@ -162,6 +162,7 @@ mod tests {
                 scope.spawn(move || {
                     let mut settings = store.load().unwrap();
                     settings.player_name = name.into();
+                    settings.notes = format!("{name}: Grüße 🙂");
                     for _ in 0..20 {
                         store.save(&settings).unwrap();
                     }
@@ -170,6 +171,7 @@ mod tests {
         });
         assert_eq!(a.load().unwrap().player_name, "Session A");
         assert_eq!(b.load().unwrap().player_name, "Session B");
+        assert_eq!(a.load().unwrap().notes, "Session A: Grüße 🙂");
         assert_eq!(
             std::fs::read(fixture.0.join("settings.json")).unwrap(),
             seed

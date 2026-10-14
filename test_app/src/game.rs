@@ -124,8 +124,10 @@ pub fn handle_actions(
             Action::Invert => settings.invert_y = !settings.invert_y,
             Action::Defaults => {
                 let name = settings.player_name.clone();
+                let notes = settings.notes.clone();
                 *settings = Settings {
                     player_name: name,
+                    notes,
                     ..default()
                 };
             }

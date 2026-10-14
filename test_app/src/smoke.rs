@@ -1,4 +1,5 @@
 //! Optional rendered integration check. Exercises the same systems as normal gameplay.
+mod notes;
 mod stations;
 use crate::{
     blueprint::{self as map, DATA},
@@ -324,15 +325,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             release(world);
             true
         }
-        9 if test.frames == 10 => {
-            world.resource_mut::<Actions>().0.push(Action::Resume);
-            false
-        }
-        9 if test.frames > 20 => {
-            world.resource_mut::<Player>().yaw = 0.0;
-            world.resource_mut::<Actions>().0.push(Action::View);
-            true
-        }
+        9 => notes::step(world, test.frames, test.position),
         10 if test.frames > 3 => {
             assert!(
                 world.resource::<ViewState>().first_person
