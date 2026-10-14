@@ -58,7 +58,7 @@ def quit_disconnects_without_stopping_session(ctx):
         driver.send("quit")
         driver.process.wait(timeout=5)
         assert driver.process.returncode == 0
-        assert driver.session.detail()["state"] == "Ready"
+        assert driver.session.detail()["state"] == "SessionReady"
 
 
 @scenario("repl", "terminal_editing_survives_external_activity", interfaces=("repl",))
@@ -79,7 +79,7 @@ def terminal_editing_survives_external_activity(ctx):
             terminal.wait('"command":"inspect.query"')
             terminal.send(b"\x03")
             terminal.finish()
-            assert driver.session.detail()["state"] == "Ready"
+            assert driver.session.detail()["state"] == "SessionReady"
             assert ctx.probe(driver) == before
         finally:
             terminal.close()

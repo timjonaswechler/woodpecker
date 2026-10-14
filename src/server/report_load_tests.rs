@@ -27,7 +27,7 @@ fn blocked_provider_accumulates_failure_snapshots_without_blocking_session() {
         .unwrap();
         let entry = inner.select(&detail.id).unwrap();
         wait(|| entry.detail().state != Lifecycle::Starting);
-        assert_eq!(entry.detail().state, Lifecycle::Ready);
+        assert_eq!(entry.detail().state, Lifecycle::SessionReady);
         let mut samples = Vec::new();
         for number in 1..=COUNT {
             submit_tick(&entry);
@@ -45,7 +45,7 @@ fn blocked_provider_accumulates_failure_snapshots_without_blocking_session() {
                         == number
             });
             wait(|| root.join("entered").exists());
-            assert_eq!(entry.detail().state, Lifecycle::Ready);
+            assert_eq!(entry.detail().state, Lifecycle::SessionReady);
             assert!(entry.snapshot().pending.is_empty());
             assert!(!activity(&entry).iter().any(|e| e["kind"] == "report"));
             // One active provider, all subsequent reports still waiting.

@@ -11,14 +11,19 @@ pub const PREFIX: &str = "/v1";
 pub struct Create {
     pub launch: session::launch::Config,
     pub tick: crate::command::tick::Config,
+    #[serde(default)]
+    pub startup: session::startup::Config,
     pub report: crate::report::Config,
 }
 impl Create {
     pub fn validate(&self) -> std::result::Result<(), session::Error> {
         self.launch.validate()?;
         self.report.validate()?;
-        if !self.tick.pace.is_valid() || !self.tick.clock.is_valid() {
-            return Err(session::Error::new("invalid_config", "invalid pace"));
+        if !self.tick.pace.is_valid() || !self.tick.clock.is_valid() || !self.startup.valid() {
+            return Err(session::Error::new(
+                "invalid_config",
+                "invalid tick or startup configuration",
+            ));
         }
         Ok(())
     }
@@ -110,7 +115,8 @@ pub struct OpenCommand {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Lifecycle {
     Starting,
-    Ready,
+    SessionReady,
+    EngineReady,
     Stopping,
     Ended,
     Failed,
@@ -142,6 +148,35 @@ impl From<session::Error> for Result {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn session_readiness_has_an_explicit_name_in_details_and_snapshots() {
+        let detail = Detail {
+            id: "a".repeat(32),
+            state: Lifecycle::SessionReady,
+            created_at: 0,
+            artifact_dir: "artifacts".into(),
+            error: None,
+        };
+        let snapshot = Snapshot {
+            cursor: Cursor {
+                session_id: detail.id.clone(),
+                position: 0,
+            },
+            state: detail.state,
+            pending: Vec::new(),
+        };
+        assert_eq!(
+            serde_json::to_value(&detail).unwrap()["state"],
+            "SessionReady"
+        );
+        assert_eq!(
+            serde_json::to_value(&snapshot).unwrap()["state"],
+            "SessionReady"
+        );
+        assert_eq!(format!("{:?}", snapshot.state), "SessionReady");
+    }
+
     #[test]
     fn shared_fixtures() {
         let text = r#"{"version":1,"call":1,"operation":{"kind":"submit","command":{"command":"tick.warp.start","arguments":{"ticks":3}}}}"#;

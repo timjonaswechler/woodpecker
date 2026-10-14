@@ -25,7 +25,7 @@ def protocol_failures_preserve_correlation(ctx):
             request = driver.submit("tick.warp.stop", {})
             result = driver.outcome(request, "tick.warp.stop")
             assert result["kind"] == "failed" and result["error"]["code"] == code, result
-            assert driver.session.detail()["state"] == "Ready"
+            assert driver.session.detail()["state"] == "SessionReady"
             driver.session.stop()
 
     with ctx.session(ctx.program("protocol", "unsolicited")) as driver:

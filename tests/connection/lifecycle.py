@@ -22,7 +22,7 @@ def session_isolation_and_correlation(ctx):
         assert expected["ticks"] == b["ticks"] + 7
         first.close()
         first.session.stop()
-        assert second.session.detail()["state"] == "Ready"
+        assert second.session.detail()["state"] == "SessionReady"
         assert ctx.probe(second) == expected
 
 

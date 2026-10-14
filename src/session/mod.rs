@@ -13,6 +13,7 @@ pub mod protocol;
 mod recording;
 mod replay;
 mod screenshot;
+pub mod startup;
 mod window;
 
 use crate::command::{self, Command};
@@ -37,6 +38,7 @@ pub struct Config {
     pub launch: launch::Config,
     pub artifact_dir: PathBuf,
     pub tick: command::tick::Config,
+    pub startup: startup::Config,
     pub report: crate::report::Config,
 }
 impl Config {
@@ -46,10 +48,11 @@ impl Config {
         if self.artifact_dir.as_os_str().is_empty()
             || !self.tick.pace.is_valid()
             || !self.tick.clock.is_valid()
+            || !self.startup.valid()
         {
             return Err(Error::new(
                 "invalid_config",
-                "artifact directory and valid tick pace required",
+                "artifact directory and valid tick/startup configuration required",
             ));
         }
         Ok(())
@@ -98,11 +101,31 @@ impl<T> Drop for Pending<T> {
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Event {
-    Failure { failure: crate::report::Failure },
-    ObservationError { code: String, message: String },
-    ProtocolError { code: String, message: String },
-    RecordingFailed { path: String, message: String },
-    Ended { reason: EndReason },
+    EngineReady {
+        ticks: u64,
+    },
+    StartupFailed {
+        ticks: Option<u64>,
+        error: protocol::Diagnostic,
+    },
+    Failure {
+        failure: crate::report::Failure,
+    },
+    ObservationError {
+        code: String,
+        message: String,
+    },
+    ProtocolError {
+        code: String,
+        message: String,
+    },
+    RecordingFailed {
+        path: String,
+        message: String,
+    },
+    Ended {
+        reason: EndReason,
+    },
 }
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]

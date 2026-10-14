@@ -7,6 +7,7 @@ import select
 import signal
 import subprocess
 import time
+import tomllib
 
 from tests.session.application import ROOT
 
@@ -81,7 +82,9 @@ class Server:
         self.sessions.append(session)
         try:
             if ready:
-                until(lambda: session.ready(), "Session wurde nicht Ready", timeout=120)
+                startup = tomllib.loads(Path(config).read_text()).get("startup", {}).get("kind", "manual")
+                expected = "EngineReady" if startup == "engine" else "SessionReady"
+                until(lambda: session.ready(expected), f"Session wurde nicht {expected}", timeout=120)
             yield session
         finally:
             if self.process.poll() is None:
@@ -121,11 +124,11 @@ class Session:
     def detail(self):
         return self.server.cli("session", "inspect", self.id)
 
-    def ready(self):
+    def ready(self, expected="SessionReady"):
         detail = self.detail()
         if detail["state"] in ("Failed", "Ended"):
             raise AssertionError(detail)
-        return detail["state"] == "Ready"
+        return detail["state"] == expected or (expected == "SessionReady" and detail["state"] == "EngineReady")
 
     @property
     def artifacts(self):
@@ -179,7 +182,7 @@ class Context:
                 driver.close()
 
     def program(self, name, mode="normal", tracing=False, provider="local", output="reports"):
-        """Explicit fault launch; normal matrix contracts always use the shared app."""
+        """Explicit infrastructure fixture; game contracts use the shared app."""
         targets = {
             "protocol": ("tests/connection/protocol_faults/peer/Cargo.toml", "process_fixture", "binary"),
             "observation": ("Cargo.toml", "observation_fixture", "example"),

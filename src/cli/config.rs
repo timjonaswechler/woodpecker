@@ -7,6 +7,8 @@ struct File {
     version: u32,
     launch: crate::session::launch::Config,
     tick: crate::command::tick::Config,
+    #[serde(default)]
+    startup: crate::session::startup::Config,
     report: crate::report::Config,
 }
 pub(super) fn parse(source: &str) -> Result<Create, Box<dyn std::error::Error>> {
@@ -17,6 +19,7 @@ pub(super) fn parse(source: &str) -> Result<Create, Box<dyn std::error::Error>> 
     Ok(Create {
         launch: file.launch,
         tick: file.tick,
+        startup: file.startup,
         report: file.report,
     })
 }

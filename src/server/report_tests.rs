@@ -41,7 +41,7 @@ fn report_submit_errors_remain_activity_without_failing_the_live_session() {
     let detail = inner.create(report_create()).unwrap();
     let entry = inner.select(&detail.id).unwrap();
     wait(|| entry.detail().state != Lifecycle::Starting);
-    assert_eq!(entry.detail().state, Lifecycle::Ready);
+    assert_eq!(entry.detail().state, Lifecycle::SessionReady);
     std::fs::write(detail.artifact_dir.join("reports"), b"not a directory").unwrap();
     submit_tick(&entry);
     wait(|| activity(&entry).iter().any(|e| e["kind"] == "report"));
@@ -50,7 +50,7 @@ fn report_submit_errors_remain_activity_without_failing_the_live_session() {
     assert_eq!(report["report"]["title"], "caught panic");
     assert_eq!(report["result"]["status"], "failed");
     assert_eq!(report["result"]["error"]["kind"], "local");
-    assert_eq!(entry.detail().state, Lifecycle::Ready);
+    assert_eq!(entry.detail().state, Lifecycle::SessionReady);
     entry.stop();
     wait(|| entry.done.load(Ordering::Acquire));
     let events = activity(&entry);
@@ -70,7 +70,7 @@ fn genuine_failure_during_shutdown_is_reported_before_owner_completion() {
     let detail = inner.create(create("failure_on_shutdown")).unwrap();
     let entry = inner.select(&detail.id).unwrap();
     wait(|| entry.detail().state != Lifecycle::Starting);
-    assert_eq!(entry.detail().state, Lifecycle::Ready);
+    assert_eq!(entry.detail().state, Lifecycle::SessionReady);
     std::fs::write(
         detail.artifact_dir.join("failure.marker"),
         report::marker::fixture(report::Failure::panic(
@@ -136,7 +136,7 @@ fn slow_reports_outlive_sessions_and_share_server_deadline_and_forced_cleanup() 
                     states.iter().all(|e| e.state != Lifecycle::Failed),
                     "{states:?}"
                 );
-                states.iter().all(|e| e.state == Lifecycle::Ready)
+                states.iter().all(|e| e.state == Lifecycle::SessionReady)
             });
             for entry in &entries {
                 submit_tick(entry);

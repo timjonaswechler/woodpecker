@@ -324,7 +324,7 @@ def diagnostic_scene(scene, helper, versions):
         created = cli("session", "create", "--config", str(TEMP_ROOT / "tests/fixtures" / FIXTURES[scene]))
         session = created["id"]
         detail = wait_until(
-            lambda: (value if (value := cli("session", "inspect", session))["state"] == "Ready" else None),
+            lambda: (value if (value := cli("session", "inspect", session))["state"] == "SessionReady" else None),
             f"{scene} did not become Ready",
         )
         artifact_dir = Path(detail["artifact_dir"])

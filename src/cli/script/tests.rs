@@ -139,7 +139,7 @@ impl Peer {
             Reply::Snapshot {
                 snapshot: Snapshot {
                     cursor: self.cursor(),
-                    state: Lifecycle::Ready,
+                    state: Lifecycle::SessionReady,
                     pending: vec![],
                 },
             },

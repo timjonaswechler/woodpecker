@@ -47,7 +47,7 @@ def caught_worker_and_task_panics_keep_session_usable(ctx):
             assert (root / "prior-hook").read_text() == "called\n"
             path, text = saved_report(driver.session, event)
             snapshot = json.dumps(event, sort_keys=True)
-            assert driver.session.detail()["state"] == "Ready"
+            assert driver.session.detail()["state"] == "SessionReady"
             assert driver.command("tick.warp.start", {"ticks": 1})["executed_ticks"] == 1
             driver.close()
             driver.session.stop()
@@ -119,5 +119,5 @@ def startup_failures_remain_launch_diagnostics(ctx):
             pid = int((driver.session.artifacts / "fixture-pid").read_text())
             until(lambda: process_gone(pid), "Fehlgeschlagener Start hinterlässt App-Prozess")
     with ctx.session(ctx.program("observation", "missing_layer", tracing=False)) as driver:
-        assert driver.session.detail()["state"] == "Ready"
+        assert driver.session.detail()["state"] == "SessionReady"
         assert driver.command("tick.warp.start", {"ticks": 1})["executed_ticks"] == 1

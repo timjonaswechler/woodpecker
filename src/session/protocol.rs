@@ -9,8 +9,12 @@ pub const VERSION: u32 = 3;
 #[serde(deny_unknown_fields)]
 pub struct Capabilities {
     pub screenshot: bool,
+    /// The bridge accepted this session's requested fixed Bevy clock.
+    /// Omitted for application time, preserving the existing Ready envelope.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub fixed_clock: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub engine_startup: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -32,6 +36,13 @@ impl Diagnostic {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Message {
+    EngineReady {
+        ticks: u64,
+    },
+    StartupFailed {
+        ticks: u64,
+        error: Diagnostic,
+    },
     Ready {
         version: u32,
         capabilities: Capabilities,
@@ -59,7 +70,7 @@ impl Message {
                 Some(*request_id)
             }
             Self::ProtocolError { request_id, .. } => *request_id,
-            Self::Ready { .. } => None,
+            Self::Ready { .. } | Self::EngineReady { .. } | Self::StartupFailed { .. } => None,
         }
     }
 }

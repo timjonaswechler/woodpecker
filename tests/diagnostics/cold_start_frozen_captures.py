@@ -107,7 +107,7 @@ def run(session_count, capture_count, verify_surface_guard=False):
                 def ready():
                     detail, _ = cli("session", "inspect", active_session)
                     assert detail["state"] not in ("Failed", "Ended"), detail
-                    return detail if detail["state"] == "Ready" else None
+                    return detail if detail["state"] == "SessionReady" else None
 
                 detail = until(
                     ready,

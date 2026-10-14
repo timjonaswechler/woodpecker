@@ -41,7 +41,7 @@ kind = "local"
                 assert all(d["state"] != "Failed" for d in details), details
                 if mode == "delayed":
                     return all((Path(s["artifact_dir"]) / "pid").is_file() for s in sessions)
-                return all(d["state"] == "Ready" for d in details)
+                return all(d["state"] == "SessionReady" for d in details)
 
             until(ready, "Shutdown-Prozesse wurden nicht gestartet", timeout=120)
             pids = [int((Path(s["artifact_dir"]) / "pid").read_text()) for s in sessions]

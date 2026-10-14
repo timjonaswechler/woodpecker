@@ -53,6 +53,10 @@ impl Observation {
         }
     }
 
+    pub fn wire_ready(&self) -> bool {
+        self.wire_ready.is_some()
+    }
+
     pub fn initialized(&self) -> bool {
         self.initialized
     }

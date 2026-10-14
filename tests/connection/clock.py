@@ -24,9 +24,9 @@ def counter(driver):
           commands=("tick.warp.start", "inspect.query", "recording.start", "recording.stop", "replay.start"))
 def fixed_clock_survives_delays_and_replay(ctx):
     with ctx.session(fixed_config(ctx, 0.01)) as source:
-        assert source.session.detail()["state"] == "Ready"
+        assert source.session.detail()["state"] == "SessionReady"
         if ctx.interface == "repl":
-            assert f"connected {source.session.id} Ready" in source.lines
+            assert f"connected {source.session.id} SessionReady" in source.lines
         assert counter(source)["elapsed_nanos"] == 0
         source.command("recording.start", {"path": "clock.jsonl"})
         source.command("tick.warp.start", {"ticks": 1})

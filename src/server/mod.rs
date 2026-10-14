@@ -289,6 +289,7 @@ mod tests {
                 arguments: vec![mode.into()],
             },
             tick: Default::default(),
+            startup: Default::default(),
             report: report::Config {
                 tracing_errors: false,
                 output: "reports".into(),
@@ -362,7 +363,7 @@ mod tests {
                 details.iter().all(|d| d.state != Lifecycle::Failed),
                 "start failed: {details:?}"
             );
-            details.iter().all(|d| d.state == Lifecycle::Ready)
+            details.iter().all(|d| d.state == Lifecycle::SessionReady)
         });
         let start = Instant::now();
         inner.stop(false);

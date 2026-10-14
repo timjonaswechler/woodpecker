@@ -58,6 +58,10 @@ fn launch(
             serde_json::to_string(&config.tick.pace).unwrap(),
         )
         .env(
+            "WOODPECKER_STARTUP",
+            serde_json::to_string(&config.startup).unwrap(),
+        )
+        .env(
             "WOODPECKER_TICK_CLOCK",
             serde_json::to_string(&config.tick.clock).unwrap(),
         );
@@ -135,6 +139,8 @@ pub(super) fn run(
     let mut replay = replay::Replay::new(replay_root, config.tick.clock.clone());
     let mut recorder = recording::Recorder::new(root, config.tick.clock.clone());
     let mut deferred = VecDeque::<(u64, Command)>::new();
+    let mut startup_pending = config.startup.enabled();
+    let mut startup_started: Option<Instant> = None;
     loop {
         recording_notices(&shared, &mut reason, recorder.poll());
         if cancel.load(Ordering::Acquire) {
@@ -171,6 +177,46 @@ pub(super) fn run(
                 }
                 process::Event::Line(line) => {
                     let decoded = serde_json::from_str::<Message>(&line);
+                    if matches!(
+                        &decoded,
+                        Ok(Message::EngineReady { .. } | Message::StartupFailed { .. })
+                    ) {
+                        if observation.wire_ready() && startup_pending {
+                            startup_pending = false;
+                            match decoded.unwrap() {
+                                Message::EngineReady { ticks } => {
+                                    push_event(&shared, &mut reason, Event::EngineReady { ticks })
+                                }
+                                Message::StartupFailed { ticks, error } => {
+                                    if !observation.initialized() {
+                                        let _ = ready.send(Err(Error::from(error.clone())));
+                                    }
+                                    push_event(
+                                        &shared,
+                                        &mut reason,
+                                        Event::StartupFailed {
+                                            ticks: Some(ticks),
+                                            error: error.clone(),
+                                        },
+                                    );
+                                    reason.get_or_insert(EndReason::TransportFailed {
+                                        channel: "startup".into(),
+                                        message: format!("{}: {}", error.code, error.message),
+                                    });
+                                }
+                                _ => unreachable!(),
+                            }
+                        } else if !observation.wire_ready() {
+                            let _ = ready.send(Err(Error::new(
+                                "invalid_ready",
+                                "startup status preceded SessionReady",
+                            )));
+                            return;
+                        } else {
+                            push_event(&shared, &mut reason, Event::ProtocolError { code: "unexpected_startup_status".into(), message: "startup status requires SessionReady and an unfinished engine startup".into() });
+                        }
+                        continue;
+                    }
                     if !observation.initialized() {
                         match decoded {
                             Ok(Message::Ready {
@@ -180,9 +226,17 @@ pub(super) fn run(
                                 if config.tick.clock.duration().is_some()
                                     && !capabilities.fixed_clock
                                 {
-                                    let _ = ready.send(Err(Error::new("unsupported_feature", "application bridge does not support the requested fixed tick clock")));
+                                    let _ = ready.send(Err(Error::new(
+                                        "unsupported_feature",
+                                        "application bridge does not support the requested fixed tick clock",
+                                    )));
                                     return;
                                 }
+                                if config.startup.enabled() && !capabilities.engine_startup {
+                                    let _ = ready.send(Err(Error::new("unsupported_feature", "application bridge does not support the requested engine startup")));
+                                    return;
+                                }
+                                startup_started = Some(Instant::now());
                                 if let Err(error) = observation.ready(capabilities) {
                                     let _ = ready.send(Err(error));
                                     return;
@@ -257,6 +311,32 @@ pub(super) fn run(
                     }
                 }
             }
+        }
+        if startup_pending
+            && let startup::Config::Engine {
+                timeout_seconds, ..
+            } = config.startup
+            && startup_started.is_some_and(|started| {
+                started.elapsed().as_secs() >= u64::from(timeout_seconds) + 1
+            })
+        {
+            startup_pending = false;
+            let error = protocol::Diagnostic::new(
+                "startup_timeout",
+                "application did not finish technical startup before its deadline",
+            );
+            if !observation.initialized() {
+                let _ = ready.send(Err(Error::from(error.clone())));
+            }
+            push_event(
+                &shared,
+                &mut reason,
+                Event::StartupFailed { ticks: None, error },
+            );
+            reason.get_or_insert(EndReason::TransportFailed {
+                channel: "startup".into(),
+                message: "technical startup deadline exceeded".into(),
+            });
         }
         if stopping && shutdown.as_ref().is_some_and(Result::is_err) {
             break;
@@ -351,6 +431,22 @@ pub(super) fn run(
                 // Observe completed loads before the next external command, including Stop.
                 for (id, outcome) in replay.poll(recorder.transitioning()) {
                     complete(&shared, id, outcome);
+                }
+                if startup_pending
+                    && !matches!(
+                        command,
+                        Command::Shutdown(_)
+                            | Command::Stop(_)
+                            | Command::ReplayStop(_)
+                            | Command::RecordingStop(_)
+                            | Command::Inspect(_)
+                    )
+                {
+                    let _ = response.send(Err(Error::new(
+                        "startup_in_progress",
+                        "wait for EngineReady before controlling or recording the simulation",
+                    )));
+                    continue;
                 }
                 let is_shutdown = matches!(command, Command::Shutdown(_));
                 let id = if stopping {

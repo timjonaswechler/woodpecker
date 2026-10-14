@@ -15,12 +15,13 @@ use std::{
 };
 
 /// Experimental v3 bridge. Install after the application's simulation plugins.
-/// It preserves the configured schedule order and time policy; only a warp runs that order.
+/// It preserves the configured schedule order; a warp or configured technical startup runs that order.
+/// Application time is preserved unless the session selects a fixed tick clock.
 /// Native mouse, keyboard, touch and IME input is discarded in controlled sessions.
 /// Enable the `ui` feature for applications using Bevy UI's `Interaction` components.
 /// Enable `screenshot` for PNG capture with an application-installed renderer.
-/// Renderer extraction and updates wait for the first completed explicit tick; startup
-/// alone does not prepare camera/light data. No application schedules run to warm it up.
+/// Renderer extraction and updates wait for the first completed counted tick; startup
+/// alone does not prepare camera/light data. Automatic startup is opt-in and counts its application ticks.
 #[derive(Default)]
 pub struct Plugin;
 
@@ -96,6 +97,10 @@ impl bevy::app::Plugin for Plugin {
             }
         });
         install(app, rx, output, tick::Config { pace, clock });
+        let startup = std::env::var("WOODPECKER_STARTUP")
+            .map(|value| serde_json::from_str(&value).expect("invalid startup configuration"))
+            .unwrap_or_default();
+        super::startup::install(app, startup);
     }
 
     fn finish(&self, app: &mut App) {
@@ -150,6 +155,7 @@ fn ready(world: &World) {
             capabilities: protocol::Capabilities {
                 screenshot: super::screenshot::available(world),
                 fixed_clock: bridge.clock.duration().is_some(),
+                engine_startup: super::startup::enabled(world),
             },
         },
         None,
@@ -192,6 +198,15 @@ fn run(world: &mut World) {
         for response in super::screenshot::poll(world) {
             let _ = bridge.output.send((response, None));
         }
+        if let Some(message) = super::startup::poll(world, bridge.ticks) {
+            let _ = bridge.output.send((message, None));
+        }
+        if super::startup::needs_tick(world) {
+            run_tick(world, &mut bridge);
+            if let Some(message) = super::startup::after_tick(world, bridge.ticks) {
+                let _ = bridge.output.send((message, None));
+            }
+        }
         let budget = Instant::now();
         for _ in 0..64 {
             let Some(active) = bridge.active.as_ref() else {
@@ -204,20 +219,7 @@ fn run(world: &mut World) {
             {
                 break;
             }
-            bridge.input_gate.capture(world);
-            bridge.input_gate.swap_window_events(world);
-            bridge.pointer.flush(world);
-            bridge.keyboard.flush(world);
-            bridge.text.flush(world);
-            super::clock::before_tick(world, &bridge.clock);
-            for label in &bridge.schedules {
-                let _ = world.try_run_schedule(*label);
-            }
-            bridge.input_gate.swap_window_events(world);
-            bridge.ticks = bridge.ticks.checked_add(1).expect("tick counter exhausted");
-            if bridge.ticks == 1 {
-                render::start(world);
-            }
+            run_tick(world, &mut bridge);
             let active = bridge.active.as_mut().unwrap();
             active.executed += 1;
             active.last_tick = Some(Instant::now());
@@ -234,6 +236,23 @@ fn run(world: &mut World) {
     // even when the simulation's time_system does not run. Never update Time here.
     if let Some(receiver) = world.get_resource::<bevy::time::TimeReceiver>() {
         for _ in receiver.0.try_iter() {}
+    }
+}
+
+fn run_tick(world: &mut World, bridge: &mut Bridge) {
+    bridge.input_gate.capture(world);
+    bridge.input_gate.swap_window_events(world);
+    bridge.pointer.flush(world);
+    bridge.keyboard.flush(world);
+    bridge.text.flush(world);
+    super::clock::before_tick(world, &bridge.clock);
+    for label in &bridge.schedules {
+        let _ = world.try_run_schedule(*label);
+    }
+    bridge.input_gate.swap_window_events(world);
+    bridge.ticks = bridge.ticks.checked_add(1).expect("tick counter exhausted");
+    if bridge.ticks == 1 {
+        render::start(world);
     }
 }
 
@@ -273,6 +292,17 @@ fn dispatch(world: &mut World, bridge: &mut Bridge, id: u64, command: Command) -
             },
         })
     };
+    if super::startup::pending(world)
+        && !matches!(
+            command,
+            Command::Shutdown(_) | Command::Stop(_) | Command::Inspect(_)
+        )
+    {
+        return reject(
+            "startup_in_progress",
+            "wait for EngineReady before controlling the simulation",
+        );
+    }
     let value = match command {
         Command::RecordingStart(_)
         | Command::RecordingStop(_)

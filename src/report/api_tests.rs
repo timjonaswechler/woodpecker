@@ -29,6 +29,7 @@ fn config(mode: &str, tracing: bool) -> session::Config {
             NEXT.fetch_add(1, Ordering::Relaxed)
         )),
         tick: Default::default(),
+        startup: Default::default(),
         report: report::Config {
             tracing_errors: tracing,
             output: "reports".into(),

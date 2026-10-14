@@ -85,7 +85,7 @@ def activity_gaps_never_invent_success(ctx):
         retained = poll(session, gap["cursor"])
         assert not any(e["event"]["kind"] == "report" for e in retained["entries"])
         session.cursor = retained["cursor"]
-        assert snapshot(session)["state"] == "Ready"
+        assert snapshot(session)["state"] == "SessionReady"
         assert driver.command("inspect.query", query("Counter"))["items"][0]["result"]["value"]["value"]["ticks"] == 1
         driver.close()
         session.stop()

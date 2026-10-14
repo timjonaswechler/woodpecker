@@ -239,7 +239,7 @@ def experiment(work, fixture, helper):
         created = cli("session", "create", "--config", str(fixture))
         active = created["id"]
         detail = until(
-            lambda: (d if (d := cli("session", "inspect", active))["state"] == "Ready"
+            lambda: (d if (d := cli("session", "inspect", active))["state"] == "SessionReady"
                      else None),
             "session did not become Ready",
         )

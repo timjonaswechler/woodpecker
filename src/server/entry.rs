@@ -69,7 +69,9 @@ impl Entry {
     }
     fn transition(&self, state: Lifecycle, error: Option<Error>) {
         let mut data = self.data.lock().unwrap();
-        if data.detail.state.terminal() {
+        if data.detail.state.terminal()
+            || (state == Lifecycle::EngineReady && data.detail.state != Lifecycle::SessionReady)
+        {
             return;
         }
         data.detail.state = state;
@@ -138,8 +140,11 @@ impl Entry {
         }
     }
     pub async fn submit(&self, command: Command) -> Result {
-        if self.detail().state != Lifecycle::Ready {
-            return Error::new("session_not_ready", "commands require Ready").into();
+        if !matches!(
+            self.detail().state,
+            Lifecycle::SessionReady | Lifecycle::EngineReady
+        ) {
+            return Error::new("session_not_ready", "commands require SessionReady").into();
         }
         let (answer, result) = tokio::sync::oneshot::channel();
         if self.commands.send(Submission { command, answer }).is_err() {
@@ -179,6 +184,7 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 session::Config {
                     launch: create.launch,
                     tick: create.tick,
+                    startup: create.startup,
                     report: create.report,
                     artifact_dir: root,
                 },
@@ -190,9 +196,9 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 {
                     let mut data = entry.data.lock().unwrap();
                     if data.detail.state == Lifecycle::Starting {
-                        data.detail.state = Lifecycle::Ready;
+                        data.detail.state = Lifecycle::SessionReady;
                         data.activity
-                            .push(json!({"kind":"lifecycle","state":"Ready","error":null}));
+                            .push(json!({"kind":"lifecycle","state":Lifecycle::SessionReady,"error":null}));
                         entry.changed.notify_waiters();
                     }
                 }
@@ -231,11 +237,11 @@ mod snapshot_tests {
     #[test]
     fn current_pending_survives_eviction_and_settles_atomically_with_activity() {
         let entry = Entry::new("a".repeat(32), "unused".into(), 1);
-        entry.transition(Lifecycle::Ready, None);
+        entry.transition(Lifecycle::SessionReady, None);
         entry.accepted(1, "tick.warp.start");
         entry.accepted(2, "replay.start");
         let snapshot = entry.snapshot();
-        assert_eq!(snapshot.state, Lifecycle::Ready);
+        assert_eq!(snapshot.state, Lifecycle::SessionReady);
         assert_eq!(snapshot.pending.len(), 2);
         assert_eq!(snapshot.pending[0].request_id, 1);
         assert_eq!(snapshot.pending[1].command, "replay.start");
@@ -301,8 +307,11 @@ fn run(
                 break;
             };
             let _admission = entry.admission.lock().unwrap();
-            let result = if entry.detail().state != Lifecycle::Ready {
-                Error::new("session_not_ready", "commands require Ready").into()
+            let result = if !matches!(
+                entry.detail().state,
+                Lifecycle::SessionReady | Lifecycle::EngineReady
+            ) {
+                Error::new("session_not_ready", "commands require SessionReady").into()
             } else {
                 accept(entry, session, submission.command, &mut pending)
             };
@@ -353,6 +362,17 @@ fn run(
             }
             match session.try_receive_event() {
                 Ok(Some(event)) => {
+                    match &event {
+                        session::Event::EngineReady { .. }
+                            if entry.detail().state == Lifecycle::SessionReady =>
+                        {
+                            entry.transition(Lifecycle::EngineReady, None);
+                        }
+                        session::Event::StartupFailed { error, .. } => {
+                            terminal_error = Some(Error::from(error.clone()));
+                        }
+                        _ => {}
+                    }
                     // Capture before provider queuing and before observing later session events.
                     let report = match &event {
                         session::Event::Failure { failure } => {

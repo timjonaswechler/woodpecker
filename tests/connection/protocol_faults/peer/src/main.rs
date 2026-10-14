@@ -29,7 +29,23 @@ fn main() {
             .write_all(&vec![b'x'; 1024 * 1024])
             .unwrap();
     }
-    emit(json!({"status":"ready","version":3,"capabilities":{"screenshot":false}}));
+    let mut capabilities = json!({"screenshot":false});
+    if mode.starts_with("engine_") {
+        capabilities["engine_startup"] = true.into();
+    }
+    emit(json!({"status":"ready","version":3,"capabilities":capabilities}));
+    if mode == "engine_ready" {
+        while !root.join("allow-engine-ready").exists() {
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        emit(json!({"status":"engine_ready","ticks":4}));
+    } else if mode == "engine_failed" {
+        emit(
+            json!({"status":"startup_failed","ticks":3,"error":{"code":"startup_asset_failed","message":"missing fixture asset"}}),
+        );
+    } else if mode == "engine_stalled" {
+        std::thread::sleep(Duration::from_secs(60));
+    }
     if mode == "overflow" {
         // The consumer releases the burst after Session::start has returned.
         // Overflow before that point would test launch failure instead.

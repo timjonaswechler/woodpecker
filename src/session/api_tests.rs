@@ -1,6 +1,6 @@
 //! Direct Rust Pending ownership, Drop and event delivery contracts.
 use crate::{
-    command::{recording, replay, tick::warp},
+    command::{self, recording, replay, tick::warp},
     report,
     session::{self, Session},
 };
@@ -11,6 +11,67 @@ use std::{
 };
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
+
+#[test]
+fn engine_startup_refuses_control_until_ready_and_reports_failure_or_stall() {
+    let mut launch = config("engine_ready");
+    launch.startup = session::startup::Config::Engine {
+        timeout_seconds: 10,
+        max_ticks: 20,
+    };
+    let root = launch.artifact_dir.clone();
+    let mut session = session::Session::start(launch).unwrap();
+    let rejected = session.send(command::tick::warp::Start {
+        ticks: 1,
+        pace: None,
+    });
+    assert!(matches!(rejected, Err(ref error) if error.code() == "startup_in_progress"));
+    assert!(session.history().is_empty());
+    std::fs::write(root.join("allow-engine-ready"), "").unwrap();
+    wait(|| {
+        matches!(
+            session.try_receive_event(),
+            Ok(Some(session::Event::EngineReady { ticks: 4 }))
+        )
+    });
+    let pending = session
+        .send(command::tick::warp::Start {
+            ticks: 1,
+            pace: None,
+        })
+        .unwrap();
+    assert_eq!(session.receive(pending).unwrap().executed_ticks, 1);
+    drop(session);
+
+    for mode in ["engine_failed", "engine_stalled"] {
+        let mut launch = config(mode);
+        launch.startup = session::startup::Config::Engine {
+            timeout_seconds: 1,
+            max_ticks: 20,
+        };
+        let mut session = session::Session::start(launch).unwrap();
+        let mut failure = None;
+        wait(|| {
+            if let Ok(Some(session::Event::StartupFailed { ticks, error })) =
+                session.try_receive_event()
+            {
+                failure = Some((ticks, error));
+            }
+            failure.is_some()
+        });
+        let (ticks, error) = failure.unwrap();
+        if mode == "engine_failed" {
+            assert_eq!(ticks, Some(3));
+            assert_eq!(error.code, "startup_asset_failed");
+        } else {
+            assert_eq!(
+                ticks, None,
+                "an unresponsive process has no confirmed tick count"
+            );
+            assert_eq!(error.code, "startup_timeout");
+        }
+    }
+}
 fn config(mode: &str) -> session::Config {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     session::Config {
@@ -29,6 +90,7 @@ fn config(mode: &str) -> session::Config {
             NEXT.fetch_add(1, Ordering::Relaxed)
         )),
         tick: Default::default(),
+        startup: Default::default(),
         report: report::Config {
             tracing_errors: false,
             output: "reports".into(),
