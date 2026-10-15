@@ -3,13 +3,13 @@ pub use fonts::apply as apply_font;
 
 use crate::{
     camera::ViewState,
-    coins::CoinRun,
-    expedition::Expedition,
-    items::ItemKind,
-    level::{GOLD, TEAL},
+    game::items::ItemKind,
+    game::items::coins::CoinRun,
+    game::level::{GOLD, TEAL},
     player::Player,
+    player::actions::expedition::Expedition,
+    player::actions::shooting::{self, Practice},
     settings::Settings,
-    shooting::{self, Practice},
 };
 use bevy::{
     input::mouse::MouseScrollUnit,
@@ -244,7 +244,7 @@ pub fn spawn_ui(
     mut commands: Commands,
     settings: Res<Settings>,
     assets: Res<AssetServer>,
-    mut tracked: ResMut<crate::level::LevelAssets>,
+    mut tracked: ResMut<crate::game::level::LevelAssets>,
 ) {
     commands.insert_resource(fonts::load(&assets, &mut tracked));
     // Draw the HUD after both the level and the FPV weapon pass.
@@ -608,7 +608,7 @@ pub fn update_ui(
     settings: Res<Settings>,
     practice: Res<Practice>,
     expedition: Res<Expedition>,
-    nav: Res<crate::navigation::Navigation>,
+    nav: Res<crate::player::actions::navigation::Navigation>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
     mut labels: Query<(&Label, &mut Text)>,
@@ -637,14 +637,14 @@ pub fn update_ui(
         || !mode.accepts_input(&window)
         || focus.get().is_some_and(|entity| inputs.contains(entity))
     {
-        crate::expedition::Interaction::None
+        crate::player::actions::expedition::Interaction::None
     } else {
         expedition.interaction(&player, &nav, &view)
     };
     for (label, mut value) in &mut labels {
         let new = match label {
             Label::Title => if expedition.finished { "Signal aktiv".into() }
-                else {crate::blueprint::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
+                else {crate::game::items::blueprint::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
             Label::Resource(kind) => kind.count(&run, &expedition).to_string(),
             Label::Objective => expedition.objective().into(),
             Label::Interaction => interaction.prompt().into(),
@@ -729,7 +729,7 @@ pub fn update_ui(
         if hud {
             node.display = if ui.menu
                 || (interactive && view.first_person && view.captured)
-                || (prompt && interaction == crate::expedition::Interaction::None)
+                || (prompt && interaction == crate::player::actions::expedition::Interaction::None)
             {
                 Display::None
             } else {

@@ -2,14 +2,14 @@ use super::*;
 mod cursor;
 use crate::{
     camera::{self, ViewState},
-    coins::{self, CoinRun},
-    expedition::{self, Expedition},
     game,
-    level::LevelLoad,
-    navigation::Navigation,
+    game::items::coins::{self, CoinRun},
+    game::level::LevelLoad,
+    player::actions::expedition::{self, Expedition},
+    player::actions::navigation::Navigation,
+    player::actions::shooting::{self, Fragments, Practice},
     player::{self, Player},
     settings::Settings,
-    shooting::{self, Fragments, Practice},
     ui::{Actions, UiState},
 };
 use bevy::{

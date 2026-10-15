@@ -1,10 +1,10 @@
 //! Object-sized interaction targets. Walking clearance is not an interaction ray.
 use crate::{
-    blueprint as map,
     camera::ViewState,
-    expedition::{Expedition, Interaction},
-    navigation::Navigation,
+    game::items::blueprint as map,
     player::Player,
+    player::actions::expedition::{Expedition, Interaction},
+    player::actions::navigation::Navigation,
 };
 use bevy::prelude::*;
 

@@ -1,10 +1,10 @@
 //! Exercise the exported level with the same navigation and body used by the game.
 use crate::{
-    blueprint::{self as map, DATA, point},
-    expedition::{CellState, Expedition, Interaction},
-    level,
-    navigation::{BODY_HEIGHT, Navigation},
+    game::items::blueprint::{self as map, DATA, point},
+    game::level,
     player::Player,
+    player::actions::expedition::{CellState, Expedition, Interaction},
+    player::actions::navigation::{BODY_HEIGHT, Navigation},
 };
 use bevy::prelude::*;
 
@@ -67,7 +67,7 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
     );
     let nav = Navigation::new(
         Vec::new(),
-        vec![crate::navigation::Obstacle {
+        vec![crate::player::actions::navigation::Obstacle {
             name: "wall".into(),
             center: [0., 1.5, 0.],
             half: [0.1, 1.5, 3.],
@@ -84,8 +84,8 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
             let p = rotation * vertex;
             assert!(player.position.x + p.x <= -0.1, "visible mesh crossed wall");
             assert!(
-                p.x.abs() <= crate::navigation::BODY_HALF
-                    && p.z.abs() <= crate::navigation::BODY_HALF
+                p.x.abs() <= crate::player::actions::navigation::BODY_HALF
+                    && p.z.abs() <= crate::player::actions::navigation::BODY_HALF
             );
             assert!(
                 p.y + crate::player::MODEL_BOB <= BODY_HEIGHT,
@@ -98,13 +98,13 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
 #[test]
 fn box_corners_and_deck_edges_are_solid() {
     let nav = Navigation::new(
-        vec![crate::navigation::Surface {
+        vec![crate::player::actions::navigation::Surface {
             center: [0., 0.],
             half: [2., 2.],
             height: 3.,
             bottom: 2.7,
         }],
-        vec![crate::navigation::Obstacle {
+        vec![crate::player::actions::navigation::Obstacle {
             name: "corner".into(),
             center: [5., 1.5, 5.],
             half: [0.1, 1.5, 0.1],
@@ -313,7 +313,7 @@ fn cells_require_tasks_and_allow_any_order_and_partial_delivery() {
 
 #[test]
 fn resource_inventory_consumes_parts_and_delivered_cells() {
-    use crate::{coins::CoinRun, items::ItemKind};
+    use crate::{game::items::ItemKind, game::items::coins::CoinRun};
     use Interaction::*;
     let mut mission = Expedition::default();
     let mut coins = CoinRun::default();
@@ -399,11 +399,12 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
     view.captured = false;
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     view.captured = true;
-    nav.obstacles.push(crate::navigation::Obstacle {
-        name: "test wall".into(),
-        center: point(4., 49.2, 1.5).to_array(),
-        half: [2., 1.5, 0.10],
-    });
+    nav.obstacles
+        .push(crate::player::actions::navigation::Obstacle {
+            name: "test wall".into(),
+            center: point(4., 49.2, 1.5).to_array(),
+            half: [2., 1.5, 0.10],
+        });
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     nav.obstacles.pop();
     mission.apply(Interaction::Scan(0));
@@ -423,7 +424,7 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
 fn body_sweeps_stop_at_walls_and_land_on_boxes() {
     let nav = Navigation::new(
         Vec::new(),
-        vec![crate::navigation::Obstacle {
+        vec![crate::player::actions::navigation::Obstacle {
             name: "box".into(),
             center: [0., 0.5, 0.],
             half: [1., 0.5, 1.],

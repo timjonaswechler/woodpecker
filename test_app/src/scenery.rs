@@ -1,4 +1,4 @@
-use crate::level::LevelAssets;
+use crate::game::level::LevelAssets;
 use bevy::prelude::*;
 pub struct Scenery<'a, 'w, 's> {
     pub commands: &'a mut Commands<'w, 's>,

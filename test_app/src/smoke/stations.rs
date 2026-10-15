@@ -1,12 +1,12 @@
 //! Focused rendered check for object interaction and persistent visual feedback.
 use super::{aim_at, capture, press, release};
 use crate::{
-    blueprint as map,
     camera::ViewState,
     course::Pickup,
-    expedition::{CellState, Expedition, Interaction},
-    navigation::Navigation,
+    game::items::blueprint as map,
     player::Player,
+    player::actions::expedition::{CellState, Expedition, Interaction},
+    player::actions::navigation::Navigation,
     stations::{CompletionMark, UnreadPage},
     ui::{Action, Actions, InteractionPrompt, Label},
 };

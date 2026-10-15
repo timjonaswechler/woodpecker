@@ -1,9 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["test_app"]
+default-members = ["."]
+
 [package]
 name = "woodpecker"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.97.1"
-publish = false
+exclude = ["test_app/**"]
+
+[profile.dev]
+# Keep debug checks while making the rendered automation workflow practical.
+opt-level = 1
 
 [features]
 default = []

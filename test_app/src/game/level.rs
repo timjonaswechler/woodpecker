@@ -1,6 +1,11 @@
 use crate::{
-    blueprint, camera::GameCamera, coins::Coin, navigation::Navigation, player::PlayerModel,
-    scenery::Scenery, settings::Settings, ui::UiState,
+    camera::GameCamera,
+    game::items::{blueprint, coins::Coin},
+    player::PlayerModel,
+    player::actions::navigation::Navigation,
+    scenery::Scenery,
+    settings::Settings,
+    ui::UiState,
 };
 use bevy::{light::CascadeShadowConfigBuilder, prelude::*};
 
@@ -32,9 +37,12 @@ pub fn layout() -> Navigation {
         .cloned()
         .collect();
     obstacles.extend(crate::stations::colliders());
-    for (i, center) in crate::shooting::TARGETS.into_iter().enumerate() {
-        for (size, position) in crate::shooting::stand_boxes(center) {
-            obstacles.push(crate::navigation::Obstacle {
+    for (i, center) in crate::player::actions::shooting::TARGETS
+        .into_iter()
+        .enumerate()
+    {
+        for (size, position) in crate::player::actions::shooting::stand_boxes(center) {
+            obstacles.push(crate::player::actions::navigation::Obstacle {
                 name: format!("Target support {i}"),
                 center: position.to_array(),
                 half: (size * 0.5).to_array(),

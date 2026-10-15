@@ -1,9 +1,9 @@
 //! Inspect the same station models as the level, in isolation and in each state.
 use crate::{
-    expedition::{Expedition, Interaction as Action},
-    interactions::{STATIONS, TABLES, Target},
-    items::ItemKind,
-    level::LevelAssets,
+    game::items::ItemKind,
+    game::level::LevelAssets,
+    player::actions::expedition::{Expedition, Interaction as Action},
+    player::actions::interactions::{STATIONS, TABLES, Target},
     scenery::Scenery,
     stations::{self, PreviewState},
 };

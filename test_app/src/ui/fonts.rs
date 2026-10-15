@@ -1,5 +1,5 @@
 //! Bundled fallbacks keep editable text independent of installed system fonts.
-use crate::level::LevelAssets;
+use crate::game::level::LevelAssets;
 use bevy::{prelude::*, text::FontSource};
 
 #[derive(Resource)]

@@ -1,6 +1,6 @@
 use crate::{
     camera::{GameCamera, ViewState},
-    level::{LevelAssets, LevelLoad, TEAL, ground},
+    game::level::{LevelAssets, LevelLoad, TEAL, ground},
     player::Player,
     ui::UiState,
 };
@@ -13,11 +13,14 @@ use bevy::{
     world_serialization::WorldInstanceReady,
 };
 
-pub const ENTRY: Vec2 = Vec2::new(crate::blueprint::PRACTICE.x, crate::blueprint::PRACTICE.z);
+pub const ENTRY: Vec2 = Vec2::new(
+    crate::game::items::blueprint::PRACTICE.x,
+    crate::game::items::blueprint::PRACTICE.z,
+);
 pub const TARGETS: [Vec3; 3] = [
-    crate::blueprint::point(29., 51., 1.85),
-    crate::blueprint::point(35., 51., 1.85),
-    crate::blueprint::point(41., 51., 1.85),
+    crate::game::items::blueprint::point(29., 51., 1.85),
+    crate::game::items::blueprint::point(35., 51., 1.85),
+    crate::game::items::blueprint::point(41., 51., 1.85),
 ];
 pub const MIN_TARGET_DISTANCE: f32 = 6.0;
 const TARGET_RADIUS: f32 = 0.8;
@@ -156,13 +159,13 @@ pub fn spawn_range(
         ));
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(2.8, 0.035, 1.6))),
-            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
+            MeshMaterial3d(materials.add(crate::game::items::ItemKind::Blueprint.color())),
             Transform::from_xyz(center.x, 0.025, ENTRY.y),
         ));
         // Each lane marks the minimum ground distance to its target.
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(4., 0.045, 0.12))),
-            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
+            MeshMaterial3d(materials.add(crate::game::items::ItemKind::Blueprint.color())),
             Transform::from_xyz(center.x, 0.03, center.z + MIN_TARGET_DISTANCE),
         ));
     }
@@ -177,7 +180,7 @@ pub fn spawn_range(
         };
         for center in TARGETS {
             scene.item(
-                crate::items::ItemKind::Blueprint,
+                crate::game::items::ItemKind::Blueprint,
                 Transform::from_xyz(center.x, 0.65, center.z + 0.4).with_scale(Vec3::splat(0.55)),
             );
         }

@@ -1,15 +1,19 @@
 //! Coordinates user commands that span the demo's modules.
+
+pub mod items;
+pub mod level;
+
 use crate::{
-    blueprint,
     camera::ViewState,
-    coins::CoinRun,
-    expedition::Expedition,
+    game::items::blueprint,
+    game::items::coins::CoinRun,
+    game::level::LevelLoad,
     input::InputMode,
-    level::LevelLoad,
-    navigation::Navigation,
     player::Player,
+    player::actions::expedition::Expedition,
+    player::actions::navigation::Navigation,
+    player::actions::shooting::Practice,
     settings::Settings,
-    shooting::Practice,
     ui::{Action, Actions, UiState},
 };
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
@@ -80,7 +84,7 @@ pub fn handle_actions(
                     continue;
                 }
                 let action = expedition.interaction(&player, &nav, &view);
-                if action != crate::expedition::Interaction::None {
+                if action != crate::player::actions::expedition::Interaction::None {
                     ui.status = expedition.apply(action);
                 }
             }

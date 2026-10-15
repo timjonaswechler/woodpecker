@@ -1,4 +1,7 @@
-use crate::{blueprint::DATA, camera::ViewState, level::LevelLoad, player::Player, ui::UiState};
+use crate::{
+    camera::ViewState, game::items::blueprint::DATA, game::level::LevelLoad, player::Player,
+    ui::UiState,
+};
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
 
 #[derive(Component)]

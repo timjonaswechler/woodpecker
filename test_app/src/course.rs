@@ -1,11 +1,11 @@
 //! Interactive props and feedback for the room tasks.
 use crate::{
-    blueprint::{self as map, DATA},
-    expedition::{CellState, Expedition},
-    items::ItemKind,
-    level::LevelAssets,
-    navigation::Navigation,
+    game::items::ItemKind,
+    game::items::blueprint::{self as map, DATA},
+    game::level::LevelAssets,
     player::Player,
+    player::actions::expedition::{CellState, Expedition},
+    player::actions::navigation::Navigation,
     scenery::Scenery,
 };
 use bevy::prelude::*;
@@ -153,7 +153,7 @@ pub fn update_course(
         if let Some(mut mat) = materials.get_mut(&handle.0) {
             let color = match kind {
                 Feedback::Water => ItemKind::Blueprint.color(),
-                Feedback::Signal => crate::level::GOLD,
+                Feedback::Signal => crate::game::level::GOLD,
             };
             let emissive = if active {
                 LinearRgba::new(0.25, 0.4, 0.35, 1.)

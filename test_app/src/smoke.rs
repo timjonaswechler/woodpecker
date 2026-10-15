@@ -2,15 +2,15 @@
 mod notes;
 mod stations;
 use crate::{
-    blueprint::{self as map, DATA},
     camera::{GameCamera, ViewState},
-    coins::CoinRun,
-    expedition::Expedition,
-    level::LevelLoad,
-    navigation::Navigation,
+    game::items::blueprint::{self as map, DATA},
+    game::items::coins::CoinRun,
+    game::level::LevelLoad,
     player::Player,
+    player::actions::expedition::Expedition,
+    player::actions::navigation::Navigation,
+    player::actions::shooting::{self, Practice},
     settings::Settings,
-    shooting::{self, Practice},
     ui::{Action, Actions, NameInput, UiState},
 };
 use bevy::{
@@ -115,7 +115,7 @@ fn route_to(world: &mut World, point: Vec3) {
 fn aim_at(world: &mut World, point: Vec3) {
     let position = world.resource::<Player>().position;
     let direction = (point
-        - crate::level::ground(position, world.resource::<Player>().height + 1.5))
+        - crate::game::level::ground(position, world.resource::<Player>().height + 1.5))
     .normalize();
     world.resource_mut::<Player>().yaw = (-direction.x).atan2(-direction.z);
     world.resource_mut::<ViewState>().pitch = direction.y.asin();

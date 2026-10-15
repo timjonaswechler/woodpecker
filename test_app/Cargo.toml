@@ -5,12 +5,6 @@ edition = "2024"
 rust-version = "1.97.1"
 publish = false
 
-[workspace]
-
-[profile.dev]
-# Keep debug checks while making the rendered automation workflow practical.
-opt-level = 1
-
 [features]
 automation = ["dep:woodpecker"]
 

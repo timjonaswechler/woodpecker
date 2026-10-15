@@ -1,11 +1,11 @@
 //! Room tasks, inventory and optional discoveries. No rendering or movement rules here.
 use crate::{
-    blueprint::{self as map, DATA},
     camera::ViewState,
-    level::LevelLoad,
-    navigation::Navigation,
+    game::items::blueprint::{self as map, DATA},
+    game::level::LevelLoad,
     player::Player,
-    shooting::Practice,
+    player::actions::navigation::Navigation,
+    player::actions::shooting::Practice,
     ui::UiState,
 };
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
@@ -138,7 +138,7 @@ impl Expedition {
         }
     }
     pub fn interaction(&self, player: &Player, nav: &Navigation, view: &ViewState) -> Interaction {
-        crate::interactions::select(self, player, nav, view)
+        crate::player::actions::interactions::select(self, player, nav, view)
     }
     /// State transitions enforce prerequisites even outside the UI dispatcher.
     pub fn apply(&mut self, action: Interaction) -> String {

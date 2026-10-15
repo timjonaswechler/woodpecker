@@ -1,7 +1,7 @@
 use crate::{
-    blueprint,
+    game::items::blueprint,
+    game::level::{LevelLoad, ground},
     input::InputMode,
-    level::{LevelLoad, ground},
     player::Player,
     settings::Settings,
     ui::UiState,

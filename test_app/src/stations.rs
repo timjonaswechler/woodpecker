@@ -1,10 +1,10 @@
 mod models;
 use crate::{
     course::{CHEST_CENTER, CHEST_SIZE},
-    expedition::{Expedition, Interaction},
-    interactions::{STATIONS, TABLES},
-    level::LevelAssets,
-    navigation::Obstacle,
+    game::level::LevelAssets,
+    player::actions::expedition::{Expedition, Interaction},
+    player::actions::interactions::{STATIONS, TABLES},
+    player::actions::navigation::Obstacle,
     scenery::Scenery,
 };
 use bevy::prelude::*;

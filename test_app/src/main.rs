@@ -1,27 +1,18 @@
-#[cfg(feature = "automation")]
-mod automation;
-mod blueprint;
 mod camera;
-mod coins;
 mod course;
-mod expedition;
+mod dev;
 mod game;
 mod input;
-mod interactions;
-mod items;
-mod level;
-mod navigation;
-mod options;
 mod player;
 #[cfg(test)]
 mod playtests;
 mod scenery;
 mod settings;
-mod shooting;
 mod smoke;
 mod stations;
 mod ui;
-mod zoo;
+#[cfg(feature = "automation")]
+mod woodpecker;
 
 use bevy::{
     input_focus::tab_navigation::TabNavigationPlugin, prelude::*, window::WindowResolution,
@@ -29,13 +20,13 @@ use bevy::{
 
 fn main() {
     if std::env::args().any(|arg| arg == "--zoo") {
-        zoo::run();
+        dev::zoo::run();
         return;
     }
     let smoke_test = std::env::args().any(|arg| arg == "--smoke-test");
     let offscreen = smoke_test && std::env::args().any(|arg| arg == "--offscreen");
     let fixed_window = std::env::args().any(|arg| arg == "--fixed-window");
-    let scale = options::value::<f32>("--scale-factor");
+    let scale = settings::options::value::<f32>("--scale-factor");
     assert!(
         scale.is_none_or(|value| value.is_finite() && value > 0.0),
         "invalid scale factor"
@@ -57,15 +48,15 @@ fn main() {
         })
         .init_resource::<player::Player>()
         .init_resource::<camera::ViewState>()
-        .init_resource::<coins::CoinRun>()
-        .init_resource::<expedition::Expedition>()
+        .init_resource::<game::items::coins::CoinRun>()
+        .init_resource::<player::actions::expedition::Expedition>()
         .init_resource::<ui::UiState>()
-        .init_resource::<level::LevelLoad>()
+        .init_resource::<game::level::LevelLoad>()
         .init_resource::<ui::Actions>()
         .init_resource::<input::InputMode>()
-        .init_resource::<shooting::Practice>()
-        .init_resource::<level::LevelAssets>()
-        .insert_resource(level::layout())
+        .init_resource::<player::actions::shooting::Practice>()
+        .init_resource::<game::level::LevelAssets>()
+        .insert_resource(game::level::layout())
         .add_plugins(
             DefaultPlugins
                 .set(log_plugin)
@@ -103,21 +94,21 @@ fn main() {
         .add_systems(
             Startup,
             (
-                level::spawn_level,
+                game::level::spawn_level,
                 course::spawn_course,
                 stations::spawn_stations,
-                shooting::spawn_range,
+                player::actions::shooting::spawn_range,
                 ui::spawn_ui,
             ),
         )
-        .add_observer(shooting::tag_scene_parts)
+        .add_observer(player::actions::shooting::tag_scene_parts)
         .add_observer(player::pose_player)
         .add_observer(course::hide_planning_markers)
         .add_systems(
             Update,
             (
                 (
-                    level::check_assets,
+                    game::level::check_assets,
                     ui::apply_font,
                     ui::buttons,
                     ui::sync_text_fields,
@@ -130,17 +121,17 @@ fn main() {
                 (
                     camera::mouse_look,
                     player::move_player,
-                    coins::tick_run,
-                    expedition::tick_expedition,
-                    shooting::tick_practice,
-                    shooting::shoot,
+                    game::items::coins::tick_run,
+                    player::actions::expedition::tick_expedition,
+                    player::actions::shooting::tick_practice,
+                    player::actions::shooting::shoot,
                     player::click_to_move,
                     camera::sync_cursor,
                     camera::update_camera,
                     player::update_model,
-                    coins::update_coins,
-                    level::update_lighting,
-                    shooting::update_visuals,
+                    game::items::coins::update_coins,
+                    game::level::update_lighting,
+                    player::actions::shooting::update_visuals,
                     ui::update_ui,
                 )
                     .chain(),
@@ -152,15 +143,15 @@ fn main() {
         app.insert_resource(bevy::time::TimeUpdateStrategy::ManualDuration(
             std::time::Duration::from_secs_f32(0.05),
         ))
-        .add_systems(Update, smoke::step.before(level::check_assets));
+        .add_systems(Update, smoke::step.before(game::level::check_assets));
     }
     if offscreen {
         app.insert_resource(bevy::winit::WinitSettings::continuous());
         app.add_systems(
             Startup,
             smoke::setup_offscreen
-                .after(level::spawn_level)
-                .after(shooting::spawn_range)
+                .after(game::level::spawn_level)
+                .after(player::actions::shooting::spawn_range)
                 .after(ui::spawn_ui),
         );
     }

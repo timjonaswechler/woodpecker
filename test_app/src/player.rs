@@ -1,8 +1,10 @@
+pub mod actions;
+
 use crate::{
-    blueprint::START,
     camera::{GameCamera, ViewState},
-    level::{self, LevelLoad, ground},
-    navigation::Navigation,
+    game::items::blueprint::START,
+    game::level::{self, LevelLoad, ground},
+    player::actions::navigation::Navigation,
     settings::Settings,
     ui::{UiBlock, UiState, pointer_over_ui},
 };
@@ -103,11 +105,14 @@ impl Player {
         }
         let stepping = grounded && self.vertical_speed <= 0.0;
         let old_height = self.height;
-        let ceiling = nav.ceiling(self.position, self.height + crate::navigation::BODY_HEIGHT);
+        let ceiling = nav.ceiling(
+            self.position,
+            self.height + crate::player::actions::navigation::BODY_HEIGHT,
+        );
         let mut next_height = self.height + self.vertical_speed * dt - 9.0 * dt * dt;
         self.vertical_speed -= 18.0 * dt;
-        if next_height + crate::navigation::BODY_HEIGHT > ceiling {
-            next_height = ceiling - crate::navigation::BODY_HEIGHT;
+        if next_height + crate::player::actions::navigation::BODY_HEIGHT > ceiling {
+            next_height = ceiling - crate::player::actions::navigation::BODY_HEIGHT;
             self.vertical_speed = self.vertical_speed.min(0.0);
         }
         let from = ground(

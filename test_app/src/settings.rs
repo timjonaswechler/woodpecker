@@ -1,6 +1,8 @@
+pub mod options;
+mod storage;
+
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-mod storage;
 
 #[derive(Resource, Serialize, Deserialize, Clone, Reflect)]
 #[reflect(Resource)]
