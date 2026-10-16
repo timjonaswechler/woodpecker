@@ -8,10 +8,10 @@ CAMERA = "bevy_camera::camera::Camera"
 RESOURCES = {
     "load": "test_app::level::LevelLoad",
     "player": "test_app::player::Player",
-    "view": "test_app::camera::ViewState",
+    "view": "test_app::player::camera::ViewState",
     "expedition": "test_app::expedition::Expedition",
-    "practice": "test_app::shooting::Practice",
-    "coins": "test_app::coins::CoinRun",
+    "practice": "test_app::practice::Practice",
+    "coins": "test_app::items::coins::CoinRun",
     "ui": "test_app::ui::UiState",
     "settings": "test_app::settings::Settings",
     "time": "bevy_time::time::Time<()>",
