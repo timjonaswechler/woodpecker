@@ -9,6 +9,9 @@ from pathlib import Path
 import sys
 import bpy
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gltf_export import export_model
+
 
 root = Path(__file__).resolve().parents[1]
 scene = bpy.data.scenes.get("Demo_Blaster")
@@ -28,11 +31,10 @@ try:
     for obj in model.all_objects:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = next(o for o in model.all_objects if o.type == "MESH")
-    destination = root / "asset" / "custom" / "training_blaster.glb"
+    destination = root / "asset" / "custom" / "training_blaster.gltf"
     destination.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_scene.gltf(
-        filepath=str(destination),
-        export_format="GLB",
+    export_model(
+        destination,
         use_selection=True,
         use_active_scene=True,
         export_apply=True,

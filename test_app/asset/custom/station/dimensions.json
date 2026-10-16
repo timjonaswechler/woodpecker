@@ -16,7 +16,7 @@
       0.35
     ],
     "triangles": 316,
-    "bytes": 25748
+    "bytes": 25742
   },
   "relay_console": {
     "minimum": [
@@ -35,7 +35,7 @@
       0.7255
     ],
     "triangles": 748,
-    "bytes": 61024
+    "bytes": 61021
   },
   "signal_tower": {
     "minimum": [
@@ -54,7 +54,7 @@
       1.5
     ],
     "triangles": 1344,
-    "bytes": 104904
+    "bytes": 104900
   },
   "bridge_module": {
     "minimum": [
@@ -73,7 +73,7 @@
       4.0
     ],
     "triangles": 1628,
-    "bytes": 128532
+    "bytes": 128530
   },
   "energy_gate": {
     "minimum": [
@@ -92,7 +92,7 @@
       0.415
     ],
     "triangles": 660,
-    "bytes": 52364
+    "bytes": 52361
   },
   "cliff_module": {
     "minimum": [
@@ -111,6 +111,6 @@
       4.0
     ],
     "triangles": 44,
-    "bytes": 5512
+    "bytes": 5509
   }
 }

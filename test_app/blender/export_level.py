@@ -10,6 +10,9 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gltf_export import export_model
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'planning/groundplate'))
 import layout as plan
@@ -88,8 +91,8 @@ for obj in list(bpy.data.objects):
 bpy.ops.object.select_all(action='DESELECT')
 for obj in bpy.data.objects:
     if obj.type=='MESH': obj.select_set(True)
-bpy.ops.export_scene.gltf(filepath=str(OUT/'courtyard.glb'),export_format='GLB',
-    use_selection=True,export_cameras=False,export_lights=False,export_apply=True)
+export_model(OUT/'courtyard.gltf',use_selection=True,
+    export_cameras=False,export_lights=False,export_apply=True)
 data=dict(
     rooms=[dict(id=key,name=name,bounds=bounds) for key,name,bounds,_ in plan.ROOMS],
     surfaces=surfaces,obstacles=obstacles,

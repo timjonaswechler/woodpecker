@@ -1,12 +1,16 @@
 """Run in Blender to rebuild the demo's fictional low-poly training blaster.
 
 Creates a separate scene, preserving any scene already open in Blender.
-Exports only the model to GLB; the .blend keeps the lighting and preview camera.
+Exports the model as .gltf + .bin; the .blend keeps the lighting and preview camera.
 """
 from pathlib import Path
 import math
+import sys
 import bpy
 from mathutils import Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gltf_export import export_model
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "asset" / "custom"
@@ -97,9 +101,8 @@ bpy.ops.object.select_all(action="DESELECT")
 for obj in model.objects:
     obj.select_set(True)
 bpy.context.view_layer.objects.active = next(iter(model.objects))
-bpy.ops.export_scene.gltf(filepath=str(OUT / "training_blaster.glb"), export_format="GLB",
-                          use_selection=True, use_active_scene=True, export_apply=True, export_animations=False,
-                          export_cameras=False, export_lights=False)
+export_model(OUT / "training_blaster.gltf", use_selection=True, use_active_scene=True,
+             export_apply=True, export_animations=False, export_cameras=False, export_lights=False)
 
 # Preview setup belongs to the Blender file, not the exported game model.
 world = bpy.data.worlds.new("Blaster studio")
@@ -144,5 +147,5 @@ for area in bpy.context.screen.areas:
         area.spaces.active.shading.type = "MATERIAL"
         area.spaces.active.overlay.show_overlays = False
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / "blender" / "training_blaster.blend"))
-print({"model": str(OUT / "training_blaster.glb"), "objects": len(model.objects),
+print({"model": str(OUT / "training_blaster.gltf"), "objects": len(model.objects),
        "triangles": sum(len(p.vertices) - 2 for o in model.objects for p in o.data.polygons)})

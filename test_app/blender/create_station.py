@@ -2,15 +2,19 @@
 
 Run: Blender --background --python-exit-code 1 --python create_station.py
 All dimensions in the builders use glTF/game coordinates: X right, Y up, Z front.
-Exports six self-contained GLBs, an editable .blend and a rendered contact sheet.
+Exports six .gltf + .bin models, an editable .blend and a rendered contact sheet.
 """
 from pathlib import Path
 import json
 import math
 import struct
+import sys
 
 import bpy
 from mathutils import Matrix, Quaternion, Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gltf_export import export_model
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "asset" / "custom" / "station"
@@ -226,11 +230,8 @@ BUILDERS = {
 def exported_bounds(path):
     """Read exported vertex data and transforms, not approximate object bounds."""
     raw = path.read_bytes()
-    assert raw[:4] == b"glTF" and struct.unpack_from("<I", raw, 4)[0] == 2
-    json_size = struct.unpack_from("<I", raw, 12)[0]
-    doc = json.loads(raw[20:20 + json_size])
-    binary_start = 20 + json_size + 8
-    binary = raw[binary_start:]
+    doc = json.loads(raw)
+    buffers = [(path.parent / buffer["uri"]).read_bytes() for buffer in doc["buffers"]]
     minimum, maximum = Vector((math.inf,) * 3), Vector((-math.inf,) * 3)
     triangles = 0
     for scene in doc["scenes"]:
@@ -252,6 +253,7 @@ def exported_bounds(path):
             for primitive in doc["meshes"][node["mesh"]]["primitives"]:
                 accessor = doc["accessors"][primitive["attributes"]["POSITION"]]
                 view = doc["bufferViews"][accessor["bufferView"]]
+                binary = buffers[view["buffer"]]
                 assert accessor["componentType"] == 5126 and accessor["type"] == "VEC3"
                 start = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
                 stride = view.get("byteStride", 12)
@@ -269,7 +271,7 @@ def exported_bounds(path):
         "maximum": [round(x, 5) for x in maximum],
         "dimensions": [round(x, 5) for x in maximum - minimum],
         "triangles": triangles,
-        "bytes": len(raw),
+        "bytes": len(raw) + sum(len(buffer) for buffer in buffers),
     }
 
 
@@ -291,17 +293,16 @@ for name, build in BUILDERS.items():
     source.cursor.location = (0, 0, 0)
     bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    path = OUT / f"{name}.glb"
-    bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", use_selection=True,
-                              use_active_scene=True, export_apply=True, export_animations=False,
-                              export_cameras=False, export_lights=False)
+    path = OUT / f"{name}.gltf"
+    export_model(path, use_selection=True, use_active_scene=True, export_apply=True,
+                 export_animations=False, export_cameras=False, export_lights=False)
     manifest[name] = exported_bounds(path)
     models[name] = current
 
 (OUT / "dimensions.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
 # A separate preview scene shows collection instances. Source geometry stays at
-# its export origin, and no preview furniture enters the GLBs.
+# its export origin, and no preview furniture enters the glTF exports.
 preview = bpy.data.scenes.new("Station kit overview")
 bpy.context.window.scene = preview
 world = bpy.data.worlds.new("Station preview studio")

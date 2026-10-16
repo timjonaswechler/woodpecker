@@ -10,7 +10,7 @@ Vom Repository-Root:
 cargo run -p test_zoo
 ```
 
-Alternativ funktioniert `cargo run --manifest-path test_zoo/Cargo.toml`. Die Assets werden unabhängig vom Arbeitsverzeichnis aus `test_app/asset/` geladen.
+Alternativ funktioniert `cargo run --manifest-path test_zoo/Cargo.toml`. Die Assets werden unabhängig vom Arbeitsverzeichnis aus `test_app/asset/` geladen. Für Modell-Dateien gilt der gemeinsame [Asset-Standard von `test_app`](../test_app/README.md#asset-formate): glTF mit externen BIN-Dateien und gemeinsam genutzten PNG-Texturen. Die Stationsmodelle des Zoos werden weiterhin direkt im gemeinsamen Rust-Code aufgebaut.
 
 ## Steuerung
 

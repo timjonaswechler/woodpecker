@@ -1,4 +1,6 @@
 //! Exercise the exported level with the same navigation and body used by the game.
+mod assets;
+
 use crate::{
     expedition::{CellState, Expedition, Interaction},
     level,

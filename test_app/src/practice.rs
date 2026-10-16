@@ -194,7 +194,7 @@ pub fn spawn_range(
         fragments.0.push(scene);
     }
     commands.insert_resource(fragments);
-    let weapon = assets.load(GltfAssetLabel::Scene(0).from_asset("custom/training_blaster.glb"));
+    let weapon = assets.load(GltfAssetLabel::Scene(0).from_asset("custom/training_blaster.gltf"));
     tracked.0.push(weapon.clone().untyped());
     commands.spawn((
         Name::new("Blender Trainingsblaster"),
