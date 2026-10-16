@@ -20,7 +20,7 @@ impl Storage {
             std::env::var_os("WOODPECKER_ARTIFACT_DIR").is_some(),
             std::env::args().any(|arg| arg == "--smoke-test"),
         )?;
-        if let Some(seed) = crate::settings::options::value::<PathBuf>("--settings-seed") {
+        if let Some(seed) = crate::launch::value::<PathBuf>("--settings-seed") {
             if !storage.isolated {
                 return Err("--settings-seed requires an isolated session workspace".into());
             }

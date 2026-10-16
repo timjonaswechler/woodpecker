@@ -1,14 +1,14 @@
 mod models;
+pub mod targets;
+
 use crate::{
-    course::{CHEST_CENTER, CHEST_SIZE},
-    game::level::LevelAssets,
-    player::actions::expedition::{Expedition, Interaction},
-    player::actions::interactions::{STATIONS, TABLES},
-    player::actions::navigation::Obstacle,
-    scenery::Scenery,
+    expedition::{Expedition, Interaction},
+    level::{LevelAssets, scenery::Scenery},
 };
 use bevy::prelude::*;
 pub use models::spawn_model;
+pub use targets::colliders;
+use targets::{STATIONS, TABLES};
 
 const FRAME: Color = Color::srgb(0.12, 0.20, 0.22);
 const SURFACE: Color = Color::srgb(0.80, 0.83, 0.78);
@@ -35,31 +35,6 @@ pub fn replaces(name: &str) -> bool {
     ]
     .iter()
     .any(|prefix| name.starts_with(prefix))
-}
-
-pub fn colliders() -> impl Iterator<Item = Obstacle> {
-    STATIONS.into_iter().chain(TABLES).map(|target| {
-        let (center, half) = if target.action == Interaction::Chest {
-            (CHEST_CENTER, CHEST_SIZE * 0.5)
-        } else if matches!(target.action, Interaction::Part(_) | Interaction::Cell(_)) {
-            let height = if matches!(target.action, Interaction::Part(_)) {
-                0.84
-            } else {
-                1.
-            };
-            (
-                Vec3::new(target.center.x, target.floor + height / 2., target.center.z),
-                Vec3::new(target.half.x, height / 2., target.half.z),
-            )
-        } else {
-            (target.center, target.half)
-        };
-        Obstacle {
-            name: target.name.into(),
-            center: center.to_array(),
-            half: half.to_array(),
-        }
-    })
 }
 
 #[derive(Component)]

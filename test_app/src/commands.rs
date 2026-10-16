@@ -1,22 +1,34 @@
 //! Coordinates user commands that span the demo's modules.
 
-pub mod items;
-pub mod level;
-
 use crate::{
-    camera::ViewState,
-    game::items::blueprint,
-    game::items::coins::CoinRun,
-    game::level::LevelLoad,
-    input::InputMode,
-    player::Player,
-    player::actions::expedition::Expedition,
-    player::actions::navigation::Navigation,
-    player::actions::shooting::Practice,
-    settings::Settings,
-    ui::{Action, Actions, UiState},
+    expedition::Expedition, items::coins::CoinRun, level::LevelLoad, level::layout,
+    level::navigation::Navigation, player::Player, player::camera::ViewState, practice::Practice,
+    settings::Settings, ui::UiState,
 };
-use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
+use bevy::{input_focus::InputFocus, prelude::*};
+
+#[derive(Component, Clone, Copy, Debug)]
+pub enum Action {
+    View,
+    Map,
+    Settings,
+    Resume,
+    Restart,
+    Range,
+    Interact,
+    Objective,
+    Checkpoint,
+    Sensitivity(f32),
+    Speed(f32),
+    Fov(f32),
+    Path,
+    Shadows,
+    Invert,
+    Defaults,
+    Quit,
+}
+#[derive(Resource, Default)]
+pub struct Actions(pub Vec<Action>);
 
 #[expect(
     clippy::too_many_arguments,
@@ -84,15 +96,15 @@ pub fn handle_actions(
                     continue;
                 }
                 let action = expedition.interaction(&player, &nav, &view);
-                if action != crate::player::actions::expedition::Interaction::None {
+                if action != crate::expedition::Interaction::None {
                     ui.status = expedition.apply(action);
                 }
             }
             Action::Checkpoint => {
                 let p = if expedition.checkpoint {
-                    blueprint::CHECKPOINT
+                    layout::CHECKPOINT
                 } else {
-                    blueprint::START
+                    layout::START
                 };
                 player.respawn(p.xz(), p.y);
                 ui.status = "Zurück am sicheren Punkt. Dein Fortschritt bleibt erhalten.".into();
@@ -104,7 +116,7 @@ pub fn handle_actions(
                     continue;
                 }
                 let goal = if matches!(action, Action::Range) {
-                    blueprint::PRACTICE
+                    layout::PRACTICE
                 } else {
                     expedition.destination()
                 };
@@ -142,63 +154,5 @@ pub fn handle_actions(
         if save_settings && let Err(error) = settings.save() {
             ui.status = format!("Einstellungen konnten nicht gespeichert werden: {error}");
         }
-    }
-}
-
-#[expect(
-    clippy::too_many_arguments,
-    reason = "Shortcuts read the input mode, focus and gameplay state."
-)]
-pub fn keyboard_shortcuts(
-    mode: Res<InputMode>,
-    keys: Res<ButtonInput<KeyCode>>,
-    window: Single<&Window, With<PrimaryWindow>>,
-    mut focus: ResMut<InputFocus>,
-    inputs: Query<&EditableText>,
-    mut view: ResMut<ViewState>,
-    ui: Res<UiState>,
-    mut actions: ResMut<Actions>,
-) {
-    if !mode.accepts_input(&window) {
-        view.captured = false;
-        return;
-    }
-    if let Some(input) = focus.get().and_then(|entity| inputs.get(entity).ok()) {
-        view.captured = false;
-        if keys.just_pressed(KeyCode::Escape)
-            || (keys.just_pressed(KeyCode::Enter) && !input.allow_newlines)
-        {
-            focus.clear();
-        }
-        return;
-    }
-    if keys.just_pressed(KeyCode::Escape) {
-        focus.clear();
-        if ui.menu {
-            actions.0.push(Action::Resume);
-        } else if view.captured {
-            view.captured = false;
-        } else {
-            actions.0.push(Action::Settings);
-        }
-        return;
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::KeyV) {
-        actions.0.push(Action::View);
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::KeyM) {
-        actions.0.push(Action::Settings);
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::KeyG) {
-        actions.0.push(Action::Map);
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::KeyR) {
-        actions.0.push(Action::Restart);
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::Backspace) {
-        actions.0.push(Action::Checkpoint);
-    }
-    if !ui.menu && keys.just_pressed(KeyCode::KeyE) {
-        actions.0.push(Action::Interact);
     }
 }

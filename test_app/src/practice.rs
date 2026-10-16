@@ -1,7 +1,7 @@
 use crate::{
-    camera::{GameCamera, ViewState},
-    game::level::{LevelAssets, LevelLoad, TEAL, ground},
+    level::{LevelAssets, LevelLoad, TEAL},
     player::Player,
+    player::camera::{GameCamera, ViewState},
     ui::UiState,
 };
 use bevy::{
@@ -14,13 +14,13 @@ use bevy::{
 };
 
 pub const ENTRY: Vec2 = Vec2::new(
-    crate::game::items::blueprint::PRACTICE.x,
-    crate::game::items::blueprint::PRACTICE.z,
+    crate::level::layout::PRACTICE.x,
+    crate::level::layout::PRACTICE.z,
 );
 pub const TARGETS: [Vec3; 3] = [
-    crate::game::items::blueprint::point(29., 51., 1.85),
-    crate::game::items::blueprint::point(35., 51., 1.85),
-    crate::game::items::blueprint::point(41., 51., 1.85),
+    crate::level::layout::point(29., 51., 1.85),
+    crate::level::layout::point(35., 51., 1.85),
+    crate::level::layout::point(41., 51., 1.85),
 ];
 pub const MIN_TARGET_DISTANCE: f32 = 6.0;
 const TARGET_RADIUS: f32 = 0.8;
@@ -159,18 +159,18 @@ pub fn spawn_range(
         ));
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(2.8, 0.035, 1.6))),
-            MeshMaterial3d(materials.add(crate::game::items::ItemKind::Blueprint.color())),
+            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
             Transform::from_xyz(center.x, 0.025, ENTRY.y),
         ));
         // Each lane marks the minimum ground distance to its target.
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(4., 0.045, 0.12))),
-            MeshMaterial3d(materials.add(crate::game::items::ItemKind::Blueprint.color())),
+            MeshMaterial3d(materials.add(crate::items::ItemKind::Blueprint.color())),
             Transform::from_xyz(center.x, 0.03, center.z + MIN_TARGET_DISTANCE),
         ));
     }
     {
-        let mut scene = crate::scenery::Scenery {
+        let mut scene = crate::level::scenery::Scenery {
             commands: &mut commands,
             assets: &assets,
             tracked: &mut tracked,
@@ -180,7 +180,7 @@ pub fn spawn_range(
         };
         for center in TARGETS {
             scene.item(
-                crate::game::items::ItemKind::Blueprint,
+                crate::items::ItemKind::Blueprint,
                 Transform::from_xyz(center.x, 0.65, center.z + 0.4).with_scale(Vec3::splat(0.55)),
             );
         }
@@ -299,12 +299,15 @@ pub fn shoot(
     if practice.cooldown > 0.0 {
         return;
     }
+    let Some(eye) = view.eye else {
+        return;
+    };
     practice.shots += 1;
     practice.cooldown = 0.16;
     practice.recoil = 1.0;
-    let rotation = Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.0);
-    let origin = ground(player.position, player.height + 1.5);
-    let direction = rotation * Vec3::NEG_Z;
+    let rotation = eye.rotation;
+    let origin = eye.translation;
+    let direction = eye.forward().as_vec3();
     let filter = |entity| {
         !ignored.contains(entity)
             && parts
@@ -380,7 +383,6 @@ pub fn shoot(
 pub fn update_visuals(
     mut commands: Commands,
     time: Res<Time>,
-    player: Res<Player>,
     view: Res<ViewState>,
     load: Res<LevelLoad>,
     ui: Res<UiState>,
@@ -406,22 +408,19 @@ pub fn update_visuals(
     mut debris: Query<(Entity, &mut Transform, &mut Debris)>,
     mut gizmos: Gizmos,
 ) {
-    let visible = view.first_person && load.is_ready() && !ui.menu;
+    let visible = view.first_person && view.eye.is_some() && load.is_ready() && !ui.menu;
     *gun.1 = if visible {
         Visibility::Visible
     } else {
         Visibility::Hidden
     };
     overlay.1.is_active = visible;
-    *overlay.0 = **camera;
-    let bob = if view.captured {
-        (player.walked * 6.0).sin() * 0.008
-    } else {
-        0.0
-    };
+    // GameCamera is local to the head in FPV; the overlay uses its world pose.
+    let camera = view.eye.unwrap_or(**camera);
+    *overlay.0 = camera;
     *gun.0 = Transform::from_translation(
         camera.translation
-            + camera.rotation * Vec3::new(0.25, -0.25 + bob, -0.42 + practice.recoil * 0.075),
+            + camera.rotation * Vec3::new(0.25, -0.25, -0.42 + practice.recoil * 0.075),
     )
     .with_rotation(camera.rotation * Quat::from_rotation_x(practice.recoil * 0.10))
     .with_scale(Vec3::splat(0.55));
@@ -453,6 +452,7 @@ pub fn update_visuals(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::level::ground;
 
     #[test]
     fn target_faces_accept_straight_and_oblique_hits_but_respect_blockers() {

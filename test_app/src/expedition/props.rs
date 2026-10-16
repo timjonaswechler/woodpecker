@@ -1,16 +1,14 @@
 //! Interactive props and feedback for the room tasks.
 use crate::{
-    game::items::ItemKind,
-    game::items::blueprint::{self as map, DATA},
-    game::level::LevelAssets,
+    expedition::{CellState, Expedition},
+    items::ItemKind,
+    level::LevelAssets,
+    level::layout::{self as map, DATA},
+    level::navigation::Navigation,
+    level::scenery::Scenery,
     player::Player,
-    player::actions::expedition::{CellState, Expedition},
-    player::actions::navigation::Navigation,
-    scenery::Scenery,
 };
 use bevy::prelude::*;
-pub const CHEST_CENTER: Vec3 = map::point(46., 51., 0.4);
-pub const CHEST_SIZE: Vec3 = Vec3::new(1.6, 0.8, 1.2);
 
 #[derive(Component)]
 pub enum Pickup {
@@ -26,7 +24,7 @@ pub enum Feedback {
 }
 #[derive(Component)]
 pub struct OriginalPose(pub Transform);
-pub fn spawn_course(
+pub fn spawn(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut tracked: ResMut<LevelAssets>,
@@ -93,7 +91,7 @@ pub fn spawn_course(
     clippy::too_many_arguments,
     reason = "Props reflect task state in the scene and collision world."
 )]
-pub fn update_course(
+pub fn update(
     mut commands: Commands,
     time: Res<Time>,
     mission: Res<Expedition>,
@@ -153,7 +151,7 @@ pub fn update_course(
         if let Some(mut mat) = materials.get_mut(&handle.0) {
             let color = match kind {
                 Feedback::Water => ItemKind::Blueprint.color(),
-                Feedback::Signal => crate::game::level::GOLD,
+                Feedback::Signal => crate::level::GOLD,
             };
             let emissive = if active {
                 LinearRgba::new(0.25, 0.4, 0.35, 1.)
@@ -190,21 +188,5 @@ pub fn update_course(
             player.route.clear();
         }
         *previous_rack = mission.rack_open;
-    }
-}
-
-/// Runtime props replace the generic planning consoles and invisible trigger areas.
-pub fn hide_planning_markers(
-    ready: On<bevy::world_serialization::WorldInstanceReady>,
-    children: Query<&Children>,
-    mut nodes: Query<(&Name, &mut Visibility)>,
-) {
-    for entity in children.iter_descendants(ready.entity) {
-        if let Ok((name, mut visibility)) = nodes.get_mut(entity)
-            && (name.as_str().contains("interaction ring")
-                || crate::stations::replaces(name.as_str()))
-        {
-            *visibility = Visibility::Hidden;
-        }
     }
 }

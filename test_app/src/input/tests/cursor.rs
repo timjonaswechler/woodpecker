@@ -1,5 +1,5 @@
 use super::*;
-use crate::{camera::GameCamera, ui::UiBlock};
+use crate::{player::camera::GameCamera, ui::UiBlock};
 use bevy::{
     camera::{CameraProjection, ComputedCameraValues, RenderTargetInfo},
     picking::pointer::Location,

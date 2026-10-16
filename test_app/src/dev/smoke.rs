@@ -2,16 +2,17 @@
 mod notes;
 mod stations;
 use crate::{
-    camera::{GameCamera, ViewState},
-    game::items::blueprint::{self as map, DATA},
-    game::items::coins::CoinRun,
-    game::level::LevelLoad,
+    commands::{Action, Actions},
+    expedition::Expedition,
+    items::coins::CoinRun,
+    level::LevelLoad,
+    level::layout::{self as map, DATA},
+    level::navigation::Navigation,
     player::Player,
-    player::actions::expedition::Expedition,
-    player::actions::navigation::Navigation,
-    player::actions::shooting::{self, Practice},
+    player::camera::{GameCamera, ViewState},
+    practice::{self, Practice},
     settings::Settings,
-    ui::{Action, Actions, NameInput, UiState},
+    ui::{NameInput, UiState},
 };
 use bevy::{
     camera::RenderTarget,
@@ -113,10 +114,18 @@ fn route_to(world: &mut World, point: Vec3) {
 }
 
 fn aim_at(world: &mut World, point: Vec3) {
-    let position = world.resource::<Player>().position;
-    let direction = (point
-        - crate::game::level::ground(position, world.resource::<Player>().height + 1.5))
-    .normalize();
+    // Test teleports bypass Update. Resolve the real head point before aiming.
+    world
+        .run_system_cached(crate::player::update_model)
+        .unwrap();
+    world
+        .run_system_cached(crate::player::camera::update_camera)
+        .unwrap();
+    let eye = world
+        .resource::<ViewState>()
+        .eye
+        .expect("player head ready");
+    let direction = (point - eye.translation).normalize();
     world.resource_mut::<Player>().yaw = (-direction.x).atan2(-direction.z);
     world.resource_mut::<ViewState>().pitch = direction.y.asin();
 }
@@ -446,7 +455,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
             release(world);
             if !test.occlusion_checked {
                 if test.frames == 5 {
-                    aim_at(world, shooting::TARGETS[2]);
+                    aim_at(world, practice::TARGETS[2]);
                     fire(world);
                 }
                 if test.frames >= 10 {
@@ -469,12 +478,12 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 let distance = world
                     .resource::<Player>()
                     .position
-                    .distance(shooting::TARGETS[1].xz());
+                    .distance(practice::TARGETS[1].xz());
                 if distance > 3. && test.frames <= 1 {
                     press(world, KeyCode::KeyW);
                     test.frames = 0;
                 } else if test.frames == 5 {
-                    aim_at(world, shooting::TARGETS[1]);
+                    aim_at(world, practice::TARGETS[1]);
                     fire(world);
                 } else if test.frames >= 10 {
                     assert_eq!(
@@ -510,10 +519,10 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 }
                 world.resource_mut::<Actions>().0.push(Action::View);
                 true
-            } else if (shooting::TARGETS[test.coin].x - world.resource::<Player>().position.x).abs()
+            } else if (practice::TARGETS[test.coin].x - world.resource::<Player>().position.x).abs()
                 > 0.15
             {
-                let dx = shooting::TARGETS[test.coin].x - world.resource::<Player>().position.x;
+                let dx = practice::TARGETS[test.coin].x - world.resource::<Player>().position.x;
                 world.resource_mut::<Player>().yaw = 0.;
                 world.resource_mut::<ViewState>().pitch = 0.;
                 press(
@@ -527,7 +536,7 @@ pub fn step(world: &mut World, mut test: Local<Smoke>) {
                 test.frames = 0;
                 false
             } else if test.frames == 5 {
-                aim_at(world, shooting::TARGETS[test.coin]);
+                aim_at(world, practice::TARGETS[test.coin]);
                 fire(world);
                 false
             } else if test.frames == 10 {

@@ -2,13 +2,14 @@ mod fonts;
 pub use fonts::apply as apply_font;
 
 use crate::{
-    camera::ViewState,
-    game::items::ItemKind,
-    game::items::coins::CoinRun,
-    game::level::{GOLD, TEAL},
+    commands::{Action, Actions},
+    expedition::Expedition,
+    items::ItemKind,
+    items::coins::CoinRun,
+    level::{GOLD, TEAL},
     player::Player,
-    player::actions::expedition::Expedition,
-    player::actions::shooting::{self, Practice},
+    player::camera::ViewState,
+    practice::{self, Practice},
     settings::Settings,
 };
 use bevy::{
@@ -63,28 +64,6 @@ pub struct InteractivePanel;
 #[derive(Component)]
 pub struct InteractionPrompt;
 
-#[derive(Component, Clone, Copy, Debug)]
-pub enum Action {
-    View,
-    Map,
-    Settings,
-    Resume,
-    Restart,
-    Range,
-    Interact,
-    Objective,
-    Checkpoint,
-    Sensitivity(f32),
-    Speed(f32),
-    Fov(f32),
-    Path,
-    Shadows,
-    Invert,
-    Defaults,
-    Quit,
-}
-#[derive(Resource, Default)]
-pub struct Actions(pub Vec<Action>);
 #[derive(Component)]
 pub enum Label {
     Progress,
@@ -244,7 +223,7 @@ pub fn spawn_ui(
     mut commands: Commands,
     settings: Res<Settings>,
     assets: Res<AssetServer>,
-    mut tracked: ResMut<crate::game::level::LevelAssets>,
+    mut tracked: ResMut<crate::level::LevelAssets>,
 ) {
     commands.insert_resource(fonts::load(&assets, &mut tracked));
     // Draw the HUD after both the level and the FPV weapon pass.
@@ -608,7 +587,7 @@ pub fn update_ui(
     settings: Res<Settings>,
     practice: Res<Practice>,
     expedition: Res<Expedition>,
-    nav: Res<crate::player::actions::navigation::Navigation>,
+    nav: Res<crate::level::navigation::Navigation>,
     focus: Res<InputFocus>,
     inputs: Query<(), With<EditableText>>,
     mut labels: Query<(&Label, &mut Text)>,
@@ -637,27 +616,27 @@ pub fn update_ui(
         || !mode.accepts_input(&window)
         || focus.get().is_some_and(|entity| inputs.contains(entity))
     {
-        crate::player::actions::expedition::Interaction::None
+        crate::expedition::Interaction::None
     } else {
         expedition.interaction(&player, &nav, &view)
     };
     for (label, mut value) in &mut labels {
         let new = match label {
             Label::Title => if expedition.finished { "Signal aktiv".into() }
-                else {crate::game::items::blueprint::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
+                else {crate::level::layout::room(player.position).map_or("Wartungsgang".into(),|r|format!("{} · {}",r.id,r.name))},
             Label::Resource(kind) => kind.count(&run, &expedition).to_string(),
             Label::Objective => expedition.objective().into(),
             Label::Interaction => interaction.prompt().into(),
             Label::Crosshair => if practice.hit_flash > 0.0 { "×" } else { "+" }.into(),
-            Label::Range => if shooting::in_range(player.position) {
+            Label::Range => if practice::in_range(player.position) {
                 if expedition.practice_reward { "Bauplan-Truhe entriegelt · hinten rechts".into() }
                 else {
-                    let distance = shooting::TARGETS.iter().enumerate().filter(|(i,_)| !practice.targets_hit[*i])
+                    let distance = practice::TARGETS.iter().enumerate().filter(|(i,_)| !practice.targets_hit[*i])
                         .map(|(_,p)| p.xz().distance(player.position)).fold(f32::INFINITY, f32::min);
-                    format!("Mindestabstand {:.0} m · nächstes Ziel {distance:.1} m\n{} gültige Treffer · V für FPV", shooting::MIN_TARGET_DISTANCE, practice.hits)
+                    format!("Mindestabstand {:.0} m · nächstes Ziel {distance:.1} m\n{} gültige Treffer · V für FPV", practice::MIN_TARGET_DISTANCE, practice.hits)
                 }
             } else { String::new() },
-            Label::Progress => if shooting::in_range(player.position) && player.height<0.2 {format!("{} Punkte",practice.score)}
+            Label::Progress => if practice::in_range(player.position) && player.height<0.2 {format!("{} Punkte",practice.score)}
                 else {format!("Ziel {:.0} m · Ebene {}",player.feet().distance(expedition.destination()),if player.height>2.8 {"oben"} else {"unten"})},
             Label::Clock => format!(
                 "{:02}:{:02}  ·  {}",
@@ -729,7 +708,7 @@ pub fn update_ui(
         if hud {
             node.display = if ui.menu
                 || (interactive && view.first_person && view.captured)
-                || (prompt && interaction == crate::player::actions::expedition::Interaction::None)
+                || (prompt && interaction == crate::expedition::Interaction::None)
             {
                 Display::None
             } else {

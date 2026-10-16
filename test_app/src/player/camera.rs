@@ -1,7 +1,7 @@
 use crate::{
-    game::items::blueprint,
-    game::level::{LevelLoad, ground},
     input::InputMode,
+    level::layout,
+    level::{LevelLoad, ground},
     player::Player,
     settings::Settings,
     ui::UiState,
@@ -11,11 +11,47 @@ use bevy::{
     input_focus::InputFocus,
     prelude::*,
     text::EditableText,
+    transform::helper::TransformHelper,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
 
 #[derive(Component)]
 pub struct GameCamera;
+
+/// Fixed eye point in Dummy_Head's local, unscaled glTF coordinates.
+const EYE_POSITION: Vec3 = Vec3::new(0., 0.65, 0.);
+
+#[derive(Component)]
+pub(crate) struct EyeAnchor;
+
+pub(super) fn spawn_eye(commands: &mut Commands, head: Entity) {
+    commands.spawn((
+        Name::new("Augenpunkt"),
+        EyeAnchor,
+        ChildOf(head),
+        // The model faces +Z; cameras look along -Z.
+        Transform::from_translation(EYE_POSITION)
+            .with_rotation(Quat::from_rotation_y(std::f32::consts::PI)),
+    ));
+}
+
+pub fn spawn_camera(mut commands: Commands) {
+    commands.spawn((
+        Name::new("Spielkamera"),
+        GameCamera,
+        Camera3d::default(),
+        bevy::core_pipeline::tonemapping::Tonemapping::AcesFitted,
+        Projection::Orthographic(OrthographicProjection {
+            scaling_mode: bevy::camera::ScalingMode::FixedVertical {
+                viewport_height: 32.,
+            },
+            ..OrthographicProjection::default_3d()
+        }),
+        Transform::from_translation(layout::START + Vec3::new(10., 32., 25.))
+            .looking_at(layout::START, Vec3::Y),
+        Msaa::Sample4,
+    ));
+}
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
@@ -24,6 +60,8 @@ pub struct ViewState {
     pub captured: bool,
     pub pitch: f32,
     pub map: bool,
+    /// Current world-space view, shared by rendering, shots and interaction rays.
+    pub eye: Option<Transform>,
 }
 
 impl ViewState {
@@ -88,15 +126,35 @@ pub fn sync_cursor(
     };
 }
 
+#[expect(
+    clippy::type_complexity,
+    clippy::too_many_arguments,
+    reason = "The head hierarchy must be read before mutating the camera transform."
+)]
 pub fn update_camera(
+    mut commands: Commands,
     player: Res<Player>,
-    view: Res<ViewState>,
+    mut view: ResMut<ViewState>,
     settings: Res<Settings>,
     time: Res<Time>,
     mut previous_fpv: Local<bool>,
-    mut camera: Single<(&mut Transform, &mut Projection), With<GameCamera>>,
+    eyes: Query<Entity, With<EyeAnchor>>,
+    mut transforms: ParamSet<(
+        TransformHelper,
+        Single<(Entity, &mut Transform, &mut Projection, Option<&ChildOf>), With<GameCamera>>,
+    )>,
 ) {
-    let (ref mut camera_transform, ref mut projection) = *camera;
+    // GlobalTransform is not propagated until PostUpdate. Resolve the current
+    // model/head pose now, so rays and the rendered camera use the same frame.
+    let eye = eyes.single().ok().and_then(|entity| {
+        transforms
+            .p0()
+            .compute_global_transform(entity)
+            .ok()
+            .map(|global| (entity, global))
+    });
+    let mut camera = transforms.p1();
+    let (entity, ref mut camera_transform, ref mut projection, parent) = *camera;
     if view.first_person {
         **projection = Projection::Perspective(PerspectiveProjection {
             fov: settings.fov.to_radians(),
@@ -104,16 +162,32 @@ pub fn update_camera(
             far: 200.,
             ..default()
         });
-        **camera_transform =
-            Transform::from_translation(ground(player.position, player.height + 1.5))
-                .with_rotation(Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.));
+        view.eye = eye.map(|(anchor, global)| {
+            if parent.map(ChildOf::parent) != Some(anchor) {
+                commands.entity(entity).insert(ChildOf(anchor));
+            }
+            // Translation stays fixed at the head's eye point. Only mouse look
+            // changes the local rotation; walking belongs entirely to the model.
+            **camera_transform = Transform::from_rotation(Quat::from_rotation_x(view.pitch))
+                .with_scale(global.scale().recip());
+            global.mul_transform(**camera_transform).compute_transform()
+        });
+        if view.eye.is_none() {
+            // The glTF hierarchy may still be loading. Never invent an eye
+            // height or run a separate camera gait while waiting for its head.
+            camera_transform.rotation = Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.);
+        }
     } else {
+        view.eye = None;
+        if parent.is_some() {
+            commands.entity(entity).remove::<ChildOf>();
+        }
         let (target, extent) = if view.map {
             (Vec3::new(-2., 0., 1.), 100.)
-        } else if let Some(room) = blueprint::room(player.position) {
+        } else if let Some(room) = layout::room(player.position) {
             let [x0, y0, x1, y1] = room.bounds;
             (
-                blueprint::point((x0 + x1) / 2. + 3., (y0 + y1) / 2., 1.),
+                layout::point((x0 + x1) / 2. + 3., (y0 + y1) / 2., 1.),
                 (x1 - x0).max(y1 - y0) * 0.95 + 14.,
             )
         } else {
@@ -147,3 +221,6 @@ pub fn update_camera(
     }
     *previous_fpv = view.first_person;
 }
+
+#[cfg(test)]
+mod tests;

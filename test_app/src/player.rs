@@ -1,10 +1,10 @@
-pub mod actions;
+pub(crate) mod camera;
 
 use crate::{
-    camera::{GameCamera, ViewState},
-    game::items::blueprint::START,
-    game::level::{self, LevelLoad, ground},
-    player::actions::navigation::Navigation,
+    level::layout::START,
+    level::navigation::Navigation,
+    level::{self, LevelLoad, ground},
+    player::camera::{GameCamera, ViewState},
     settings::Settings,
     ui::{UiBlock, UiState, pointer_over_ui},
 };
@@ -12,7 +12,9 @@ use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::Prim
 use std::collections::VecDeque;
 
 pub const MODEL_SCALE: f32 = 0.78;
+/// Maximum vertical visual offset, including the torso's gait, in world units.
 pub const MODEL_BOB: f32 = 0.07;
+const BODY_BOB: f32 = 0.1;
 
 pub fn limb_rotation(name: &str) -> Quat {
     match name {
@@ -24,8 +26,37 @@ pub fn limb_rotation(name: &str) -> Quat {
 #[derive(Component)]
 pub struct PlayerModel;
 
+/// Authored local rest height: animate the torso without moving the foot/base.
+#[derive(Component)]
+pub(crate) struct BodyMotion {
+    rest_y: f32,
+}
+
+pub fn spawn_player(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut tracked: ResMut<crate::level::LevelAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mut scene = crate::level::scenery::Scenery {
+        commands: &mut commands,
+        assets: &assets,
+        tracked: &mut tracked,
+        meshes: &mut meshes,
+        materials: &mut materials,
+        parent: None,
+    };
+    let player = scene.kaykit(
+        "Dummy_Base",
+        Transform::from_translation(START).with_scale(Vec3::splat(crate::player::MODEL_SCALE)),
+    );
+    scene.commands.entity(player).insert(PlayerModel);
+}
+
 pub fn pose_player(
     ready: On<bevy::world_serialization::WorldInstanceReady>,
+    mut commands: Commands,
     roots: Query<(), With<PlayerModel>>,
     children: Query<&Children>,
     mut nodes: Query<(&Name, &mut Transform), Without<PlayerModel>>,
@@ -35,8 +66,21 @@ pub fn pose_player(
     }
     for entity in children.iter_descendants(ready.entity) {
         if let Ok((name, mut transform)) = nodes.get_mut(entity) {
-            transform.rotation *= limb_rotation(name.as_str());
+            pose_part(&mut commands, entity, name.as_str(), &mut transform);
         }
+    }
+}
+
+fn pose_part(commands: &mut Commands, entity: Entity, name: &str, transform: &mut Transform) {
+    transform.rotation *= limb_rotation(name);
+    match name {
+        "Dummy_Body" => {
+            commands.entity(entity).insert(BodyMotion {
+                rest_y: transform.translation.y,
+            });
+        }
+        "Dummy_Head" => camera::spawn_eye(commands, entity),
+        _ => (),
     }
 }
 
@@ -48,6 +92,8 @@ pub struct Player {
     pub yaw: f32,
     pub height: f32,
     pub vertical_speed: f32,
+    /// Walking/running mode is retained in the air and updated only on the ground.
+    pub sprinting: bool,
     pub(crate) coyote: f32,
     pub(crate) jump_buffer: f32,
     pub walked: f32,
@@ -61,6 +107,7 @@ impl Default for Player {
             yaw: 0.0,
             height: 0.0,
             vertical_speed: 0.0,
+            sprinting: false,
             coyote: 0.0,
             jump_buffer: 0.0,
             walked: 0.0,
@@ -74,6 +121,7 @@ impl Player {
         self.position = position;
         self.height = height;
         self.vertical_speed = 0.0;
+        self.sprinting = false;
         self.coyote = 0.0;
         self.jump_buffer = 0.0;
         self.route.clear();
@@ -83,10 +131,14 @@ impl Player {
         ground(self.position, self.height)
     }
 
+    fn is_grounded(&self, nav: &Navigation) -> bool {
+        let floor = nav.support(self.position, self.height + 0.02);
+        (self.height - floor).abs() < 0.025 && self.vertical_speed <= 0.0
+    }
+
     /// Ground support and ceiling collision are evaluated on the current floor.
     pub fn advance(&mut self, nav: &Navigation, delta: Vec2, dt: f32, jump: bool) {
-        let floor = nav.support(self.position, self.height + 0.02);
-        let grounded = (self.height - floor).abs() < 0.025 && self.vertical_speed <= 0.0;
+        let grounded = self.is_grounded(nav);
         self.coyote = if grounded {
             0.10
         } else {
@@ -107,12 +159,12 @@ impl Player {
         let old_height = self.height;
         let ceiling = nav.ceiling(
             self.position,
-            self.height + crate::player::actions::navigation::BODY_HEIGHT,
+            self.height + crate::level::navigation::BODY_HEIGHT,
         );
         let mut next_height = self.height + self.vertical_speed * dt - 9.0 * dt * dt;
         self.vertical_speed -= 18.0 * dt;
-        if next_height + crate::player::actions::navigation::BODY_HEIGHT > ceiling {
-            next_height = ceiling - crate::player::actions::navigation::BODY_HEIGHT;
+        if next_height + crate::level::navigation::BODY_HEIGHT > ceiling {
+            next_height = ceiling - crate::level::navigation::BODY_HEIGHT;
             self.vertical_speed = self.vertical_speed.min(0.0);
         }
         let from = ground(
@@ -239,12 +291,12 @@ pub fn move_player(
     if keys.pressed(KeyCode::ArrowDown) || (view.first_person && keys.pressed(KeyCode::KeyS)) {
         axis.y += 1.0;
     }
-    let speed = settings.speed
-        * if keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]) {
-            1.65
-        } else {
-            1.0
-        };
+    // Use the same ground-contact rule as jumping and body bob. Shift changes
+    // neither walking to running nor running to walking while airborne.
+    if player.is_grounded(&nav) {
+        player.sprinting = keys.any_pressed([KeyCode::ShiftLeft, KeyCode::ShiftRight]);
+    }
+    let speed = settings.speed * if player.sprinting { 1.65 } else { 1.0 };
     let before = player.position;
     let mut delta = Vec2::ZERO;
     if axis != Vec2::ZERO {
@@ -277,16 +329,26 @@ pub fn move_player(
 
 pub fn update_model(
     player: Res<Player>,
+    nav: Res<Navigation>,
     view: Res<ViewState>,
     settings: Res<Settings>,
     mut model: Single<(&mut Transform, &mut Visibility), With<PlayerModel>>,
+    mut bodies: Query<(&BodyMotion, &mut Transform), Without<PlayerModel>>,
     mut gizmos: Gizmos,
 ) {
     let (ref mut player_transform, ref mut visibility) = *model;
-    player_transform.translation = ground(
-        player.position,
-        player.height + MODEL_BOB - 0.045 + (player.walked * 7.0).sin().abs() * 0.045,
-    );
+    player_transform.translation = ground(player.position, player.height + MODEL_BOB - BODY_BOB);
+    // Distance drives the grounded gait in both perspectives and for keyboard/click
+    // routes. In the air, only the root follows the jump; the torso stays at rest.
+    // Convert world amplitude to model units once. Head, arms and eye follow it.
+    let bob = if player.is_grounded(&nav) {
+        (player.walked * 1.50).sin().abs() * BODY_BOB / MODEL_SCALE
+    } else {
+        0.0
+    };
+    for (body, mut transform) in &mut bodies {
+        transform.translation.y = body.rest_y + bob;
+    }
     // Dummy_Base faces local +Z; movement and the FPV camera use local -Z.
     player_transform.rotation = Quat::from_rotation_y(player.yaw + std::f32::consts::PI);
     **visibility = if view.first_person {
@@ -357,7 +419,12 @@ mod tests {
                 .init_gizmo_group::<DefaultGizmoConfigGroup>()
                 .add_systems(
                     Update,
-                    (move_player, update_model, crate::camera::update_camera).chain(),
+                    (
+                        move_player,
+                        update_model,
+                        crate::player::camera::update_camera,
+                    )
+                        .chain(),
                 );
             app.world_mut()
                 .resource_mut::<Time>()

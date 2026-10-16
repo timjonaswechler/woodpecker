@@ -1,12 +1,89 @@
 //! Exercise the exported level with the same navigation and body used by the game.
 use crate::{
-    game::items::blueprint::{self as map, DATA, point},
-    game::level,
+    expedition::{CellState, Expedition, Interaction},
+    level,
+    level::layout::{self as map, DATA, point},
+    level::navigation::{BODY_HEIGHT, Navigation},
     player::Player,
-    player::actions::expedition::{CellState, Expedition, Interaction},
-    player::actions::navigation::{BODY_HEIGHT, Navigation},
 };
 use bevy::prelude::*;
+
+#[test]
+fn level_player_coins_and_camera_spawn_through_their_own_modules() {
+    use crate::{items::coins, player, player::camera};
+    use bevy::world_serialization::WorldAsset;
+
+    let mut app = App::new();
+    app.add_plugins((MinimalPlugins, AssetPlugin::default()))
+        .init_asset::<WorldAsset>()
+        .init_asset::<Mesh>()
+        .init_asset::<StandardMaterial>()
+        .init_resource::<level::LevelAssets>()
+        .init_resource::<crate::settings::Settings>();
+    let world = app.world_mut();
+
+    world.run_system_cached(level::spawn_level).unwrap();
+    assert_eq!(world.query::<&WorldAssetRoot>().iter(world).count(), 1);
+    assert_eq!(world.query::<&player::PlayerModel>().iter(world).count(), 0);
+    assert_eq!(world.query::<&coins::Coin>().iter(world).count(), 0);
+    assert_eq!(world.query::<&camera::GameCamera>().iter(world).count(), 0);
+
+    world.run_system_cached(player::spawn_player).unwrap();
+    let transform = world
+        .query_filtered::<&Transform, With<player::PlayerModel>>()
+        .single(world)
+        .unwrap();
+    assert_eq!(transform.translation, map::START);
+    assert_eq!(transform.scale, Vec3::splat(player::MODEL_SCALE));
+
+    world.run_system_cached(coins::spawn_coins).unwrap();
+    let mut pickups: Vec<_> = world
+        .query::<(&coins::Coin, &Transform)>()
+        .iter(world)
+        .map(|(coin, transform)| (coin.0, transform.translation))
+        .collect();
+    pickups.sort_by_key(|(index, _)| *index);
+    assert_eq!(pickups.len(), DATA.coins.len());
+    for (index, position) in pickups {
+        assert_eq!(position, Vec3::from(DATA.coins[index]) + Vec3::Y);
+    }
+    assert_eq!(world.resource::<level::LevelAssets>().0.len(), 26);
+
+    world.run_system_cached(camera::spawn_camera).unwrap();
+    let transform = world
+        .query_filtered::<&Transform, With<camera::GameCamera>>()
+        .single(world)
+        .unwrap();
+    assert_eq!(transform.translation, map::START + Vec3::new(10., 32., 25.));
+}
+
+#[test]
+fn reflected_resource_paths_match_the_session_contract() {
+    use bevy::reflect::TypePath;
+
+    assert_eq!(
+        [
+            level::LevelLoad::type_path(),
+            Player::type_path(),
+            crate::player::camera::ViewState::type_path(),
+            Expedition::type_path(),
+            crate::practice::Practice::type_path(),
+            crate::items::coins::CoinRun::type_path(),
+            crate::ui::UiState::type_path(),
+            crate::settings::Settings::type_path(),
+        ],
+        [
+            "test_app::level::LevelLoad",
+            "test_app::player::Player",
+            "test_app::player::camera::ViewState",
+            "test_app::expedition::Expedition",
+            "test_app::practice::Practice",
+            "test_app::items::coins::CoinRun",
+            "test_app::ui::UiState",
+            "test_app::settings::Settings",
+        ]
+    );
+}
 
 #[test]
 fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
@@ -67,7 +144,7 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
     );
     let nav = Navigation::new(
         Vec::new(),
-        vec![crate::player::actions::navigation::Obstacle {
+        vec![crate::level::navigation::Obstacle {
             name: "wall".into(),
             center: [0., 1.5, 0.],
             half: [0.1, 1.5, 3.],
@@ -84,8 +161,8 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
             let p = rotation * vertex;
             assert!(player.position.x + p.x <= -0.1, "visible mesh crossed wall");
             assert!(
-                p.x.abs() <= crate::player::actions::navigation::BODY_HALF
-                    && p.z.abs() <= crate::player::actions::navigation::BODY_HALF
+                p.x.abs() <= crate::level::navigation::BODY_HALF
+                    && p.z.abs() <= crate::level::navigation::BODY_HALF
             );
             assert!(
                 p.y + crate::player::MODEL_BOB <= BODY_HEIGHT,
@@ -98,13 +175,13 @@ fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
 #[test]
 fn box_corners_and_deck_edges_are_solid() {
     let nav = Navigation::new(
-        vec![crate::player::actions::navigation::Surface {
+        vec![crate::level::navigation::Surface {
             center: [0., 0.],
             half: [2., 2.],
             height: 3.,
             bottom: 2.7,
         }],
-        vec![crate::player::actions::navigation::Obstacle {
+        vec![crate::level::navigation::Obstacle {
             name: "corner".into(),
             center: [5., 1.5, 5.],
             half: [0.1, 1.5, 0.1],
@@ -313,7 +390,7 @@ fn cells_require_tasks_and_allow_any_order_and_partial_delivery() {
 
 #[test]
 fn resource_inventory_consumes_parts_and_delivered_cells() {
-    use crate::{game::items::ItemKind, game::items::coins::CoinRun};
+    use crate::{items::ItemKind, items::coins::CoinRun};
     use Interaction::*;
     let mut mission = Expedition::default();
     let mut coins = CoinRun::default();
@@ -352,16 +429,20 @@ fn archive_scanner_can_be_used_from_every_accessible_side() {
         let mut player = Player::default();
         player.respawn(position.xz(), 0.);
         assert_eq!(
-            mission.interaction(&player, &nav, &crate::camera::ViewState::default()),
+            mission.interaction(&player, &nav, &crate::player::camera::ViewState::default()),
             Interaction::Scan(0),
             "scanner unavailable from {offset:?}"
         );
         let direction = (center + Vec3::Y - (player.feet() + Vec3::Y * 1.5)).normalize();
         player.yaw = (-direction.x).atan2(-direction.z);
-        let view = crate::camera::ViewState {
+        let view = crate::player::camera::ViewState {
             first_person: true,
             captured: true,
             pitch: direction.y.asin(),
+            eye: Some(
+                Transform::from_translation(player.feet() + Vec3::Y * 1.5)
+                    .looking_to(direction, Vec3::Y),
+            ),
             ..default()
         };
         assert_eq!(
@@ -377,10 +458,14 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
     let mut mission = Expedition::default();
     let mut player = Player::default();
     player.respawn(point(4., 48.4, 0.).xz(), 0.);
-    let mut view = crate::camera::ViewState {
+    let mut view = crate::player::camera::ViewState {
         first_person: true,
         captured: true,
         pitch: -0.3,
+        eye: Some(
+            Transform::from_translation(player.feet() + Vec3::Y * 1.5)
+                .with_rotation(Quat::from_rotation_x(-0.3)),
+        ),
         ..default()
     };
     assert_eq!(
@@ -388,8 +473,11 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
         Interaction::Scan(0)
     );
     player.yaw = std::f32::consts::PI;
+    view.eye.as_mut().unwrap().rotation =
+        Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.);
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     player.yaw = 0.;
+    view.eye.as_mut().unwrap().rotation = Quat::from_rotation_x(view.pitch);
     player.height = 3.;
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     player.height = 0.;
@@ -399,12 +487,11 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
     view.captured = false;
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     view.captured = true;
-    nav.obstacles
-        .push(crate::player::actions::navigation::Obstacle {
-            name: "test wall".into(),
-            center: point(4., 49.2, 1.5).to_array(),
-            half: [2., 1.5, 0.10],
-        });
+    nav.obstacles.push(crate::level::navigation::Obstacle {
+        name: "test wall".into(),
+        center: point(4., 49.2, 1.5).to_array(),
+        half: [2., 1.5, 0.10],
+    });
     assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
     nav.obstacles.pop();
     mission.apply(Interaction::Scan(0));
@@ -421,10 +508,35 @@ fn interaction_requires_aim_reach_same_floor_and_no_wall() {
 }
 
 #[test]
+fn first_person_interactions_use_the_actual_head_camera_ray() {
+    let nav = level::layout();
+    let mission = Expedition::default();
+    let mut player = Player::default();
+    player.respawn(point(4., 48.4, 0.).xz(), 0.);
+    let mut view = crate::player::camera::ViewState {
+        first_person: true,
+        captured: true,
+        ..default()
+    };
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    // A level ray above the scanner must miss, even though the old fixed
+    // 1.5-metre origin and player's yaw/pitch would have selected it.
+    view.eye = Some(Transform::from_translation(player.feet() + Vec3::Y * 2.));
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+    view.eye.as_mut().unwrap().translation.y = 0.9;
+    assert_eq!(
+        mission.interaction(&player, &nav, &view),
+        Interaction::Scan(0)
+    );
+    view.eye.as_mut().unwrap().rotation = Quat::from_rotation_y(std::f32::consts::PI);
+    assert_eq!(mission.interaction(&player, &nav, &view), Interaction::None);
+}
+
+#[test]
 fn body_sweeps_stop_at_walls_and_land_on_boxes() {
     let nav = Navigation::new(
         Vec::new(),
-        vec![crate::player::actions::navigation::Obstacle {
+        vec![crate::level::navigation::Obstacle {
             name: "box".into(),
             center: [0., 0.5, 0.],
             half: [1., 0.5, 1.],

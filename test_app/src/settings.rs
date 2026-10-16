@@ -1,4 +1,3 @@
-pub mod options;
 mod storage;
 
 use bevy::prelude::*;

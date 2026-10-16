@@ -1,12 +1,12 @@
-//! Object-sized interaction targets. Walking clearance is not an interaction ray.
+//! Station placement, interaction extents and physical colliders.
 use crate::{
-    camera::ViewState,
-    game::items::blueprint as map,
-    player::Player,
-    player::actions::expedition::{Expedition, Interaction},
-    player::actions::navigation::Navigation,
+    expedition::Interaction,
+    level::{layout as map, navigation::Obstacle},
 };
 use bevy::prelude::*;
+
+pub const CHEST_CENTER: Vec3 = map::point(46., 51., 0.4);
+pub const CHEST_SIZE: Vec3 = Vec3::new(1.6, 0.8, 1.2);
 
 #[derive(Clone, Copy)]
 pub struct Target {
@@ -136,81 +136,31 @@ pub const TABLES: [Target; 5] = [
     ),
 ];
 
-pub fn targets() -> impl Iterator<Item = Target> {
+pub fn all() -> impl Iterator<Item = Target> {
     STATIONS.into_iter().chain(TABLES)
 }
 
-/// Distance to a box along a ray, including rays parallel to a face.
-fn box_hit(origin: Vec3, direction: Vec3, center: Vec3, half: Vec3) -> Option<f32> {
-    let mut entry: f32 = 0.;
-    let mut exit = f32::INFINITY;
-    for i in 0..3 {
-        let relative = origin[i] - center[i];
-        if direction[i].abs() < 0.00001 {
-            if relative.abs() > half[i] {
-                return None;
-            }
-        } else {
-            let a = (-half[i] - relative) / direction[i];
-            let b = (half[i] - relative) / direction[i];
-            entry = entry.max(a.min(b));
-            exit = exit.min(a.max(b));
-        }
-    }
-    (exit >= entry).then_some(entry)
-}
-
-fn unobstructed(nav: &Navigation, eye: Vec3, point: Vec3, owner: &str) -> bool {
-    let delta = point - eye;
-    let distance = delta.length();
-    let direction = delta.normalize_or_zero();
-    !nav.obstacles.iter().filter(|o| o.name != owner).any(|o| {
-        box_hit(eye, direction, o.center.into(), o.half.into())
-            .is_some_and(|hit| hit < distance - 0.02)
-    }) && !nav.surfaces.iter().any(|s| {
-        box_hit(
-            eye,
-            direction,
-            Vec3::new(s.center[0], (s.height + s.bottom) / 2., s.center[1]),
-            Vec3::new(s.half[0], (s.height - s.bottom) / 2., s.half[1]),
-        )
-        .is_some_and(|hit| hit < distance - 0.02)
-    })
-}
-
-pub fn select(
-    mission: &Expedition,
-    player: &Player,
-    nav: &Navigation,
-    view: &ViewState,
-) -> Interaction {
-    if view.first_person && !view.captured {
-        return Interaction::None;
-    }
-    let eye = player.feet() + Vec3::Y * 1.5;
-    let forward = Quat::from_euler(EulerRot::YXZ, player.yaw, view.pitch, 0.) * Vec3::NEG_Z;
-    targets()
-        .filter(|t| mission.available(t.action))
-        .filter_map(|target| {
-            if (player.height - target.floor).abs() > 0.4 {
-                return None;
-            }
-            let nearest = player.position.clamp(
-                target.center.xz() - target.half.xz(),
-                target.center.xz() + target.half.xz(),
-            );
-            let reach = player.position.distance(nearest);
-            if reach > 1.75 {
-                return None;
-            }
-            let (score, point) = if view.first_person {
-                let hit = box_hit(eye, forward, target.center, target.half)?;
-                (hit, eye + forward * hit)
+pub fn colliders() -> impl Iterator<Item = Obstacle> {
+    STATIONS.into_iter().chain(TABLES).map(|target| {
+        let (center, half) = if target.action == Interaction::Chest {
+            (CHEST_CENTER, CHEST_SIZE * 0.5)
+        } else if matches!(target.action, Interaction::Part(_) | Interaction::Cell(_)) {
+            let height = if matches!(target.action, Interaction::Part(_)) {
+                0.84
             } else {
-                (reach, target.center)
+                1.
             };
-            unobstructed(nav, eye, point, target.name).then_some((score, target.action))
-        })
-        .min_by(|a, b| a.0.total_cmp(&b.0))
-        .map_or(Interaction::None, |(_, action)| action)
+            (
+                Vec3::new(target.center.x, target.floor + height / 2., target.center.z),
+                Vec3::new(target.half.x, height / 2., target.half.z),
+            )
+        } else {
+            (target.center, target.half)
+        };
+        Obstacle {
+            name: target.name.into(),
+            center: center.to_array(),
+            half: half.to_array(),
+        }
+    })
 }

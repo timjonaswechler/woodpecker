@@ -1,16 +1,18 @@
 use super::*;
 mod cursor;
+mod locomotion;
 use crate::{
-    camera::{self, ViewState},
-    game,
-    game::items::coins::{self, CoinRun},
-    game::level::LevelLoad,
-    player::actions::expedition::{self, Expedition},
-    player::actions::navigation::Navigation,
-    player::actions::shooting::{self, Fragments, Practice},
+    commands,
+    commands::Actions,
+    expedition::{self, Expedition},
+    items::coins::{self, CoinRun},
+    level::LevelLoad,
+    level::navigation::Navigation,
+    player::camera::{self, ViewState},
     player::{self, Player},
+    practice::{self, Fragments, Practice},
     settings::Settings,
-    ui::{Actions, UiState},
+    ui::UiState,
 };
 use bevy::{
     app::AppExit,
@@ -38,7 +40,13 @@ fn app(mode: InputMode, focused: bool) -> (App, Entity) {
         .init_resource::<Navigation>()
         .init_resource::<Settings>()
         .init_resource::<Player>()
-        .init_resource::<ViewState>()
+        // This input-only harness has no glTF scene. Supply its camera pose.
+        .insert_resource(ViewState {
+            eye: Some(Transform::from_translation(
+                crate::level::layout::START + Vec3::Y * 1.5,
+            )),
+            ..default()
+        })
         .init_resource::<UiState>()
         .init_resource::<Actions>()
         .init_resource::<CoinRun>()
@@ -50,14 +58,14 @@ fn app(mode: InputMode, focused: bool) -> (App, Entity) {
         .add_systems(
             Update,
             (
-                game::keyboard_shortcuts,
-                game::handle_actions,
+                keyboard_shortcuts,
+                commands::handle_actions,
                 camera::mouse_look,
                 player::move_player,
                 coins::tick_run,
                 expedition::tick_expedition,
-                shooting::tick_practice,
-                shooting::shoot,
+                practice::tick_practice,
+                practice::shoot,
                 camera::sync_cursor,
             )
                 .chain(),
@@ -77,10 +85,14 @@ fn app(mode: InputMode, focused: bool) -> (App, Entity) {
 }
 
 fn key(app: &mut App, window: Entity, key_code: KeyCode) {
+    key_state(app, window, key_code, ButtonState::Pressed);
+}
+
+fn key_state(app: &mut App, window: Entity, key_code: KeyCode, state: ButtonState) {
     app.world_mut().write_message(KeyboardInput {
         key_code,
         logical_key: Key::Unidentified(bevy::input::keyboard::NativeKey::Unidentified),
-        state: ButtonState::Pressed,
+        state,
         text: None,
         repeat: false,
         window,
@@ -136,6 +148,11 @@ fn controlled_background_games_move_look_and_shoot_independently() {
     tick(&mut first);
     assert_eq!(first.world().resource::<Practice>().shots, 1);
     assert_eq!(second.world().resource::<Practice>().shots, 0);
+    let eye = first.world().resource::<ViewState>().eye.unwrap();
+    let (start, _, _) = first.world().resource::<Practice>().tracer.unwrap();
+    assert!(
+        start.distance(eye.translation + eye.rotation * Vec3::new(0.25, -0.19, -0.84)) < 0.00001
+    );
     let first_position = first.world().resource::<Player>().position;
     key(&mut second, other_window, KeyCode::ArrowRight);
     tick(&mut second);

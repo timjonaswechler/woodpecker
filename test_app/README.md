@@ -8,7 +8,7 @@ Eigenständige Bevy-Demo auf der Grundplatte aus dem [Levelplan](planning/grundp
 cargo run --manifest-path test_app/Cargo.toml
 ```
 
-Die Demo verwendet Bevy 0.19.1 und Rust 1.97.1 oder neuer. Sie hat einen eigenen Cargo-Workspace und benötigt Woodpecker nicht. Der Asset-Pfad funktioniert unabhängig vom Arbeitsverzeichnis. Für einen optimierten Build `--release` ergänzen.
+Die Demo verwendet Bevy 0.20.0 und Rust 1.97.1 oder neuer. Sie gehört zum gemeinsamen Cargo-Workspace; Woodpecker wird nur mit dem Feature `automation` eingebunden. Der Asset-Pfad funktioniert unabhängig vom Arbeitsverzeichnis. Für einen optimierten Build `--release` ergänzen.
 
 Der Auftrag ist, drei Energiezellen zu beschaffen und das Signal in H zu starten. Die Aufgaben lassen sich in beliebiger Reihenfolge erledigen:
 
@@ -41,6 +41,10 @@ Der Wartungsgang G1 verbindet A mit H. G3 führt hinter der Werkhalle ins Archiv
 | Tab / Umschalt+Tab | UI-Fokus wechseln |
 
 Manuelle Bewegung bricht eine Klickroute ab. Treppen werden automatisch bestiegen. Die Figur besitzt eine Kollisionsbox von 1,2 × 1,2 × 1,82 Metern. Auch ihre Arme und der Kopf bleiben innerhalb dieser Box. Wände, Ecken, Möbel, Zielständer und Galeriekanten halten sie auf. Klickwege verwenden dieselbe Körpergröße und berücksichtigen das Stockwerk; Sprünge steuert man selbst. Der Button „Zum nächsten Auftrag“ führt zum nächsten noch offenen Aufgabenziel. „Zum Schießstand“ führt nach G.
+
+Zwischen Laufen und Sprinten wechselst du nur mit Bodenkontakt. Beim Springen und Fallen bleibt der zuletzt am Boden gewählte Zustand bestehen, auch wenn du Umschalt drückst oder loslässt. Nach der Landung zählt wieder der aktuelle Zustand der Umschalttaste. Die Richtungssteuerung in der Luft bleibt möglich.
+
+Die Laufbewegung hebt und senkt `Dummy_Body` relativ zu seiner importierten Ruheposition – sowohl in der Übersicht als auch in der Egoperspektive, bei Pfeiltasten und Klickwegen. Fußteil und Kollisionskörper wippen nicht mit. Beim Springen und Fallen bleibt der Oberkörper in seiner lokalen Ruheposition; das Laufwippen setzt erst mit Bodenkontakt wieder ein. Kopf und Arme folgen als Kinder des Körpers; die Kamera hat keine eigene Laufanimation. In der Egoperspektive sitzt die Kamera am festen Augenpunkt `EYE_POSITION = (0, 0.65, 0)` im lokalen, unskalierten Koordinatensystem von `Dummy_Head` (`src/player/camera.rs`). Sie übernimmt dessen Bewegung über die Objekthierarchie; nur der Mausblick verändert ihre lokale Drehung. Blaster, Schüsse und Interaktionen verwenden dieselbe Weltpose. Beim Wechsel zur Übersicht wird die Kamera vom Kopf gelöst. Die Kollisionsgeometrie bleibt davon unabhängig.
 
 ## Stationen bedienen
 
@@ -75,25 +79,13 @@ Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der E
 
 ### Modell-Zoo
 
-Der Zoo zeigt die 13 unterschiedlichen Stationsmodelle einzeln oder nebeneinander. Er verwendet dieselben Modelle wie das Level. Montagepresse, Archivscanner, Lagerhebel, Ventil, Generatorbedienung, Sendeschalter, Auftragstafel, Checkpoint, Truhe und die vier Ablagevarianten lassen sich von allen Seiten prüfen.
+Der [Modell-Zoo](../test_zoo/README.md) ist eine eigene App neben `test_app/`. Er verwendet die Stationsmodelle und Assets der Spiel-Library, ohne das Spiel zu starten.
 
 ```sh
-cargo run --manifest-path test_app/Cargo.toml -- --zoo
+cargo run -p test_zoo
 ```
 
-Mit den Pfeiltasten wechselst du das Modell, mit O zur Übersicht. Ziehen mit der linken Maustaste dreht die Ansicht, das Mausrad zoomt. 1, 2 und 3 zeigen die Zustände gesperrt, bereit und benutzt beziehungsweise abgeholt. R setzt die Ansicht zurück, Esc schließt den Zoo. Diese Zustandsvorschau verändert keinen Spielstand.
-
-Die überarbeiteten Modelle haben befestigte Schilder, kleinere Statuslampen, abgefaste Gehäuse und eigene Formen für die Bedienung. Die Ablagen behalten nach dem Einsammeln einen leeren Einsatz. In der Truhe bleibt das leere Fach sichtbar. Die Geometrie steht in `src/stations/models.rs`, die Zustandsdarstellung in `src/stations.rs`.
-
-Alle Ansichten lassen sich automatisch rendern:
-
-```sh
-cargo run --manifest-path test_app/Cargo.toml -- --zoo \
-  --zoo-capture test_app/artifacts/zoo/after -NSAppSleepDisabled YES
-python3 test_app/planning/zoo_contact_sheet.py test_app/artifacts/zoo/after
-```
-
-Der Export erzeugt 67 Bilder: je Modell Vorderseite, Rückseite, Seite, benutzt und gesperrt, dazu zwei Übersichten. Das Python-Skript benötigt Pillow und erstellt daraus [eine Modellübersicht](artifacts/zoo/after/all-models.jpg) und eine Vergleichstafel pro Modell. Die erste Sichtung liegt unter `artifacts/zoo/before/`. Diese lokalen Renderbilder sind nicht Teil der Versionsverwaltung.
+Steuerung, Zustandsvorschau und Bildexport sind in [test_zoo/README.md](../test_zoo/README.md) beschrieben.
 
 ### Blender und Level-Export
 
@@ -119,7 +111,7 @@ Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blend
 
 Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
-Die spielbaren Bedienobjekte aus `src/stations.rs` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden dieselben Objektpositionen. `src/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
+Die spielbaren Bedienobjekte aus `src/expedition/stations.rs` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/expedition/stations/targets.rs`. `src/expedition/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
 
 Der bearbeitete Blaster bleibt in [blender/training_blaster.blend](blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
@@ -145,6 +137,6 @@ Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellunge
 
 ## Code und Assets
 
-`blueprint.rs` lädt die exportierten Raumdaten. `navigation.rs` verwaltet Kollision und Wege, `player.rs` Bewegung und Sprünge. `expedition.rs` enthält Aufgaben und Inventar, `course.rs` deren Darstellung. `items.rs` verbindet Inventar, Farben und Objektformen. `game.rs` koordiniert Befehle; Kamera, Münzen, Zielübung, Oberfläche und Einstellungen haben eigene Module.
+`main.rs` wählt den Betriebsmodus und bindet die optionale Woodpecker-Integration ein. `app.rs` baut das Spiel auf und legt die Systemreihenfolge fest; `launch.rs` liest Startparameter und `commands.rs` koordiniert Befehle. `level/layout.rs` lädt die exportierten Raumdaten, `level/navigation.rs` verwaltet Kollision und Wege, `level/scenery.rs` den gemeinsamen Modellaufbau. `player.rs` enthält Bewegung und Sprünge, `player/camera.rs` die Spielkamera. `expedition.rs` verwaltet Aufgaben und Inventar, `expedition/props.rs` deren Darstellung und `expedition/stations/` die Stationsmodelle und ihre Definitionen. `items.rs` verbindet Inventar, Farben und Objektformen; Münzen liegen unter `items/coins.rs`. Zielübung, Oberfläche, Eingabe und Einstellungen haben eigene Module. Gerenderte Smoke-Tests liegen unter `dev/`, die modulübergreifenden Rust-Tests in `tests.rs`. `lib.rs` stellt die gemeinsamen Module für das Spiel und die separate App `test_zoo` bereit; beide verwenden denselben Asset-Pfad aus `ASSET_DIR`.
 
 Die KayKit-Modelle stammen aus **KayKit: Prototype Bits** von Kay Lousberg, siehe [CC0-Lizenz](asset/License.txt). Blaster, Level und Stationsmodelle wurden für diese Demo erstellt. Die Schrift Barlow liegt mit ihrer [SIL Open Font License](asset/fonts/OFL.txt) unter `asset/fonts/`.

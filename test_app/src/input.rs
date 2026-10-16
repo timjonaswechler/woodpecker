@@ -1,22 +1,20 @@
 //! Native play follows window focus; controlled sessions own their input independently.
-use bevy::prelude::*;
+use crate::{
+    commands::{Action, Actions},
+    player::camera::ViewState,
+    ui::UiState,
+};
 use bevy::{
     camera::NormalizedRenderTarget,
     ecs::system::SystemParam,
     picking::pointer::{PointerId, PointerLocation},
 };
+use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
 
 #[derive(Resource, Default, Clone, Copy, PartialEq, Eq)]
 pub enum InputMode {
     #[default]
     Native,
-    #[cfg_attr(
-        not(any(feature = "automation", test)),
-        expect(
-            dead_code,
-            reason = "Only the optional automation integration selects a virtual device."
-        )
-    )]
     Controlled(PointerId),
 }
 
@@ -53,6 +51,64 @@ impl Cursor<'_, '_> {
                 .then_some(position)
             }),
         }
+    }
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Shortcuts read the input mode, focus and gameplay state."
+)]
+pub fn keyboard_shortcuts(
+    mode: Res<InputMode>,
+    keys: Res<ButtonInput<KeyCode>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    mut focus: ResMut<InputFocus>,
+    inputs: Query<&EditableText>,
+    mut view: ResMut<ViewState>,
+    ui: Res<UiState>,
+    mut actions: ResMut<Actions>,
+) {
+    if !mode.accepts_input(&window) {
+        view.captured = false;
+        return;
+    }
+    if let Some(input) = focus.get().and_then(|entity| inputs.get(entity).ok()) {
+        view.captured = false;
+        if keys.just_pressed(KeyCode::Escape)
+            || (keys.just_pressed(KeyCode::Enter) && !input.allow_newlines)
+        {
+            focus.clear();
+        }
+        return;
+    }
+    if keys.just_pressed(KeyCode::Escape) {
+        focus.clear();
+        if ui.menu {
+            actions.0.push(Action::Resume);
+        } else if view.captured {
+            view.captured = false;
+        } else {
+            actions.0.push(Action::Settings);
+        }
+        return;
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyV) {
+        actions.0.push(Action::View);
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyM) {
+        actions.0.push(Action::Settings);
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyG) {
+        actions.0.push(Action::Map);
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyR) {
+        actions.0.push(Action::Restart);
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::Backspace) {
+        actions.0.push(Action::Checkpoint);
+    }
+    if !ui.menu && keys.just_pressed(KeyCode::KeyE) {
+        actions.0.push(Action::Interact);
     }
 }
 

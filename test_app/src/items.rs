@@ -1,11 +1,8 @@
 //! Shared identities for inventory, pickups and station signs.
 
-pub(crate) mod blueprint;
 pub(crate) mod coins;
 
-use crate::{
-    game::items::coins::CoinRun, player::actions::expedition::Expedition, scenery::Scenery,
-};
+use crate::{expedition::Expedition, items::coins::CoinRun, level::scenery::Scenery};
 use bevy::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -123,13 +120,13 @@ impl Scenery<'_, '_, '_> {
         for &part in &parts {
             self.commands
                 .entity(part)
-                .insert(crate::player::actions::shooting::ShotIgnore);
+                .insert(crate::practice::ShotIgnore);
         }
         let root = self.spawn((
             Name::new(kind.label()),
             transform,
             Visibility::Inherited,
-            crate::player::actions::shooting::ShotIgnore,
+            crate::practice::ShotIgnore,
         ));
         self.commands.entity(root).add_children(&parts);
         root

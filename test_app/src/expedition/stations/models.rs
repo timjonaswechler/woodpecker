@@ -1,9 +1,6 @@
 //! Physical silhouettes, supported labels and small status lamps.
 use super::*;
-use crate::{
-    game::items::ItemKind, player::actions::expedition::Interaction,
-    player::actions::interactions::Target,
-};
+use crate::{expedition::Interaction, expedition::stations::targets::Target, items::ItemKind};
 use bevy::{asset::RenderAssetUsages, mesh::PrimitiveTopology};
 use std::f32::consts::{FRAC_PI_2, PI};
 

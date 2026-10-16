@@ -22,10 +22,10 @@ pub fn install(app: &mut App) {
     }
     app.register_type::<crate::level::LevelLoad>()
         .register_type::<crate::player::Player>()
-        .register_type::<crate::camera::ViewState>()
+        .register_type::<crate::player::camera::ViewState>()
         .register_type::<crate::expedition::Expedition>()
-        .register_type::<crate::shooting::Practice>()
-        .register_type::<crate::coins::CoinRun>()
+        .register_type::<crate::practice::Practice>()
+        .register_type::<crate::items::coins::CoinRun>()
         .register_type::<crate::ui::UiState>()
         .register_type::<crate::settings::Settings>()
         .register_type::<ButtonInput<KeyCode>>()

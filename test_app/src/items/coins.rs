@@ -1,11 +1,34 @@
 use crate::{
-    camera::ViewState, game::items::blueprint::DATA, game::level::LevelLoad, player::Player,
-    ui::UiState,
+    level::LevelLoad, level::layout::DATA, player::Player, player::camera::ViewState, ui::UiState,
 };
 use bevy::{input_focus::InputFocus, prelude::*, text::EditableText, window::PrimaryWindow};
 
 #[derive(Component)]
 pub struct Coin(pub usize);
+
+pub fn spawn_coins(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut tracked: ResMut<crate::level::LevelAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let mut scene = crate::level::scenery::Scenery {
+        commands: &mut commands,
+        assets: &assets,
+        tracked: &mut tracked,
+        meshes: &mut meshes,
+        materials: &mut materials,
+        parent: None,
+    };
+    for (i, pos) in DATA.coins.into_iter().enumerate() {
+        let coin = scene.kaykit(
+            "Coin_A",
+            Transform::from_translation(Vec3::from(pos) + Vec3::Y).with_scale(Vec3::splat(0.65)),
+        );
+        scene.commands.entity(coin).insert(Coin(i));
+    }
+}
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
