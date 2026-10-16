@@ -29,6 +29,7 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 - [CLI usage and acceptance tests](docs/api/usage.md)
 - [Test suite and shared application contract](tests/README.md)
 - [Playable collection game and shared test app](test_app/README.md)
+- [Standalone station model zoo](test_zoo/README.md)
 
 ## Build and run
 
