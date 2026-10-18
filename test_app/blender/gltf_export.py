@@ -6,7 +6,7 @@ from urllib.parse import unquote
 import bpy
 
 
-def export_model(filepath, **options):
+def export_model(filepath, *, extras=None, **options):
     """Export without changing the saved Blender source; reject other formats."""
     path = Path(filepath)
     if path.suffix != ".gltf":
@@ -32,4 +32,7 @@ def export_model(filepath, **options):
             raise RuntimeError(f"Convert source textures to PNG before exporting: {external}")
         if not external.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
             raise RuntimeError(f"Not a PNG texture: {external}")
+    if extras is not None:
+        document.setdefault("extras", {}).update(extras)
+        path.write_text(json.dumps(document, ensure_ascii=False, separators=(",", ":")) + "\n")
     return path

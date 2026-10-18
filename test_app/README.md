@@ -107,7 +107,7 @@ blender --background test_app/planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python test_app/blender/export_level.py
 ```
 
-Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. `layout.json` enthält die exportierten Kollisions- und Navigationsdaten und wird beim Kompilieren eingebunden.
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/layout.rs` liest diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei; Navigation und Spiellogik verwenden weiterhin ihre eigenen Rust-Module.
 
 Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
@@ -139,7 +139,7 @@ Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellunge
 
 ### Asset-Formate
 
-Alle Modelldateien liegen unter `asset/meshes/`: KayKit-Modelle in `kaykit/`, Stationsmodelle in `station/`, der Blaster in `blaster/` und der Level-Export samt `layout.json` in `courtyard/`.
+Alle Modelldateien liegen unter `asset/meshes/`: KayKit-Modelle in `kaykit/`, Stationsmodelle in `station/`, der Blaster in `blaster/` und der Level-Export mit seinen glTF-Metadaten in `courtyard/`.
 
 Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle unter `asset/meshes/kaykit/` teilen genau eine `prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
 

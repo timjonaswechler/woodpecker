@@ -19,8 +19,11 @@ pub struct Blueprint {
     pub gears: [[f32; 3]; 2],
 }
 pub static DATA: LazyLock<Blueprint> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../../asset/meshes/courtyard/layout.json"))
-        .expect("valid exported courtyard layout")
+    let mut gltf: serde_json::Value =
+        serde_json::from_str(include_str!("../../asset/meshes/courtyard/courtyard.gltf"))
+            .expect("valid exported courtyard glTF");
+    serde_json::from_value(gltf["extras"]["signalstation"]["layout"].take())
+        .expect("courtyard glTF must contain valid extras.signalstation.layout metadata")
 });
 pub const fn point(x: f32, y: f32, height: f32) -> Vec3 {
     Vec3::new(x - 39., height, 27. - y)

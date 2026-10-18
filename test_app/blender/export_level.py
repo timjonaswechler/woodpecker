@@ -4,7 +4,6 @@ blender --background planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python blender/export_level.py
 The saved planning scene is never modified.
 """
-import json
 import sys
 from pathlib import Path
 import bpy
@@ -87,17 +86,18 @@ for obj in list(bpy.data.objects):
         bpy.ops.object.convert(target='MESH')
         obj.select_set(False)
 
-# Only geometry is exported. The game controls the camera and lighting.
-bpy.ops.object.select_all(action='DESELECT')
-for obj in bpy.data.objects:
-    if obj.type=='MESH': obj.select_set(True)
-export_model(OUT/'courtyard.gltf',use_selection=True,
-    export_cameras=False,export_lights=False,export_apply=True)
 data=dict(
     rooms=[dict(id=key,name=name,bounds=bounds) for key,name,bounds,_ in plan.ROOMS],
     surfaces=surfaces,obstacles=obstacles,
     coins=[point(*p) for p in plan.COINS],blueprints=[point(*p) for p in plan.BLUEPRINTS],
     gears=[point(x,y) for x,y,_ in plan.GEARS],
 )
-(OUT/'layout.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+# Geometry and gameplay metadata share one level export. Cameras and lighting
+# are controlled by the game; mesh buffers remain in the external BIN file.
+bpy.ops.object.select_all(action='DESELECT')
+for obj in bpy.data.objects:
+    if obj.type=='MESH': obj.select_set(True)
+export_model(OUT/'courtyard.gltf',use_selection=True,
+    export_cameras=False,export_lights=False,export_apply=True,
+    extras={"signalstation": {"layout": data}})
 print('EXPORTED PLAYABLE SCENERY',len(surfaces),'surfaces',len(obstacles),'colliders')
