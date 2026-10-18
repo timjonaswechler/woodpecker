@@ -27,7 +27,7 @@ impl Scenery<'_, '_, '_> {
     }
 
     pub fn kaykit(&mut self, name: &str, transform: Transform) -> Entity {
-        self.model(format!("Assets/gltf/{name}.gltf"), transform)
+        self.model(format!("meshes/kaykit/{name}.gltf"), transform)
     }
 
     pub fn block(&mut self, position: Vec3, size: Vec3, color: Color) -> Entity {

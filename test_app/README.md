@@ -89,7 +89,7 @@ Steuerung, Zustandsvorschau und Bildexport sind in [test_zoo/README.md](../test_
 
 ### Blender und Level-Export
 
-Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/custom/courtyard/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
+Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/meshes/courtyard/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
 
 Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol unabhängig ausblenden. Das Kamerasymbol steuert die Sichtbarkeit im Renderbild.
 
@@ -139,7 +139,9 @@ Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellunge
 
 ### Asset-Formate
 
-Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle unter `asset/Assets/gltf/` teilen genau eine `prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
+Alle Modelldateien liegen unter `asset/meshes/`: KayKit-Modelle in `kaykit/`, Stationsmodelle in `station/`, der Blaster in `blaster/` und der Level-Export samt `layout.json` in `courtyard/`.
+
+Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle unter `asset/meshes/kaykit/` teilen genau eine `prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
 
 Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen und Sicherungen gehören außerhalb von `asset/` nach `blender/` beziehungsweise `planning/`; der bearbeitbare Dummy liegt unter [blender/dummy_base.blend](blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
 

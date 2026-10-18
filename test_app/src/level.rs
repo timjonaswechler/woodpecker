@@ -68,7 +68,7 @@ pub fn spawn_level(
         parent: None,
     };
     scene.model(
-        "custom/courtyard/courtyard.gltf".into(),
+        "meshes/courtyard/courtyard.gltf".into(),
         Transform::from_xyz(-39., 0., 27.),
     );
     commands.insert_resource(GlobalAmbientLight {

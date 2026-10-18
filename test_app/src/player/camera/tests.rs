@@ -31,7 +31,7 @@ fn scene() -> (App, Entity, Entity, Entity) {
         .id();
     // Use the shipped head hierarchy instead of a second, hard-coded eye height.
     let gltf: serde_json::Value =
-        serde_json::from_str(include_str!("../../../asset/Assets/gltf/Dummy_Base.gltf")).unwrap();
+        serde_json::from_str(include_str!("../../../asset/meshes/kaykit/Dummy_Base.gltf")).unwrap();
     fn spawn_node(world: &mut World, gltf: &serde_json::Value, index: usize, parent: Entity) {
         let node = &gltf["nodes"][index];
         let translation = node["translation"].as_array().map_or(Vec3::ZERO, |v| {

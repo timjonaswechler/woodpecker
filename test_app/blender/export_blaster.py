@@ -31,7 +31,7 @@ try:
     for obj in model.all_objects:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = next(o for o in model.all_objects if o.type == "MESH")
-    destination = root / "asset" / "custom" / "training_blaster.gltf"
+    destination = root / "asset" / "meshes" / "blaster" / "training_blaster.gltf"
     destination.parent.mkdir(parents=True, exist_ok=True)
     export_model(
         destination,

@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "asset" / "custom"
+OUT = ROOT / "asset" / "meshes" / "blaster"
 OUT.mkdir(parents=True, exist_ok=True)
 (ROOT / "artifacts").mkdir(exist_ok=True)
 

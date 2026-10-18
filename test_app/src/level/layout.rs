@@ -19,7 +19,7 @@ pub struct Blueprint {
     pub gears: [[f32; 3]; 2],
 }
 pub static DATA: LazyLock<Blueprint> = LazyLock::new(|| {
-    serde_json::from_str(include_str!("../../asset/custom/courtyard/layout.json"))
+    serde_json::from_str(include_str!("../../asset/meshes/courtyard/layout.json"))
         .expect("valid exported courtyard layout")
 });
 pub const fn point(x: f32, y: f32, height: f32) -> Vec3 {

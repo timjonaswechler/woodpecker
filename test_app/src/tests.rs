@@ -91,7 +91,7 @@ fn reflected_resource_paths_match_the_session_contract() {
 fn visible_character_cannot_cross_a_wall_with_its_arms_or_head() {
     // Measure the real glTF hierarchy with exactly the pose and scale used at spawn.
     let model: serde_json::Value =
-        serde_json::from_str(include_str!("../asset/Assets/gltf/Dummy_Base.gltf")).unwrap();
+        serde_json::from_str(include_str!("../asset/meshes/kaykit/Dummy_Base.gltf")).unwrap();
     fn bounds(model: &serde_json::Value, index: usize, parent: Mat4, vertices: &mut Vec<Vec3>) {
         let node = &model["nodes"][index];
         let translation = node["translation"].as_array().map_or(Vec3::ZERO, |v| {

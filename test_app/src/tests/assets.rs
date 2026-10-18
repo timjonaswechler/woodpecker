@@ -122,10 +122,10 @@ fn runtime_models_use_only_external_gltf_bin_and_png() {
         );
     }
     for model in [
-        "Assets/gltf/Dummy_Base.gltf",
-        "Assets/gltf/target.gltf",
-        "custom/courtyard/courtyard.gltf",
-        "custom/training_blaster.gltf",
+        "meshes/kaykit/Dummy_Base.gltf",
+        "meshes/kaykit/target.gltf",
+        "meshes/courtyard/courtyard.gltf",
+        "meshes/blaster/training_blaster.gltf",
     ] {
         assert!(root.join(model).is_file(), "missing runtime model {model}");
     }
@@ -176,9 +176,9 @@ fn kaykit_models_share_one_texture_file() {
         .collect();
     assert_eq!(
         textures,
-        [root.join("Assets/gltf/prototypebits_texture.png")]
+        [root.join("meshes/kaykit/prototypebits_texture.png")]
     );
-    for entry in fs::read_dir(root.join("Assets/gltf")).unwrap() {
+    for entry in fs::read_dir(root.join("meshes/kaykit")).unwrap() {
         let path = entry.unwrap().path();
         if path.extension().is_some_and(|e| e == "gltf") {
             let document: serde_json::Value =
