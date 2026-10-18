@@ -11,6 +11,7 @@ from tests.session.signalstation import (
 
 
 @scenario("workflows", "signalstation", capabilities=("signalstation", "screenshot", "keyboard", "pointer", "text"),
+          features=("connection", "inspect", "screenshot", "warp", "keyboard", "pointer", "text"),
           commands=("inspect.query", "screenshot.capture", "tick.warp.start", "tick.warp.stop",
                     "tick.warp.set_pace", "input.keyboard.press", "input.keyboard.release",
                     "input.pointer.move_to", "input.pointer.move_by",

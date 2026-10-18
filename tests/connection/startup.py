@@ -1,40 +1,36 @@
-"""Technical startup uses Signalstation's existing loading systems and real renderer."""
+"""Launch diagnostics must reach the public interface and clean up the child."""
 import time
 
 from tests.catalog import scenario
-from tests.commands._png import rgb_pixels
+from tests.connection.protocol_faults.contracts import session_events
+from tests.session.runtime import process_gone, until
 
 
-def transforms(driver):
-    return driver.command("inspect.query", {
-        "source": "entities", "entity": None,
-        "with": ["bevy_transform::components::transform::Transform"], "without": [],
-        "projection": {"kind": "components", "selection": {"kind": "listed",
-            "type_paths": ["bevy_transform::components::transform::Transform"]}},
-    })
+@scenario("connection", "engine_startup_failures_are_bounded", interfaces=("json",),
+          programs=("protocol",), independent=True)
+def engine_startup_failures_are_bounded(ctx):
+    for mode, code, ticks in (("engine_failed", "startup_asset_failed", 3),
+                              ("engine_stalled", "startup_timeout", None)):
+        def check(mode=mode, code=code, ticks=ticks):
+            config = ctx.program("protocol", mode)
+            with config.open("a") as file:
+                file.write('\n[startup]\nkind = "engine"\ntimeout_seconds = 1\nmax_ticks = 20\n')
+            with ctx.session(config, ready=False) as driver:
+                started = time.monotonic()
+                detail = until(lambda: (d if (d := driver.session.detail())["state"] == "Failed" else None),
+                               "Startfehler erreicht keinen terminalen Zustand", timeout=15)
+                assert time.monotonic() - started < 15
+                assert detail["error"]["code"] == code, detail
+                events = session_events(driver.session)
+                failures = [e for e in events if e["kind"] == "startup_failed"]
+                assert len(failures) == 1, events
+                assert failures[0]["ticks"] == ticks and failures[0]["error"]["code"] == code, failures
+                assert not any(e["kind"] == "engine_ready" for e in events), events
+                if ticks is not None:
+                    assert "missing fixture asset" in detail["error"]["message"], detail
+                assert not any(e["kind"] == "report" for e in driver.session.events)
+                pid = int((driver.session.artifacts / "pid").read_text())
+                until(lambda: process_gone(pid), "Startfehler hinterlässt Prozess")
+                return {"error": detail["error"], "ticks": ticks}
 
-
-@scenario("connection", "engine_startup_renders_and_freezes", capabilities=("screenshot",),
-          commands=("inspect.query", "screenshot.capture", "tick.warp.start"))
-def engine_startup_renders_and_freezes(ctx):
-    with ctx.session() as driver:
-        assert driver.session.detail()["state"] == "EngineReady"
-        if ctx.interface == "repl":
-            assert f"connected {driver.session.id} EngineReady" in driver.lines
-        events = driver.session.poll()
-        states = [event["state"] for event in events if event["kind"] == "lifecycle"]
-        assert states.index("SessionReady") < states.index("EngineReady"), states
-        ready = [event["event"] for event in events
-                 if event["kind"] == "event" and event["event"]["kind"] == "engine_ready"]
-        assert len(ready) == 1 and ready[0]["ticks"] >= 2, ready
-        before = transforms(driver)
-        assert before["items"], before
-        time.sleep(0.1)
-        output = driver.command("screenshot.capture", {"path": "startup.png"})
-        width, height, pixels = rgb_pixels(driver.session.artifacts / "startup.png")
-        assert (width, height) == (output["width"], output["height"])
-        assert width >= 960 and height >= 640
-        assert any(any(row) for row in pixels), "EngineReady produced an empty black image"
-        assert transforms(driver) == before, "startup did not pause application updates"
-        result = driver.command("tick.warp.start", {"ticks": 1})
-        assert result["executed_ticks"] == 1, result
+        ctx.steps.run(f"7.{mode}", check)

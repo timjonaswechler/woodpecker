@@ -23,12 +23,20 @@ class SuiteTests(unittest.TestCase):
 
     def test_warp_uses_same_rendered_contract_through_both_interfaces(self):
         selected = select(["warp"])
+        self.assertEqual({s.name for s, _, _ in selected}, {"workflows.signalstation"})
         for name in {s.name for s, _, _ in selected}:
             self.assertEqual({(mode, interface) for s, mode, interface in selected if s.name == name},
                              {("rendered", "json"), ("rendered", "repl")})
         targeted = select(["warp"], ["rendered"], ["repl"])
-        self.assertEqual(len(targeted), 3)
+        self.assertEqual(len(targeted), 1)
         self.assertTrue(all(mode == "rendered" and interface == "repl" for _, mode, interface in targeted))
+
+    def test_grouped_features_do_not_repeat_sessions_or_require_legacy_state(self):
+        selected = select(["warp", "pointer", "text", "screenshot"])
+        self.assertEqual(len(selected), 2)
+        self.assertFalse(any("state" in item.capabilities for item in scenarios()))
+        self.assertEqual({item.name for item, _, _ in select(["replay"]) if not item.independent},
+                         {"workflows.signalstation_replay"})
 
     def test_default_and_all_selections_only_include_rendered_app_sessions(self):
         selections = []
@@ -39,9 +47,9 @@ class SuiteTests(unittest.TestCase):
             lines = result.stdout.splitlines()
             self.assertTrue(lines)
             self.assertTrue(all("[rendered/" in line or "[mode-independent" in line for line in lines))
-            self.assertIn("warp.exact_ticks_and_idle [rendered/json]", lines)
-            self.assertIn("warp.exact_ticks_and_idle [rendered/repl]", lines)
-            self.assertIn("screenshot.known_pixels_without_simulation_progress [rendered/json]", lines)
+            self.assertIn("workflows.signalstation [rendered/json]", lines)
+            self.assertIn("workflows.signalstation [rendered/repl]", lines)
+            self.assertIn("workflows.signalstation_isolation [rendered/json]", lines)
             selections.append(lines)
         self.assertEqual(*selections)
 
@@ -115,7 +123,7 @@ class SuiteTests(unittest.TestCase):
             self.assertEqual(run.returncode, 2, run.stdout + run.stderr)
             report = json.loads((root / "run/results.json").read_text())
             self.assertEqual(report["status"], "incomplete")
-            self.assertEqual(len(report["results"]), 3)
+            self.assertEqual(len(report["results"]), 1)
             self.assertTrue(all(r["status"] == "unavailable" for r in report["results"]))
 
     def test_repl_preserves_unicode_and_paths(self):

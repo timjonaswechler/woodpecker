@@ -212,25 +212,3 @@ output = {json.dumps(output)}
 kind = {json.dumps(provider)}
 ''')
         return path
-
-    def probe(self, driver):
-        if self.app.type_path is None:
-            from tests.session.application import Unavailable
-            raise Unavailable("Dieses Altszenario benötigt noch TestState; auf Signalstation-Abfragen umstellen")
-        output = driver.command("inspect.query", {
-            "source": "resources", "selector": {"kind": "type", "type_path": self.app.type_path},
-            "projection": {"kind": "value"},
-        })
-        if len(output["items"]) != 1:
-            raise AssertionError(output)
-        result = output["items"][0]["result"]
-        if result["type_path"] != self.app.type_path or result["value"]["status"] != "readable":
-            raise AssertionError(output)
-        state = result["value"]["value"]
-        if type(state.get("ticks")) is not int or state["ticks"] < 0:
-            raise AssertionError(f"TestState.ticks fehlt oder ist ungültig: {state}")
-        pid = state.get("process_id")
-        if type(pid) is not int or pid <= 0:
-            raise AssertionError(f"TestState.process_id fehlt oder ist ungültig: {state}")
-        driver.session.pids.add(pid)
-        return state
