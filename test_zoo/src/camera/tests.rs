@@ -25,9 +25,11 @@ fn detail_frame_has_four_non_overlapping_viewports_and_scales_with_dpi() {
 
 #[test]
 fn single_view_toggles_back_to_four_without_resetting_orbit_or_zoom() {
-    let mut views = Views::default();
-    views.yaw = 1.2;
-    views.pitch = 0.8;
+    let mut views = Views {
+        yaw: 1.2,
+        pitch: 0.8,
+        ..default()
+    };
     views.zoom(Some(View::Orbit), 2.);
     let orbit_height = views.height(View::Orbit, 3.2);
     for view in View::ALL {
@@ -150,8 +152,10 @@ fn resized_odd_and_minimized_surfaces_never_produce_invalid_viewports() {
 fn orbit_stays_continuous_when_crossing_above_and_below_the_model() {
     for pole in [std::f32::consts::FRAC_PI_2, -std::f32::consts::FRAC_PI_2] {
         let focus = Vec3::new(-3., 0.9, 6.);
-        let mut views = Views::default();
-        views.pitch = pole - 0.0001;
+        let mut views = Views {
+            pitch: pole - 0.0001,
+            ..default()
+        };
         let before = views.transform(View::Orbit, focus, false);
         views.pitch = pole + 0.0001;
         let after = views.transform(View::Orbit, focus, false);

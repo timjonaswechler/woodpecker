@@ -1,17 +1,19 @@
 use super::*;
+use crate::level;
 mod cursor;
 mod locomotion;
 use crate::{
-    commands,
-    commands::Actions,
-    expedition::{self, Expedition},
-    items::coins::{self, CoinRun},
+    app::flow as commands,
+    app::settings::Settings,
+    input::intents::Actions,
     level::LevelLoad,
+    level::mission::Mission,
+    level::mission::inventory::CoinRun,
     level::navigation::Navigation,
+    level::objects::pickups::coins,
+    level::objects::shooting_range::{self, Fragments, ShootingRange},
     player::camera::{self, ViewState},
     player::{self, Player},
-    practice::{self, Fragments, Practice},
-    settings::Settings,
     ui::UiState,
 };
 use bevy::{
@@ -41,17 +43,24 @@ fn app(mode: InputMode, focused: bool) -> (App, Entity) {
         .init_resource::<Settings>()
         .init_resource::<Player>()
         // This input-only harness has no glTF scene. Supply its camera pose.
-        .insert_resource(ViewState {
-            eye: Some(Transform::from_translation(
-                crate::level::layout::START + Vec3::Y * 1.5,
-            )),
-            ..default()
-        })
+        .insert_resource(
+            ViewState::new(crate::player::camera::ViewMode::Overview).with_test_pose(
+                0.0,
+                Some(Transform::from_translation(
+                    crate::level::definition::START + Vec3::Y * 1.5,
+                )),
+            ),
+        )
         .init_resource::<UiState>()
+        .init_resource::<crate::app::flow::GameFlow>()
+        .init_resource::<crate::input::PointerCapture>()
+        .init_resource::<crate::input::intents::FrameInput>()
         .init_resource::<Actions>()
         .init_resource::<CoinRun>()
-        .init_resource::<Expedition>()
-        .init_resource::<Practice>()
+        .init_resource::<Mission>()
+        .init_resource::<ShootingRange>()
+        .init_resource::<crate::player::blaster::Blaster>()
+        .init_resource::<crate::player::blaster::FiredShot>()
         .init_resource::<Fragments>()
         .init_resource::<Assets<Mesh>>()
         .insert_resource(LevelLoad::Ready)
@@ -60,12 +69,19 @@ fn app(mode: InputMode, focused: bool) -> (App, Entity) {
             (
                 keyboard_shortcuts,
                 commands::handle_actions,
+                crate::app::settings::handle_actions,
+                crate::player::actions::handle_actions,
+                crate::level::actions::navigate,
+                crate::level::actions::handle_actions,
+                crate::input::sample_gameplay,
                 camera::mouse_look,
                 player::move_player,
                 coins::tick_run,
-                expedition::tick_expedition,
-                practice::tick_practice,
-                practice::shoot,
+                level::mission::update_progress,
+                crate::player::blaster::tick,
+                shooting_range::tick_feedback,
+                crate::player::blaster::fire,
+                level::objects::shooting_range::resolve_shot,
                 camera::sync_cursor,
             )
                 .chain(),
@@ -129,7 +145,7 @@ fn click(app: &mut App, window: Entity) {
 fn controlled_background_games_move_look_and_shoot_independently() {
     let (mut first, window) = app(CONTROLLED, false);
     let (mut second, other_window) = app(CONTROLLED, false);
-    let origin = first.world().resource::<Player>().position;
+    let origin = first.world().resource::<Player>().position();
     key(&mut first, window, KeyCode::KeyV);
     key(&mut first, window, KeyCode::KeyW);
     first.world_mut().write_message(MouseMotion {
@@ -137,27 +153,46 @@ fn controlled_background_games_move_look_and_shoot_independently() {
     });
     tick(&mut first);
     tick(&mut second);
-    assert!(first.world().resource::<ViewState>().captured);
-    assert!(first.world().resource::<ViewState>().pitch > 0.0);
-    assert!(first.world().resource::<Player>().yaw < 0.0);
-    assert!(first.world().resource::<Player>().position.distance(origin) > 0.05);
-    assert_eq!(second.world().resource::<Player>().position, origin);
-    assert_eq!(second.world().resource::<Player>().yaw, 0.0);
-    assert!(first.world().resource::<Expedition>().elapsed > 0.0);
+    assert!(
+        first
+            .world()
+            .resource::<crate::input::PointerCapture>()
+            .active()
+    );
+    assert!(first.world().resource::<ViewState>().pitch() > 0.0);
+    assert!(first.world().resource::<Player>().yaw() < 0.0);
+    assert!(
+        first
+            .world()
+            .resource::<Player>()
+            .position()
+            .distance(origin)
+            > 0.05
+    );
+    assert_eq!(second.world().resource::<Player>().position(), origin);
+    assert_eq!(second.world().resource::<Player>().yaw(), 0.0);
+    assert!(first.world().resource::<Mission>().elapsed() > 0.0);
     click(&mut first, window);
     tick(&mut first);
-    assert_eq!(first.world().resource::<Practice>().shots, 1);
-    assert_eq!(second.world().resource::<Practice>().shots, 0);
-    let eye = first.world().resource::<ViewState>().eye.unwrap();
-    let (start, _, _) = first.world().resource::<Practice>().tracer.unwrap();
+    assert_eq!(first.world().resource::<ShootingRange>().shots(), 1);
+    assert_eq!(second.world().resource::<ShootingRange>().shots(), 0);
+    let eye = first.world().resource::<ViewState>().eye().unwrap();
+    let (start, _, _) = first
+        .world()
+        .resource::<crate::player::blaster::Blaster>()
+        .tracer()
+        .unwrap();
     assert!(
         start.distance(eye.translation + eye.rotation * Vec3::new(0.25, -0.19, -0.84)) < 0.00001
     );
-    let first_position = first.world().resource::<Player>().position;
+    let first_position = first.world().resource::<Player>().position();
     key(&mut second, other_window, KeyCode::ArrowRight);
     tick(&mut second);
-    assert!(second.world().resource::<Player>().position.x > origin.x);
-    assert_eq!(first.world().resource::<Player>().position, first_position);
+    assert!(second.world().resource::<Player>().position().x > origin.x);
+    assert_eq!(
+        first.world().resource::<Player>().position(),
+        first_position
+    );
     for (app, window) in [(&first, window), (&second, other_window)] {
         assert!(!app.world().get::<Window>(window).unwrap().focused);
         let cursor = app.world().get::<CursorOptions>(window).unwrap();
@@ -173,7 +208,10 @@ fn controlled_input_still_respects_menu_text_focus_and_loading() {
         app.world_mut().resource_mut::<ViewState>().toggle();
         tick(&mut app); // Arm shooting only after entering FPV, as in the game.
         match blocked_by {
-            "menu" => app.world_mut().resource_mut::<UiState>().menu = true,
+            "menu" => app
+                .world_mut()
+                .resource_mut::<crate::app::flow::GameFlow>()
+                .open_menu(),
             "text" => {
                 let text = app.world_mut().spawn(EditableText::new("notes")).id();
                 app.world_mut()
@@ -183,9 +221,9 @@ fn controlled_input_still_respects_menu_text_focus_and_loading() {
             "loading" => *app.world_mut().resource_mut::<LevelLoad>() = LevelLoad::Loading,
             _ => unreachable!(),
         }
-        let origin = app.world().resource::<Player>().position;
-        let yaw = app.world().resource::<Player>().yaw;
-        let elapsed = app.world().resource::<Expedition>().elapsed;
+        let origin = app.world().resource::<Player>().position();
+        let yaw = app.world().resource::<Player>().yaw();
+        let elapsed = app.world().resource::<Mission>().elapsed();
         key(&mut app, window, KeyCode::KeyW);
         app.world_mut().write_message(MouseMotion {
             delta: Vec2::splat(100.0),
@@ -193,14 +231,18 @@ fn controlled_input_still_respects_menu_text_focus_and_loading() {
         click(&mut app, window);
         tick(&mut app);
         assert_eq!(
-            app.world().resource::<Player>().position,
+            app.world().resource::<Player>().position(),
             origin,
             "{blocked_by}"
         );
-        assert_eq!(app.world().resource::<Player>().yaw, yaw, "{blocked_by}");
-        assert_eq!(app.world().resource::<Practice>().shots, 0, "{blocked_by}");
+        assert_eq!(app.world().resource::<Player>().yaw(), yaw, "{blocked_by}");
         assert_eq!(
-            app.world().resource::<Expedition>().elapsed,
+            app.world().resource::<ShootingRange>().shots(),
+            0,
+            "{blocked_by}"
+        );
+        assert_eq!(
+            app.world().resource::<Mission>().elapsed(),
             elapsed,
             "{blocked_by}"
         );
@@ -223,15 +265,17 @@ fn native_play_keeps_focus_gating_and_controlled_play_never_grabs_the_os_cursor(
                 CursorGrabMode::None
             }
         );
-        let before = app.world().resource::<Player>().position;
+        let before = app.world().resource::<Player>().position();
         app.world_mut().get_mut::<Window>(window).unwrap().focused = false;
         tick(&mut app);
         assert_eq!(
-            app.world().resource::<ViewState>().captured,
+            app.world()
+                .resource::<crate::input::PointerCapture>()
+                .active(),
             mode == CONTROLLED
         );
         assert_eq!(
-            app.world().resource::<Player>().position == before,
+            app.world().resource::<Player>().position() == before,
             mode == InputMode::Native
         );
     }

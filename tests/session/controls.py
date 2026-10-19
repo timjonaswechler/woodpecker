@@ -94,8 +94,10 @@ class Controls:
         player = self.game.resource("player")
         assert player["position"] == [-32.0, 22.0] and player["route"] == [], player
         assert player["walked"] == player["height"] == player["vertical_speed"] == 0, player
-        assert self.game.resource("view") == {"first_person": False, "captured": False,
-                                              "pitch": 0.0, "map": False}
-        assert not self.game.resource("ui")["menu"]
+        view = self.game.resource("view")
+        assert view["mode"] == "Overview" and view["pitch"] == 0.0, view
+        assert view.get("eye") is None, view
+        assert not self.game.resource("capture")["active"]
+        assert not self.game.resource("flow")["menu"]
         assert self.game.resource(KEYS)["pressed"] == []
         assert self.game.resource(BUTTONS)["pressed"] == []

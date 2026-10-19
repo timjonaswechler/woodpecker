@@ -1,4 +1,4 @@
-"""Rasterize the four inventory symbols; matching silhouettes live in src/items.rs."""
+"""Rasterize the four inventory symbols; matching silhouettes live in test_app/src/level/objects/pickups/models.rs."""
 from math import sin, cos, pi
 from pathlib import Path
 from PIL import Image, ImageDraw

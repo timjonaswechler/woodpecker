@@ -107,7 +107,7 @@ def fpv(a, b):
     a.controls.tap("v")
     a.controls.captured()
     b.unchanged(before_b, "after_other_entered_fpv")
-    assert not b.game.resource("view")["first_person"]
+    assert b.game.resource("view")["mode"] != "FirstPerson"
     paused_a = a.observe("entered_fpv")
     b.controls.tap("v")
     b.controls.captured()

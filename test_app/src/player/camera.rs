@@ -1,16 +1,8 @@
 use crate::{
-    input::InputMode,
-    level::layout,
-    level::{LevelLoad, ground},
-    player::Player,
-    settings::Settings,
-    ui::UiState,
+    app::settings::Settings, input::InputMode, level::definition, level::ground, player::Player,
 };
 use bevy::{
-    input::mouse::AccumulatedMouseMotion,
-    input_focus::InputFocus,
     prelude::*,
-    text::EditableText,
     transform::helper::TransformHelper,
     window::{CursorGrabMode, CursorOptions, PrimaryWindow},
 };
@@ -47,76 +39,108 @@ pub fn spawn_camera(mut commands: Commands) {
             },
             ..OrthographicProjection::default_3d()
         }),
-        Transform::from_translation(layout::START + Vec3::new(10., 32., 25.))
-            .looking_at(layout::START, Vec3::Y),
+        Transform::from_translation(definition::START + Vec3::new(10., 32., 25.))
+            .looking_at(definition::START, Vec3::Y),
         Msaa::Sample4,
     ));
+}
+
+#[derive(Default, Clone, Copy, PartialEq, Eq, Reflect)]
+pub enum ViewMode {
+    #[default]
+    Overview,
+    FirstPerson,
+    Map,
 }
 
 #[derive(Resource, Default, Reflect)]
 #[reflect(Resource)]
 pub struct ViewState {
-    pub first_person: bool,
-    pub captured: bool,
-    pub pitch: f32,
-    pub map: bool,
-    /// Current world-space view, shared by rendering, shots and interaction rays.
-    pub eye: Option<Transform>,
+    mode: ViewMode,
+    pitch: f32,
+    eye: Option<Transform>,
 }
-
 impl ViewState {
+    pub fn reset(&mut self) {
+        *self = Self::default();
+    }
+
+    pub fn new(mode: ViewMode) -> Self {
+        Self { mode, ..default() }
+    }
+    #[cfg(test)]
+    pub(crate) fn with_test_pose(mut self, pitch: f32, eye: Option<Transform>) -> Self {
+        self.set_pitch(pitch);
+        self.eye = eye;
+        self
+    }
+    #[cfg(test)]
+    pub(crate) fn set_test_eye(&mut self, eye: Option<Transform>) {
+        self.eye = eye;
+    }
+
+    pub fn first_person(&self) -> bool {
+        self.mode == ViewMode::FirstPerson
+    }
+    pub fn map(&self) -> bool {
+        self.mode == ViewMode::Map
+    }
+    pub fn eye(&self) -> Option<Transform> {
+        self.eye
+    }
+    pub fn pitch(&self) -> f32 {
+        self.pitch
+    }
+    pub fn set_pitch(&mut self, pitch: f32) {
+        if pitch.is_finite() {
+            self.pitch = pitch.clamp(-1.45, 1.45);
+        }
+    }
+    pub fn set_mode(&mut self, mode: ViewMode) {
+        self.mode = mode;
+    }
     pub fn toggle(&mut self) {
-        self.first_person = !self.first_person;
-        self.captured = self.first_person;
-        self.pitch = 0.0;
+        self.mode = if self.first_person() {
+            ViewMode::Overview
+        } else {
+            ViewMode::FirstPerson
+        };
+        self.pitch = 0.;
+    }
+    #[cfg(test)]
+    pub fn from_eye(eye: Transform) -> Self {
+        Self {
+            eye: Some(eye),
+            ..default()
+        }
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "Mouse look reads the input gates and changes the player's heading."
-)]
 pub fn mouse_look(
-    mouse: Res<AccumulatedMouseMotion>,
-    mode: Res<InputMode>,
-    window: Single<&Window, With<PrimaryWindow>>,
-    focus: Res<InputFocus>,
-    inputs: Query<(), With<EditableText>>,
-    load: Res<LevelLoad>,
-    ui: Res<UiState>,
+    frame: Res<crate::input::intents::FrameInput>,
     settings: Res<Settings>,
     mut player: ResMut<Player>,
     mut view: ResMut<ViewState>,
 ) {
-    if !load.is_ready()
-        || ui.menu
-        || !mode.accepts_input(&window)
-        || !view.first_person
-        || !view.captured
-        || focus.get().is_some_and(|e| inputs.contains(e))
-    {
-        return;
-    }
-    player.yaw -= mouse.delta.x * 0.0025 * settings.sensitivity;
+    let delta = frame.look();
+    player.turn(-delta.x * 0.0025 * settings.sensitivity());
     view.pitch = (view.pitch
-        - mouse.delta.y
-            * 0.0025
-            * settings.sensitivity
-            * if settings.invert_y { -1.0 } else { 1.0 })
+        - delta.y * 0.0025 * settings.sensitivity() * if settings.invert_y() { -1.0 } else { 1.0 })
     .clamp(-1.45, 1.45);
 }
 
 pub fn sync_cursor(
     mode: Res<InputMode>,
     view: Res<ViewState>,
-    ui: Res<UiState>,
+    capture: Res<crate::input::PointerCapture>,
+    flow: Res<crate::app::flow::GameFlow>,
     window: Single<(&Window, &mut CursorOptions), With<PrimaryWindow>>,
 ) {
     let (window, mut cursor) = window.into_inner();
     let captured = *mode == InputMode::Native
-        && view.first_person
-        && view.captured
-        && !ui.menu
+        && view.first_person()
+        && capture.active()
+        && !flow.menu()
         && window.focused;
     cursor.visible = !captured;
     cursor.grab_mode = if captured {
@@ -155,9 +179,9 @@ pub fn update_camera(
     });
     let mut camera = transforms.p1();
     let (entity, ref mut camera_transform, ref mut projection, parent) = *camera;
-    if view.first_person {
+    if view.first_person() {
         **projection = Projection::Perspective(PerspectiveProjection {
-            fov: settings.fov.to_radians(),
+            fov: settings.fov().to_radians(),
             near: 0.05,
             far: 200.,
             ..default()
@@ -182,12 +206,12 @@ pub fn update_camera(
         if parent.is_some() {
             commands.entity(entity).remove::<ChildOf>();
         }
-        let (target, extent) = if view.map {
+        let (target, extent) = if view.map() {
             (Vec3::new(-2., 0., 1.), 100.)
-        } else if let Some(room) = layout::room(player.position) {
+        } else if let Some(room) = definition::room(player.position) {
             let [x0, y0, x1, y1] = room.bounds;
             (
-                layout::point((x0 + x1) / 2. + 3., (y0 + y1) / 2., 1.),
+                definition::point((x0 + x1) / 2. + 3., (y0 + y1) / 2., 1.),
                 (x1 - x0).max(y1 - y0) * 0.95 + 14.,
             )
         } else {
@@ -219,7 +243,7 @@ pub fn update_camera(
             camera_transform.rotation = camera_transform.rotation.slerp(desired.rotation, blend);
         }
     }
-    *previous_fpv = view.first_person;
+    *previous_fpv = view.first_person();
 }
 
 #[cfg(test)]

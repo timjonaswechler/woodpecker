@@ -23,17 +23,20 @@ pub fn install(app: &mut App) {
     app.register_type::<crate::level::LevelLoad>()
         .register_type::<crate::player::Player>()
         .register_type::<crate::player::camera::ViewState>()
-        .register_type::<crate::expedition::Expedition>()
-        .register_type::<crate::practice::Practice>()
-        .register_type::<crate::items::coins::CoinRun>()
+        .register_type::<crate::player::camera::ViewMode>()
+        .register_type::<crate::input::PointerCapture>()
+        .register_type::<crate::app::flow::GameFlow>()
+        .register_type::<crate::level::mission::Mission>()
+        .register_type::<crate::level::objects::shooting_range::ShootingRange>()
+        .register_type::<crate::level::mission::inventory::CoinRun>()
         .register_type::<crate::ui::UiState>()
-        .register_type::<crate::settings::Settings>()
+        .register_type::<crate::app::settings::Settings>()
         .register_type::<ButtonInput<KeyCode>>()
         .register_type::<ButtonInput<MouseButton>>()
         .insert_resource(woodpecker::session::startup::Assets(|world| {
             world
                 .get_resource::<crate::level::LevelAssets>()
-                .map(|assets| assets.0.clone())
+                .map(|assets| assets.handles().to_vec())
         }))
         .insert_resource(crate::input::InputMode::Controlled(
             woodpecker::session::VIRTUAL_POINTER_ID,

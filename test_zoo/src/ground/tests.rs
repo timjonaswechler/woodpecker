@@ -48,7 +48,7 @@ fn ground_uses_a_plane_with_the_shadow_material_and_tracks_the_embedded_shader()
         4,
         "the catcher has no opaque side walls"
     );
-    let tracked = &world.resource::<LevelAssets>().0;
+    let tracked = world.resource::<LevelAssets>().handles();
     assert_eq!(tracked.len(), 1);
     assert_eq!(tracked[0].path().unwrap().to_string(), SHADER);
 }

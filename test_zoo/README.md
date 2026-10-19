@@ -1,6 +1,6 @@
 # Modell-Zoo
 
-Eigenständige Bevy-App zum Prüfen der 13 Stationsmodelle aus [Signalstation](../test_app/README.md). `test_zoo` ist ein eigenes Workspace-Paket neben `test_app`; Stationsdefinitionen, Modellaufbau und Assets kommen aus dessen Library. Es werden keine Modelle kopiert und keine Spielsysteme installiert.
+Eigenständige Bevy-App zum Prüfen der 13 Objektmodelle aus [Signalstation](../test_app/README.md). `test_zoo` ist ein eigenes Workspace-Paket neben `test_app`; Objektdefinitionen, Modellaufbau und Assets kommen aus dessen Library. Es werden keine Modelle kopiert und keine Spielsysteme installiert.
 
 ## Starten
 
@@ -10,7 +10,7 @@ Vom Repository-Root:
 cargo run -p test_zoo
 ```
 
-Alternativ funktioniert `cargo run --manifest-path test_zoo/Cargo.toml`. Die Assets werden unabhängig vom Arbeitsverzeichnis aus `test_app/asset/` geladen. Für Modell-Dateien gilt der gemeinsame [Asset-Standard von `test_app`](../test_app/README.md#asset-formate): glTF mit externen BIN-Dateien und gemeinsam genutzten PNG-Texturen. Die Stationsmodelle des Zoos werden weiterhin direkt im gemeinsamen Rust-Code aufgebaut.
+Alternativ funktioniert `cargo run --manifest-path test_zoo/Cargo.toml`. Die Assets werden unabhängig vom Arbeitsverzeichnis aus `test_app/asset/` geladen. Für Modell-Dateien gilt der gemeinsame [Asset-Standard von `test_app`](../test_app/README.md#asset-formate): glTF mit externen BIN-Dateien und gemeinsam genutzten PNG-Texturen. Die Objektmodelle des Zoos werden weiterhin direkt im gemeinsamen Rust-Code aufgebaut.
 
 ## Steuerung
 
@@ -32,7 +32,7 @@ Der Boden ist ein transparenter Schattenfänger: Beleuchtete Bereiche sind unsic
 
 Gezeigt werden Auftragstafel, Montagepresse, Lagerhebel, Ventil, Archivscanner, Generatorbedienung, Sendeschalter, Checkpoint, Belohnungstruhe und vier Ablagevarianten. Die Zustandsvorschau verändert keinen Spielstand.
 
-Die gemeinsame Geometrie liegt in `test_app/src/expedition/stations/models.rs`, die Zustandsdarstellung in `test_app/src/expedition/stations.rs` und die Definitionen in `test_app/src/expedition/stations/targets.rs`.
+Der gemeinsame Modellaufbau liegt in `test_app/src/level/objects/`, aufgeteilt nach Bedienobjekten. Der Zoo wählt über `ModelKind` ein Modell, baut es mit `spawn_model` auf und setzt dessen Vorschau über `VisualState`. Er benötigt keinen `Mission`-Zustand. Geometrie und Zustandsdarstellung bleiben dieselben wie im Spiel.
 
 ## Bildexport
 

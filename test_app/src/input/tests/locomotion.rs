@@ -1,22 +1,23 @@
 use super::*;
 
 fn assert_stride(app: &mut App, sprinting: bool) {
-    let before = app.world().resource::<Player>().position;
+    let before = app.world().resource::<Player>().position();
     tick(app);
     let player = app.world().resource::<Player>();
     assert_eq!(
-        player.sprinting, sprinting,
+        player.sprinting(),
+        sprinting,
         "locomotion state must match the actual speed"
     );
-    let distance = player.position.distance(before);
-    let expected = app.world().resource::<Settings>().speed
+    let distance = player.position().distance(before);
+    let expected = app.world().resource::<Settings>().speed()
         * app.world().resource::<Time>().delta_secs()
         * if sprinting { 1.65 } else { 1. };
     assert!(
         (distance - expected).abs() < 0.00001,
         "sprinting={sprinting}, height={}, vertical_speed={}, moved={distance}, expected={expected}",
-        player.height,
-        player.vertical_speed,
+        player.height(),
+        player.vertical_speed(),
     );
 }
 
@@ -62,7 +63,7 @@ fn check_jump_lock(sprinting_at_takeoff: bool) {
                     walking_app(mode, first_person, sprinting_at_takeoff, shift);
                 key(&mut app, window, KeyCode::Space);
                 assert_stride(&mut app, sprinting_at_takeoff);
-                assert!(app.world().resource::<Player>().vertical_speed > 0.);
+                assert!(app.world().resource::<Player>().vertical_speed() > 0.);
                 key_state(&mut app, window, KeyCode::Space, ButtonState::Released);
                 change_shift(&mut app, window, shift, sprinting_at_takeoff);
                 let mut fell = false;
@@ -70,8 +71,8 @@ fn check_jump_lock(sprinting_at_takeoff: bool) {
                 for _ in 0..120 {
                     assert_stride(&mut app, sprinting_at_takeoff);
                     let player = app.world().resource::<Player>();
-                    fell |= player.vertical_speed < 0.;
-                    if player.height.abs() < 0.025 && player.vertical_speed <= 0. {
+                    fell |= player.vertical_speed() < 0.;
+                    if player.height().abs() < 0.025 && player.vertical_speed() <= 0. {
                         landed = true;
                         break;
                     }
@@ -104,8 +105,7 @@ fn airborne_sprint_state_is_locked_even_at_the_apex_or_when_falling_without_a_ju
             let (mut app, window) = walking_app(CONTROLLED, true, sprinting, KeyCode::ShiftLeft);
             {
                 let mut player = app.world_mut().resource_mut::<Player>();
-                player.height = height;
-                player.vertical_speed = vertical_speed;
+                player.set_test_motion(height, vertical_speed);
             }
             change_shift(&mut app, window, KeyCode::ShiftLeft, sprinting);
             assert_stride(&mut app, sprinting);
@@ -115,12 +115,12 @@ fn airborne_sprint_state_is_locked_even_at_the_apex_or_when_falling_without_a_ju
 
 #[test]
 fn respawn_resets_sprint_state_before_an_airborne_start() {
-    assert!(!Player::default().sprinting);
+    assert!(!Player::default().sprinting());
     let (mut app, _) = walking_app(CONTROLLED, true, true, KeyCode::ShiftLeft);
     app.world_mut()
         .resource_mut::<Player>()
         .respawn(Vec2::ZERO, 1.);
-    assert!(!app.world().resource::<Player>().sprinting);
+    assert!(!app.world().resource::<Player>().sprinting());
     // Shift is still held, but spawning in the air must not enable running.
     assert_stride(&mut app, false);
 }
@@ -128,22 +128,22 @@ fn respawn_resets_sprint_state_before_an_airborne_start() {
 #[test]
 fn sprint_can_change_on_a_supported_upper_floor() {
     let (mut app, window) = walking_app(CONTROLLED, false, false, KeyCode::ShiftRight);
-    let center = app.world().resource::<Player>().position.to_array();
+    let center = app.world().resource::<Player>().position().to_array();
     app.insert_resource(Navigation::new(
-        vec![crate::level::navigation::Surface {
-            center,
-            half: [10., 10.],
-            height: 3.,
-            bottom: 2.7,
-        }],
+        vec![
+            crate::level::navigation::Surface::new(center, [10., 10.], 3., 2.7)
+                .expect("valid surface"),
+        ],
         Vec::new(),
         Vec2::splat(-39.),
         Vec2::splat(39.),
     ));
-    app.world_mut().resource_mut::<Player>().height = 3.;
+    app.world_mut()
+        .resource_mut::<Player>()
+        .respawn(Vec2::ZERO, 3.);
     key(&mut app, window, KeyCode::ShiftRight);
     assert_stride(&mut app, true);
-    assert_eq!(app.world().resource::<Player>().height, 3.);
+    assert_eq!(app.world().resource::<Player>().height(), 3.);
     key_state(&mut app, window, KeyCode::ShiftRight, ButtonState::Released);
     assert_stride(&mut app, false);
 }

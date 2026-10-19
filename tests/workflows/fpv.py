@@ -45,8 +45,8 @@ class FirstPerson(Controls):
 
     def captured(self):
         view = self.game.resource("view")
-        assert view["first_person"] and view["captured"], view
-        assert not self.game.resource("ui")["menu"]
+        assert view["mode"] == "FirstPerson" and self.game.resource("capture")["active"], view
+        assert not self.game.resource("flow")["menu"]
 
     def cursor_free(self):
         item = self.game.query(entities(components(CURSOR), with_types=(PRIMARY,)))["items"]
@@ -127,11 +127,11 @@ class FirstPerson(Controls):
     def travel(self, destination):
         """Ask the normal map click for a route, then walk its waypoints in FPV."""
         view = self.game.resource("view")
-        if not view["first_person"]:
+        if view["mode"] != "FirstPerson":
             self.tap("v")
         # Leaving FPV places the overview camera immediately; its actual transform
         # and projection determine the click, with no guessed settling tick count.
-        self.tap("v" if view["map"] else "g")
+        self.tap("v" if view["mode"] == "Map" else "g")
         self.move_to(self.screen_position(destination))
         self.click()
         route = self.game.resource("player")["route"]
@@ -187,7 +187,7 @@ def run(ctx, game):
         controls.background()
         controls.move_to([720, 450])
         controls.key("v")
-        assert not game.resource("view")["first_person"]
+        assert game.resource("view")["mode"] != "FirstPerson"
         game.advance(1)
         controls.key("v", False)
         game.advance(1)
@@ -220,7 +220,7 @@ def run(ctx, game):
         controls.background()
         controls.cursor_free()
         controls.tap("escape")
-        assert not game.resource("view")["captured"]
+        assert not game.resource("capture")["active"]
         paused = game.resource("player")
         controls.key("w")
         controls.move_by([20, 10])

@@ -9,13 +9,13 @@ fn scene() -> (App, Entity, Entity, Entity) {
     let mut app = App::new();
     app.add_plugins(TransformPlugin)
         .init_resource::<Time>()
+        .insert_resource(crate::input::PointerCapture::default())
         .init_resource::<Player>()
         .init_resource::<crate::level::navigation::Navigation>()
         .init_resource::<Settings>()
         .init_resource::<Assets<bevy::gizmos::GizmoAsset>>()
         .insert_resource(ViewState {
-            first_person: true,
-            captured: true,
+            mode: crate::player::camera::ViewMode::FirstPerson,
             pitch: 0.3,
             ..default()
         })
@@ -117,12 +117,10 @@ fn walking_moves_the_character_and_camera_together_without_a_second_bob() {
     // This test moves up onto a floor, rather than teleporting into mid-air.
     let destination = app.world().resource::<Player>().position + Vec2::new(1., 2.);
     app.insert_resource(crate::level::navigation::Navigation::new(
-        vec![crate::level::navigation::Surface {
-            center: destination.to_array(),
-            half: [1., 1.],
-            height: 3.,
-            bottom: 2.7,
-        }],
+        vec![
+            crate::level::navigation::Surface::new(destination.to_array(), [1., 1.], 3., 2.7)
+                .expect("valid surface"),
+        ],
         Vec::new(),
         Vec2::splat(-100.),
         Vec2::splat(100.),
@@ -201,11 +199,21 @@ fn walking_scene(first_person: bool) -> (App, Entity, Entity, Entity) {
     let (mut app, model, head, camera) = scene();
     app.init_resource::<crate::input::InputMode>()
         .init_resource::<ButtonInput<KeyCode>>()
+        .init_resource::<ButtonInput<MouseButton>>()
+        .init_resource::<bevy::input::mouse::AccumulatedMouseMotion>()
         .init_resource::<bevy::input_focus::InputFocus>()
         .init_resource::<crate::level::navigation::Navigation>()
         .init_resource::<crate::ui::UiState>()
+        .init_resource::<crate::app::flow::GameFlow>()
+        .init_resource::<crate::input::PointerCapture>()
+        .init_resource::<crate::input::intents::FrameInput>()
         .insert_resource(crate::level::LevelLoad::Ready)
-        .add_systems(Update, player::move_player.before(player::update_model));
+        .add_systems(
+            Update,
+            (crate::input::sample_gameplay, player::move_player)
+                .chain()
+                .before(player::update_model),
+        );
     app.world_mut().spawn((
         Window {
             focused: true,
@@ -213,10 +221,19 @@ fn walking_scene(first_person: bool) -> (App, Entity, Entity, Entity) {
         },
         PrimaryWindow,
     ));
-    app.world_mut().resource_mut::<ViewState>().first_person = first_person;
+    app.world_mut()
+        .resource_mut::<ViewState>()
+        .set_mode(if first_person {
+            crate::player::camera::ViewMode::FirstPerson
+        } else {
+            crate::player::camera::ViewMode::Overview
+        });
     app.world_mut()
         .resource_mut::<Time>()
         .advance_by(std::time::Duration::from_secs_f32(1. / 60.));
+    app.world_mut()
+        .resource_mut::<crate::input::PointerCapture>()
+        .set(first_person);
     app.update();
     (app, model, head, camera)
 }
@@ -436,6 +453,9 @@ fn perspective_switches_detach_and_reattach_without_losing_the_eye_point() {
     app.update();
     let anchor = app.world().get::<ChildOf>(camera).unwrap().parent();
     app.world_mut().resource_mut::<ViewState>().toggle();
+    app.world_mut()
+        .resource_mut::<crate::input::PointerCapture>()
+        .set(true);
     app.update();
     assert!(app.world().get::<ChildOf>(camera).is_none());
     assert!(app.world().resource::<ViewState>().eye.is_none());
@@ -448,6 +468,9 @@ fn perspective_switches_detach_and_reattach_without_losing_the_eye_point() {
         Some(Projection::Orthographic(_))
     ));
     app.world_mut().resource_mut::<ViewState>().toggle();
+    app.world_mut()
+        .resource_mut::<crate::input::PointerCapture>()
+        .set(true);
     app.update();
     assert_eq!(app.world().get::<ChildOf>(camera).unwrap().parent(), anchor);
     assert_eq!(

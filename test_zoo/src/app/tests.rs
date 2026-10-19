@@ -28,8 +28,7 @@ fn app_with_capture(capture: bool) -> App {
     .init_asset::<Shader>()
     .init_asset_loader::<bevy::shader::ShaderLoader>()
     .init_resource::<LevelAssets>()
-    .init_resource::<Expedition>()
-    .init_resource::<PreviewState>()
+    .init_resource::<VisualState>()
     .init_resource::<Zoo>()
     .init_resource::<Views>()
     .init_resource::<ButtonInput<KeyCode>>()
@@ -69,7 +68,7 @@ fn app_with_capture(capture: bool) -> App {
 }
 
 #[test]
-fn zoo_uses_shared_station_models_and_preview_states_without_starting_the_game() {
+fn zoo_uses_shared_object_models_and_preview_states_without_starting_the_game() {
     let mut app = app();
     let world = app.world_mut();
     let exhibits: Vec<_> = world
@@ -77,8 +76,13 @@ fn zoo_uses_shared_station_models_and_preview_states_without_starting_the_game()
         .iter(world)
         .collect();
     assert_eq!(exhibits.len(), MODELS.len());
+    assert!(
+        world
+            .get_resource::<test_app::level::mission::Mission>()
+            .is_none()
+    );
     for (exhibit, name, transform) in exhibits {
-        assert_eq!(name.as_str(), MODELS[exhibit.0].0.name);
+        assert_eq!(name.as_str(), MODELS[exhibit.0].0.name());
         assert_eq!(transform.translation, position(exhibit.0));
     }
     assert_eq!(world.query::<&SamplePickup>().iter(world).count(), 5);
@@ -115,7 +119,7 @@ fn zoo_uses_shared_station_models_and_preview_states_without_starting_the_game()
         "the zoo must not contain an opaque ground underneath the shadow catcher"
     );
 
-    world.run_system_cached(stations::update_stations).unwrap();
+    world.run_system_cached(objects::update_visuals).unwrap();
     world.run_system_cached(update_view).unwrap();
     assert!(
         world
@@ -124,9 +128,9 @@ fn zoo_uses_shared_station_models_and_preview_states_without_starting_the_game()
             .all(|visibility| *visibility == Visibility::Inherited)
     );
 
-    *world.resource_mut::<PreviewState>() = PreviewState::Used;
+    *world.resource_mut::<VisualState>() = VisualState::Used;
     world.resource_mut::<Zoo>().selected = Some(1);
-    world.run_system_cached(stations::update_stations).unwrap();
+    world.run_system_cached(objects::update_visuals).unwrap();
     world.run_system_cached(update_view).unwrap();
     for (exhibit, visibility) in world.query::<(&Exhibit, &Visibility)>().iter(world) {
         assert_eq!(

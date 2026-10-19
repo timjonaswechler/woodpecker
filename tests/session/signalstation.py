@@ -9,11 +9,13 @@ RESOURCES = {
     "load": "test_app::level::LevelLoad",
     "player": "test_app::player::Player",
     "view": "test_app::player::camera::ViewState",
-    "expedition": "test_app::expedition::Expedition",
-    "practice": "test_app::practice::Practice",
-    "coins": "test_app::items::coins::CoinRun",
+    "capture": "test_app::input::PointerCapture",
+    "flow": "test_app::app::flow::GameFlow",
+    "expedition": "test_app::level::mission::Mission",
+    "practice": "test_app::level::objects::shooting_range::ShootingRange",
+    "coins": "test_app::level::mission::inventory::CoinRun",
     "ui": "test_app::ui::UiState",
-    "settings": "test_app::settings::Settings",
+    "settings": "test_app::app::settings::Settings",
     "time": "bevy_time::time::Time<()>",
 }
 

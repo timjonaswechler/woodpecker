@@ -17,7 +17,7 @@ from tests.workflows.settings import SettingsUi
 
 CLOCK = {"kind": "fixed", "seconds_per_tick": 0.016666667}
 RECORDABLE = ("input.", "tick.", "inspect.", "screenshot.")
-STATE = ("load", "player", "view", "expedition", "practice", "coins", "ui", "settings")
+STATE = ("load", "player", "view", "capture", "flow", "expedition", "practice", "coins", "ui", "settings")
 NOTES = "Replay · Grüße 世界🙂\nZweite Zeile"
 
 
@@ -159,7 +159,7 @@ def record(game):
     checkpoint("fpv_shot")
 
     controls.tap("m")
-    assert recorded.resource("ui")["menu"]
+    assert recorded.resource("flow")["menu"]
     controls.focus_field("Notizen")
     transcript.command("input.text.input", {"text": NOTES})
     assert controls.saved()["notes"] == "", "Texteingabe wirkte vor dem Tick"

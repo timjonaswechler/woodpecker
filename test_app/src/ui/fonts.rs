@@ -18,7 +18,7 @@ pub fn load(assets: &AssetServer, tracked: &mut LevelAssets) -> UiFonts {
         "fonts/NotoEmoji-Variable.ttf",
     ]
     .map(|path| assets.load::<Font>(path));
-    tracked.0.extend(fonts.iter().cloned().map(Handle::untyped));
+    tracked.track_all(fonts.iter().cloned().map(Handle::untyped));
     UiFonts(FontSource::list(fonts))
 }
 

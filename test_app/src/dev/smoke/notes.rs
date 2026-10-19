@@ -62,7 +62,7 @@ pub(super) fn step(world: &mut World, frame: u32, position: Vec2) -> bool {
         }
         5 => {
             assert_eq!(
-                Settings::load().notes,
+                Settings::load().notes(),
                 PREFIX,
                 "notes autosave Unicode input"
             );
@@ -75,7 +75,7 @@ pub(super) fn step(world: &mut World, frame: u32, position: Vec2) -> bool {
                 "Enter keeps multiline focus"
             );
             assert_eq!(
-                world.resource::<Settings>().notes,
+                world.resource::<Settings>().notes(),
                 format!("{PREFIX}\n"),
                 "Enter inserts a newline"
             );
@@ -100,35 +100,37 @@ pub(super) fn step(world: &mut World, frame: u32, position: Vec2) -> bool {
         13 => {
             let expected = format!("{PREFIX}\n{}", long_input());
             assert_eq!(
-                world.resource::<Settings>().notes,
+                world.resource::<Settings>().notes(),
                 expected,
                 "16 KiB input appends without truncation"
             );
             let saved = Settings::load();
             assert_eq!(
-                saved.notes, expected,
+                saved.notes(),
+                expected,
                 "long multiline notes survive disk round-trip"
             );
             assert_eq!(
-                saved.player_name, "Jäger ÄÖÜ",
+                saved.player_name(),
+                "Jäger ÄÖÜ",
                 "notes do not replace the name"
             );
             assert_eq!(
-                world.resource::<Player>().position,
+                world.resource::<Player>().position(),
                 position,
                 "editing notes blocks movement"
             );
             assert_eq!(
-                world.resource::<Player>().height,
+                world.resource::<Player>().height(),
                 0.0,
                 "editing notes blocks jumping"
             );
             assert!(
-                !world.resource::<ViewState>().first_person,
+                !world.resource::<ViewState>().first_person(),
                 "editing notes blocks view shortcuts"
             );
             assert!(
-                world.resource::<UiState>().menu,
+                world.resource::<crate::app::flow::GameFlow>().menu(),
                 "editing notes blocks restarting"
             );
             let input = world.get::<EditableText>(entity).unwrap();
@@ -146,9 +148,9 @@ pub(super) fn step(world: &mut World, frame: u32, position: Vec2) -> bool {
         }
         17 => {
             let saved = Settings::load();
-            assert_eq!(saved.sensitivity, Settings::default().sensitivity);
+            assert_eq!(saved.sensitivity(), Settings::default().sensitivity());
             assert_eq!(
-                saved.notes,
+                saved.notes(),
                 format!("{PREFIX}\n{}", long_input()),
                 "resetting options preserves personal notes"
             );
@@ -165,17 +167,17 @@ pub(super) fn step(world: &mut World, frame: u32, position: Vec2) -> bool {
             world.resource_mut::<Actions>().0.push(Action::Settings);
         }
         25 => {
-            assert!(world.resource::<UiState>().menu);
+            assert!(world.resource::<crate::app::flow::GameFlow>().menu());
             assert_eq!(
                 world
                     .get::<EditableText>(entity)
                     .unwrap()
                     .value()
                     .to_string(),
-                Settings::load().notes,
+                Settings::load().notes(),
                 "reopening settings keeps persisted notes"
             );
-            world.resource_mut::<Player>().yaw = 0.0;
+            world.resource_mut::<Player>().face_yaw(0.0);
             world
                 .resource_mut::<Actions>()
                 .0
@@ -201,7 +203,7 @@ fn unicode_editing(world: &mut World, entity: Entity, frame: u32) {
             );
         }
         5 => {
-            assert_eq!(Settings::load().notes, MIXED);
+            assert_eq!(Settings::load().notes(), MIXED);
             let mut input = world.get_mut::<EditableText>(entity).unwrap();
             let layout = input.editor().try_layout().expect("text has been shaped");
             assert!(
@@ -241,7 +243,7 @@ fn unicode_editing(world: &mut World, entity: Entity, frame: u32) {
         }
         17 => {
             assert_eq!(
-                Settings::load().notes,
+                Settings::load().notes(),
                 MIXED.strip_suffix("界🙂").unwrap().to_owned() + "🙂",
                 "Backspace removes one CJK character without damaging the emoji"
             );
@@ -253,7 +255,7 @@ fn unicode_editing(world: &mut World, entity: Entity, frame: u32) {
             );
         }
         21 => {
-            assert_eq!(Settings::load().notes, MIXED, "CJK insertion round-trips");
+            assert_eq!(Settings::load().notes(), MIXED, "CJK insertion round-trips");
             keyboard(world, KeyCode::ArrowRight, Key::ArrowRight, None);
         }
         25 => {

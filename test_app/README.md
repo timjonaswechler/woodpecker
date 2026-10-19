@@ -46,13 +46,13 @@ Zwischen Laufen und Sprinten wechselst du nur mit Bodenkontakt. Beim Springen un
 
 Die Laufbewegung hebt und senkt `Dummy_Body` relativ zu seiner importierten Ruheposition – sowohl in der Übersicht als auch in der Egoperspektive, bei Pfeiltasten und Klickwegen. Fußteil und Kollisionskörper wippen nicht mit. Beim Springen und Fallen bleibt der Oberkörper in seiner lokalen Ruheposition; das Laufwippen setzt erst mit Bodenkontakt wieder ein. Kopf und Arme folgen als Kinder des Körpers; die Kamera hat keine eigene Laufanimation. In der Egoperspektive sitzt die Kamera am festen Augenpunkt `EYE_POSITION = (0, 0.65, 0)` im lokalen, unskalierten Koordinatensystem von `Dummy_Head` (`src/player/camera.rs`). Sie übernimmt dessen Bewegung über die Objekthierarchie; nur der Mausblick verändert ihre lokale Drehung. Blaster, Schüsse und Interaktionen verwenden dieselbe Weltpose. Beim Wechsel zur Übersicht wird die Kamera vom Kopf gelöst. Die Kollisionsgeometrie bleibt davon unabhängig.
 
-## Stationen bedienen
+## Bedienobjekte verwenden
 
 Interaktionen funktionieren von allen zugänglichen Seiten des Objekts. In FPV muss es in Reichweite und im Fadenkreuz liegen. Der konkrete E-Hinweis erscheint direkt darunter, sobald die Aktion möglich ist. In der Übersicht erscheint die Aktion des nächsten erreichbaren Objekts unten in der Mitte. Wände, andere Stockwerke, freie Maus, Texteingabe und das Menü verhindern die Bedienung. Interaktionsflächen haben keine sichtbaren Bodenringe.
 
 Jedes Bedienobjekt hat eine Funktion: Der Lagerhebel verschiebt das Regal, das Handrad öffnet ein Ventil, das Lesepult scannt eine Archivtafel und der Montageschalter baut eine Zelle. Die Abholung erfolgt am separaten Tisch. Bauteile und Zellen liegen auf der Tischplatte und verschwinden beim Einsammeln. Die Archivtafeln sind weiß und unterscheiden sich von den blauen Bauplänen fürs Inventar.
 
-Benutzte Stationen zeigen dauerhaft einen grünen Status mit Häkchen und einer Beschriftung wie „Tafel ist gescannt“. Hebel und Handräder ändern ihre Stellung; eingelesene Tafeln verschwinden vom Lesepult. Die Belohnungstruhe öffnet sich nach der Zielübung, zeigt den Bauplan und bleibt nach dessen Entnahme leer und geöffnet. R stellt auch diese Zustände zurück.
+Benutzte Objekte zeigen dauerhaft einen grünen Status mit Häkchen und einer Beschriftung wie „Tafel ist gescannt“. Hebel und Handräder ändern ihre Stellung; eingelesene Tafeln verschwinden vom Lesepult. Die Belohnungstruhe öffnet sich nach der Zielübung, zeigt den Bauplan und bleibt nach dessen Entnahme leer und geöffnet. R stellt auch diese Zustände zurück.
 
 ## Zielübung, Eingabe und Einstellungen
 
@@ -60,7 +60,7 @@ Der Schießstand in G ist immer bereit. Mit V in FPV wechseln und mit Linksklick
 
 Brückenstützen und Wände blockieren Schüsse; mit WASD wechselst du zwischen den Schießbahnen. Die Übung ist für den Hauptauftrag nicht erforderlich. Menü, freie Maus, Texteingabe und ein inaktives Fenster sperren Schüsse.
 
-## Ressourcen und Stationszeichen
+## Ressourcen und Objektzeichen
 
 Die Leiste am oberen Bildschirmrand zeigt den gesamten aktuellen Besitz, ohne Gesamtmengen oder Raumzähler. Gebaute Zellen verbrauchen Bauteile; eingesetzte Zellen verlassen das Inventar.
 
@@ -71,7 +71,7 @@ Die Leiste am oberen Bildschirmrand zeigt den gesamten aktuellen Besitz, ohne Ge
 | Grüne Batterie | Energiezellen auf grünen Ausgabetischen und in den Sockeln des Generators |
 | Blaues Blatt | Baupläne im Level und in der blauen Truhe der Zielübung |
 
-Die Form bleibt auch ohne Farberkennung unterscheidbar. Stationen tragen Beschriftungen für Zweck, Voraussetzungen und Erledigt-Zustand. Die UI-Symbole lassen sich mit `python3 planning/create_resource_icons.py` und die Stationsschilder mit `python3 planning/create_station_labels.py` neu erzeugen. Die räumlichen Gegenstände stehen in `src/items.rs`.
+Die Form bleibt auch ohne Farberkennung unterscheidbar. Bedienobjekte tragen Beschriftungen für Zweck, Voraussetzungen und Erledigt-Zustand. Die UI-Symbole lassen sich mit `python3 planning/create_resource_icons.py` und die Stationsschilder mit `python3 planning/create_station_labels.py` neu erzeugen. Die räumlichen Gegenstände entstehen in `src/level/objects/pickups/models.rs`.
 
 Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der Eingabe bleiben Spieltasten gesperrt. Enter oder Esc beendet die Eingabe. Das Einstellungsmenü bietet Maus-Empfindlichkeit, Sichtfeld, Lauftempo, Schatten, Routenanzeige und eine umkehrbare vertikale Mausachse. Name und Einstellungen werden in `test_app/settings.json` gespeichert.
 
@@ -79,7 +79,7 @@ Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der E
 
 ### Modell-Zoo
 
-Der [Modell-Zoo](../test_zoo/README.md) ist eine eigene App neben `test_app/`. Er verwendet die Stationsmodelle und Assets der Spiel-Library, ohne das Spiel zu starten.
+Der [Modell-Zoo](../test_zoo/README.md) ist eine eigene App neben `test_app/`. Er verwendet die Objektmodelle und Assets der Spiel-Library, ohne das Spiel zu starten.
 
 ```sh
 cargo run -p test_zoo
@@ -107,11 +107,11 @@ blender --background planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python test_app/asset/blender/export_level.py
 ```
 
-Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/layout.rs` liest diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei; Navigation und Spiellogik verwenden weiterhin ihre eigenen Rust-Module.
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/import.rs` prüft diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei. Danach verwendet das Level die unveränderliche `LevelDefinition` aus `src/level/definition.rs`. Dort liegen auch die spielseitigen Positionen der Bedienobjekte und Ziele; Navigation, Objektverhalten und Aufgaben bleiben eigene Module.
 
 Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
-Die spielbaren Bedienobjekte aus `src/expedition/stations.rs` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/expedition/stations/targets.rs`. `src/expedition/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
+Die spielbaren Bedienobjekte aus `src/level/objects/` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/level/objects/definitions.rs`. `src/level/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
 
 Der bearbeitete Blaster liegt in [asset/blender/training_blaster.blend](asset/blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
@@ -129,7 +129,7 @@ cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --offscreen
 
 Die Tests laufen mit der tatsächlichen Levelgeometrie und Bewegungsphysik. Sie prüfen Aufgaben und Sammelwege, alle Treppen, den Sprungparcours, getrennte Laufwege unter und auf einer Galerie, Kollision mit deren Unterseite, Blickrichtung, den sichtbaren Körper innerhalb der Kollisionsbox, Inventarverbrauch und den Mindestabstand jedes Zieltreffers.
 
-Der gezielte Aufruf `cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --smoke-stations --offscreen` prüft Bedienung von hinten, Fadenkreuz-Hinweise, Montage und getrennte Abholung, das Verschwinden eingesammelter Gegenstände, erledigte Scanner und Ventile sowie den Neustart. Die Unit-Tests decken alle vier Seiten eines Scanners, Blickrichtung, Reichweite, Sichtschutz und Stockwerke ab.
+Der gezielte Aufruf `cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --smoke-objects --offscreen` prüft Bedienung von hinten, Fadenkreuz-Hinweise, Montage und getrennte Abholung, das Verschwinden eingesammelter Gegenstände, erledigte Scanner und Ventile sowie den Neustart. Die Unit-Tests decken alle vier Seiten eines Scanners, Blickrichtung, Reichweite, Sichtschutz und Stockwerke ab.
 
 Unter macOS beim unsichtbaren Test `-NSAppSleepDisabled YES` hinter `--offscreen` ergänzen, damit App Nap den Hintergrundprozess nicht drosselt. Die Option gilt nur für diesen Prozess.
 
@@ -150,7 +150,7 @@ Alle Modelldateien liegen unter `asset/meshes/`, geordnet nach ihrer Verwendung 
 
 Die Herkunft eines Modells bestimmt keinen eigenen Ordner. glTF und zugehörige BIN-Datei liegen jeweils zusammen; gemeinsam verwendete Texturen liegen unter `asset/textures/`.
 
-Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
+Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Objektmodelle bleiben davon unabhängig.
 
 Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen, Sicherungen und Exportskripte liegen unter `asset/blender/`, Planungsdateien unter [`planning/`](../planning/) im Repository-Root. Der Bearbeitungsordner `asset/blender/` ist von den Prüfungen für Laufzeitmodelle ausgenommen. Der bearbeitbare Dummy liegt unter [asset/blender/dummy_base.blend](asset/blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
 
@@ -160,6 +160,25 @@ Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blende
 
 ### Module
 
-`main.rs` wählt den Betriebsmodus und bindet die optionale Woodpecker-Integration ein. `app.rs` baut das Spiel auf und legt die Systemreihenfolge fest; `launch.rs` liest Startparameter und `commands.rs` koordiniert Befehle. `level/layout.rs` lädt die exportierten Raumdaten, `level/navigation.rs` verwaltet Kollision und Wege, `level/scenery.rs` den gemeinsamen Modellaufbau. `player.rs` enthält Bewegung und Sprünge, `player/camera.rs` die Spielkamera. `expedition.rs` verwaltet Aufgaben und Inventar, `expedition/props.rs` deren Darstellung und `expedition/stations/` die Stationsmodelle und ihre Definitionen. `items.rs` verbindet Inventar, Farben und Objektformen; Münzen liegen unter `items/coins.rs`. Zielübung, Oberfläche, Eingabe und Einstellungen haben eigene Module. Gerenderte Smoke-Tests liegen unter `dev/`, die modulübergreifenden Rust-Tests in `tests.rs`. `lib.rs` stellt die gemeinsamen Module für das Spiel und die separate App `test_zoo` bereit; beide verwenden denselben Asset-Pfad aus `ASSET_DIR`.
+`main.rs` wählt den Betriebsmodus und bindet die optionale Woodpecker-Integration ein. `lib.rs` stellt Spiel und Modell-Zoo dieselben Objektmodelle und denselben Asset-Pfad aus `ASSET_DIR` bereit.
 
-Die KayKit-Modelle stammen aus **KayKit: Prototype Bits** von Kay Lousberg, siehe [CC0-Lizenz](asset/License.txt). Blaster, Level und Stationsmodelle wurden für diese Demo erstellt. Die Schrift Barlow liegt mit ihrer [SIL Open Font License](asset/fonts/OFL.txt) unter `asset/fonts/`.
+| Modul | Zuständigkeit und eigener Zustand |
+| --- | --- |
+| `app/` | App-Aufbau, Startparameter, Menü und Neustart; benannte Systemphasen in `schedule.rs` |
+| `app/settings/` | Gültige Einstellungen, Name und Notizen; Laden und Speichern |
+| `input/` | Native und kontrollierte Eingaben, Mausbindung, gemeinsame Eingaberegeln und Spielabsichten pro Frame |
+| `player/` | Position, Bewegung, Körpermodell, Kameramodus und gemeinsame Augenpose; Blaster mit Rückstoß und Schussabstand |
+| `level/` | Geprüfte Leveldefinition, Import, Umgebung, Navigation und räumliche Interaktionen |
+| `level/objects/` | Konkrete Bedienobjekte wie Werkbank, Regal, Ventil und Scanner, ihre Modelle und abgeleitete Darstellung |
+| `level/objects/shooting_range/` | Zielscheiben, Treffer und Punkte; meldet den Abschluss an den Auftrag |
+| `level/mission/` | Aufgabenfortschritt, auftragsgebundene Objektzustände, Inventar und atomare Aktionen |
+| `ui/` | Oberfläche, Eingabefelder und Texte; zeigt Zustand an und reicht Änderungswünsche weiter |
+| `dev/`, `tests/` | Gerenderte Smoke-Tests und modulübergreifende Rust-Tests |
+
+Dateidaten werden beim Eintritt geprüft: Der Levelimport liefert gültige Flächen, Hindernisse, Referenzen und Fundpositionen. `Settings` normalisiert geladene Werte und spätere Änderungen mit denselben Regeln. Private Felder und geprüfte IDs verhindern ungültige direkte Änderungen. Veränderliche Voraussetzungen wie Besitz, Reichweite oder ein bereits bedientes Objekt werden beim Ausführen der Aktion geprüft. Ein angezeigter Bedienhinweis garantiert keinen späteren Erfolg.
+
+Der Auftrag besitzt den Fortschritt und das Inventar. Objektmodelle leiten daraus ihren sichtbaren Zustand ab. Der Schießstand besitzt seine Treffer und Punkte und liefert beim Abschluss einen Nachweis zum Freigeben der Truhe. Der Modell-Zoo verwendet `ModelKind`, `VisualState` und `spawn_model`, ohne einen Auftrag anzulegen.
+
+Jedes Modul registriert seine Systeme selbst. Die Reihenfolge steht in `app/schedule.rs`: Eingaben und Befehle, Weltvorbereitung, Bewegung, aktuelle Körper- und Kamerapose, Interaktionen, Schüsse und Treffer, Fortschritt und Darstellung. Ein verschobenes Regal aktualisiert Kollision und Wegsuche zusammen; Schüsse und Interaktionen verwenden die aktuelle Augenpose.
+
+Die KayKit-Modelle stammen aus **KayKit: Prototype Bits** von Kay Lousberg, siehe [CC0-Lizenz](asset/License.txt). Blaster, Level und Objektmodelle wurden für diese Demo erstellt. Die Schrift Barlow liegt mit ihrer [SIL Open Font License](asset/fonts/OFL.txt) unter `asset/fonts/`.

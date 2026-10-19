@@ -38,7 +38,7 @@ def signalstation(ctx):
             state = game.snapshot("baseline")
             assert state["player"]["position"] == [-32.0, 22.0], state["player"]
             assert state["player"]["route"] == [], state["player"]
-            assert not state["view"]["first_person"] and not state["ui"]["menu"], state["view"]
+            assert state["view"]["mode"] != "FirstPerson" and not state["flow"]["menu"], state["view"]
             assert state["expedition"]["cells"] == ["Locked"] * 3, state["expedition"]
             assert state["practice"]["shots"] == state["practice"]["hits"] == 0
             before = state

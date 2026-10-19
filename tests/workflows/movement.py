@@ -49,16 +49,16 @@ def run(ctx, game):
         controls.background()
         # The map toggle is an observable one-shot action while holding a key.
         controls.key("g")
-        assert game.resource("view")["map"] is False
+        assert (game.resource("view")["mode"] == "Map") is False
         game.advance(1)
-        assert game.resource("view")["map"] is True
+        assert (game.resource("view")["mode"] == "Map") is True
         game.advance(3)
-        assert game.resource("view")["map"] is True
+        assert (game.resource("view")["mode"] == "Map") is True
         controls.key("g", False)
         game.advance(1)
         controls.key("g")
         game.advance(1)
-        assert game.resource("view")["map"] is False
+        assert (game.resource("view")["mode"] == "Map") is False
         return {"start": start, "after_one_tick": first, "after_four_ticks": position,
                 "press": pressed, "hold": held, "release": released, "window_focused": False}
 

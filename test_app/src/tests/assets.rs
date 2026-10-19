@@ -148,19 +148,22 @@ fn game_spawn_paths_point_to_existing_gltf_files() {
         .init_asset::<Mesh>()
         .init_asset::<StandardMaterial>()
         .init_resource::<crate::level::LevelAssets>()
-        .init_resource::<crate::settings::Settings>();
+        .init_resource::<crate::app::settings::Settings>();
     let world = app.world_mut();
     world.run_system_cached(crate::level::spawn_level).unwrap();
     world
         .run_system_cached(crate::player::spawn_player)
         .unwrap();
     world
-        .run_system_cached(crate::items::coins::spawn_coins)
+        .run_system_cached(crate::level::objects::pickups::coins::spawn_coins)
         .unwrap();
     world
-        .run_system_cached(crate::practice::spawn_range)
+        .run_system_cached(crate::level::objects::shooting_range::spawn_range)
         .unwrap();
-    let tracked = &world.resource::<crate::level::LevelAssets>().0;
+    world
+        .run_system_cached(crate::player::blaster::spawn)
+        .unwrap();
+    let tracked = world.resource::<crate::level::LevelAssets>().handles();
     assert!(!tracked.is_empty());
     for handle in tracked {
         let path = handle.path().unwrap().path();

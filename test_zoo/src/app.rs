@@ -18,28 +18,26 @@ use bevy::{
 };
 use std::path::PathBuf;
 use test_app::{
-    expedition::stations::targets::{STATIONS, TABLES, Target},
-    expedition::stations::{self, PreviewState},
-    expedition::{Expedition, Interaction as Action},
-    items::ItemKind,
     level::LevelAssets,
-    level::scenery::Scenery,
+    level::mission::inventory::ItemKind,
+    level::objects::{self, ModelKind, VisualState},
+    level::scene::Scenery,
 };
 
-const MODELS: [(Target, &str, &str); 13] = [
-    (STATIONS[0], "Auftragstafel", "board"),
-    (STATIONS[1], "Montage", "assembly"),
-    (STATIONS[2], "Lagerhebel", "lever"),
-    (STATIONS[3], "Wasserventil", "valve"),
-    (STATIONS[5], "Archivscanner", "scanner"),
-    (STATIONS[8], "Generatorbedienung", "generator"),
-    (STATIONS[9], "Sendeschalter", "sender"),
-    (STATIONS[10], "Rückkehrpunkt", "checkpoint"),
-    (STATIONS[11], "Belohnungstruhe", "chest"),
-    (TABLES[0], "Bauteilablage", "part"),
-    (TABLES[2], "Montageausgabe", "cell-assembly"),
-    (TABLES[3], "Gartenausgabe", "cell-water"),
-    (TABLES[4], "Archivausgabe", "cell-archive"),
+const MODELS: [(ModelKind, &str, &str); 13] = [
+    (ModelKind::Board, "Auftragstafel", "board"),
+    (ModelKind::Workbench, "Montage", "assembly"),
+    (ModelKind::StorageLever, "Lagerhebel", "lever"),
+    (ModelKind::Valve, "Wasserventil", "valve"),
+    (ModelKind::Scanner, "Archivscanner", "scanner"),
+    (ModelKind::Generator, "Generatorbedienung", "generator"),
+    (ModelKind::Transmitter, "Sendeschalter", "sender"),
+    (ModelKind::Checkpoint, "Rückkehrpunkt", "checkpoint"),
+    (ModelKind::Chest, "Belohnungstruhe", "chest"),
+    (ModelKind::PartTable, "Bauteilablage", "part"),
+    (ModelKind::AssemblyTable, "Montageausgabe", "cell-assembly"),
+    (ModelKind::WaterTable, "Gartenausgabe", "cell-water"),
+    (ModelKind::ArchiveTable, "Archivausgabe", "cell-archive"),
 ];
 const BG: Color = Color::srgb(0.76, 0.79, 0.76);
 const INK: Color = Color::srgb(0.10, 0.18, 0.21);
@@ -84,8 +82,7 @@ pub fn run() {
     app.insert_resource(ClearColor(BG))
         .init_resource::<Zoo>()
         .init_resource::<Views>()
-        .init_resource::<PreviewState>()
-        .init_resource::<Expedition>()
+        .init_resource::<VisualState>()
         .init_resource::<LevelAssets>()
         .insert_resource(GlobalAmbientLight {
             brightness: 450.,
@@ -111,7 +108,7 @@ pub fn run() {
         .add_systems(Startup, setup)
         .add_systems(
             Update,
-            (input, stations::update_stations, update_view).chain(),
+            (input, objects::update_visuals, update_view).chain(),
         )
         .add_systems(
             PostUpdate,
@@ -158,24 +155,17 @@ fn setup(
     };
     for (i, &(target, _, _)) in MODELS.iter().enumerate() {
         let base = position(i);
-        let root = stations::spawn_model(
-            &mut s,
-            Target {
-                center: base + Vec3::Y * target.half.y,
-                floor: 0.,
-                ..target
-            },
-        );
+        let root = objects::spawn_model(&mut s, target, base);
         s.commands.entity(root).insert(Exhibit(i));
-        let pickup = match target.action {
-            Action::Part(_) => Some((
+        let pickup = match target.sample_item() {
+            Some(ItemKind::Part) => Some((
                 ItemKind::Part,
                 Transform::from_xyz(0., 0.94, 0.)
                     .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
                     .with_scale(Vec3::splat(1.15)),
             )),
-            Action::Cell(_) => Some((ItemKind::Cell, Transform::from_xyz(0., 1.32, 0.))),
-            Action::Chest => Some((
+            Some(ItemKind::Cell) => Some((ItemKind::Cell, Transform::from_xyz(0., 1.32, 0.))),
+            Some(ItemKind::Blueprint) => Some((
                 ItemKind::Blueprint,
                 Transform::from_xyz(0., 0.72, 0.)
                     .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
@@ -283,7 +273,7 @@ fn input(
     windows: Query<&Window>,
     mut zoo: ResMut<Zoo>,
     mut views: ResMut<Views>,
-    mut state: ResMut<PreviewState>,
+    mut state: ResMut<VisualState>,
     capture: Option<Res<Capture>>,
     mut exit: MessageWriter<AppExit>,
 ) {
@@ -323,13 +313,13 @@ fn input(
         }
     }
     if keys.just_pressed(KeyCode::Digit1) {
-        *state = PreviewState::Locked;
+        *state = VisualState::Locked;
     }
     if keys.just_pressed(KeyCode::Digit2) {
-        *state = PreviewState::Ready;
+        *state = VisualState::Ready;
     }
     if keys.just_pressed(KeyCode::Digit3) {
-        *state = PreviewState::Used;
+        *state = VisualState::Used;
     }
     if keys.just_pressed(KeyCode::KeyR) {
         views.reset();
@@ -411,7 +401,7 @@ fn switch_view(
 )]
 fn update_view(
     zoo: Res<Zoo>,
-    state: Res<PreviewState>,
+    state: Res<VisualState>,
     views: Res<Views>,
     capture: Option<Res<Capture>>,
     windows: Query<&Window>,
@@ -430,7 +420,7 @@ fn update_view(
         });
     }
     for mut visibility in &mut items {
-        visibility.set_if_neq(if *state == PreviewState::Ready {
+        visibility.set_if_neq(if *state == VisualState::Ready {
             Visibility::Inherited
         } else {
             Visibility::Hidden
@@ -497,9 +487,9 @@ fn update_view(
         format!("{:02} / 13    {}", i + 1, MODELS[i].1)
     });
     let phase = match *state {
-        PreviewState::Locked => "Gesperrt",
-        PreviewState::Ready => "Bereit",
-        PreviewState::Used => "Benutzt / abgeholt",
+        VisualState::Locked => "Gesperrt",
+        VisualState::Ready => "Bereit",
+        VisualState::Used => "Benutzt / abgeholt",
     };
     for mut text in &mut caption {
         text.0 = format!("MODELL-ZOO\n{name}    ·    {phase}");
@@ -507,6 +497,10 @@ fn update_view(
 }
 
 // Each model: front, back, profile, used and locked. Includes two overviews.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Capture coordinates assets, cameras, image output and application exit."
+)]
 fn capture(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -514,7 +508,7 @@ fn capture(
     mut capture: ResMut<Capture>,
     mut zoo: ResMut<Zoo>,
     mut views: ResMut<Views>,
-    mut state: ResMut<PreviewState>,
+    mut state: ResMut<VisualState>,
     mut exit: MessageWriter<AppExit>,
 ) {
     capture.loading_frames += 1;
@@ -523,7 +517,7 @@ fn capture(
         "zoo assets or screenshot timed out"
     );
     if !tracked
-        .0
+        .handles()
         .iter()
         .all(|h| assets.is_loaded_with_dependencies(h.id()))
     {
@@ -546,19 +540,19 @@ fn capture(
             views.yaw = [0.55, 3.69, 1.57, 0.55, 0.55][view];
             views.pitch = 0.30;
             *state = [
-                PreviewState::Ready,
-                PreviewState::Ready,
-                PreviewState::Ready,
-                PreviewState::Used,
-                PreviewState::Locked,
+                VisualState::Ready,
+                VisualState::Ready,
+                VisualState::Ready,
+                VisualState::Used,
+                VisualState::Locked,
             ][view];
         } else {
             zoo.selected = None;
             views.yaw = 0.20;
             *state = if shot == MODELS.len() * 5 {
-                PreviewState::Ready
+                VisualState::Ready
             } else {
-                PreviewState::Used
+                VisualState::Used
             };
         }
         return;
@@ -576,7 +570,7 @@ fn capture(
     } else {
         format!(
             "overview-{}.png",
-            if *state == PreviewState::Ready {
+            if *state == VisualState::Ready {
                 "ready"
             } else {
                 "used"

@@ -72,7 +72,7 @@ pub fn spawn(
     mut materials: ResMut<Assets<ShadowCatcher>>,
 ) {
     let shader: Handle<Shader> = load_embedded_asset!(&*assets, "ground/shadow_catcher.wesl");
-    tracked.0.push(shader.untyped());
+    tracked.track(shader.untyped());
     commands.spawn((
         Name::new("Transparenter Schattenfänger"),
         ShadowGround,

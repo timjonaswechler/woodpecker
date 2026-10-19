@@ -16,12 +16,12 @@ TEXT_INPUT = "input.text.input"
 
 class SettingsUi(FirstPerson):
     def open_menu(self):
-        if not self.game.resource("ui")["menu"]:
+        if not self.game.resource("flow")["menu"]:
             # Escape also leaves a focused name field before a menu shortcut.
             self.tap("escape")
-        if not self.game.resource("ui")["menu"]:
+        if not self.game.resource("flow")["menu"]:
             self.tap("m")
-        assert self.game.resource("ui")["menu"]
+        assert self.game.resource("flow")["menu"]
 
     def select_all(self):
         modifier = "super_left" if sys.platform == "darwin" else "control_left"
@@ -106,7 +106,7 @@ class SettingsUi(FirstPerson):
         if seed["notes"]:
             self.commit(seed["notes"])
         self.click_label("Zurück zum Spiel")
-        if self.game.resource("view")["captured"]:
+        if self.game.resource("capture")["active"]:
             self.tap("escape")
         self.focus_field("Spielername")
         self.select_all()
@@ -127,17 +127,17 @@ def run(ctx, game):
     def menu():
         player, progress = game.resource("player"), controls.progress()
         practice, settings = game.resource("practice"), controls.saved()
-        assert not game.resource("ui")["menu"]
+        assert not game.resource("flow")["menu"]
         controls.driver.command(TEXT_INPUT, {"text": "kein Fokus"}, expected_error="text_focus_unavailable")
         target = controls.label("Einstellungen  [M]")
         controls.hover(target["center"])
         controls.button()
-        assert not game.resource("ui")["menu"], "UI-Klick wirkte vor dem Tick"
+        assert not game.resource("flow")["menu"], "UI-Klick wirkte vor dem Tick"
         assert game.resource("player") == player
         game.advance(1)
         controls.button(down=False)
         game.advance(1)
-        assert game.resource("ui")["menu"]
+        assert game.resource("flow")["menu"]
         assert game.resource("player") == player, "UI-Klick hat einen Laufweg ausgelöst"
         for key in ("w", "space", "v", "g", "r", "e"):
             controls.key(key)
@@ -146,15 +146,15 @@ def run(ctx, game):
         game.advance(1)
         assert game.resource("player") == player
         assert controls.progress() == progress and game.resource("practice") == practice
-        assert game.resource("ui")["menu"] and not game.resource("view")["first_person"]
+        assert game.resource("flow")["menu"] and game.resource("view")["mode"] != "FirstPerson"
         assert controls.saved() == settings
         controls.click_label("Zurück zum Spiel")
-        assert not game.resource("ui")["menu"]
+        assert not game.resource("flow")["menu"]
         assert game.resource("player") == player
         controls.tap("m")
-        assert game.resource("ui")["menu"]
+        assert game.resource("flow")["menu"]
         controls.tap("escape")
-        assert not game.resource("ui")["menu"]
+        assert not game.resource("flow")["menu"]
         assert game.resource("player") == player
         return {"settings_button": target, "player": player, "settings": settings}
 
@@ -162,7 +162,7 @@ def run(ctx, game):
 
     def notes_unicode():
         controls.tap("m")
-        assert game.resource("ui")["menu"]
+        assert game.resource("flow")["menu"]
         field = controls.focus_field("Notizen")
         focus = game.resource(FOCUS)["current_focus"]
         assert focus is not None
@@ -222,7 +222,7 @@ def run(ctx, game):
         assert controls.saved()["notes"] == notes
         controls.tap("enter")
         assert game.resource(FOCUS)["current_focus"] != focus
-        assert not game.resource("ui")["menu"]
+        assert not game.resource("flow")["menu"]
         controls.driver.command(TEXT_INPUT, {"text": "kein Fokus"}, expected_error="text_focus_unavailable")
         assert controls.saved()["player_name"] == name
         return {"field": field, "stored_name": name, "characters": 24, "utf8_bytes": 72}
@@ -380,7 +380,7 @@ def run(ctx, game):
         controls.camera_pose()
 
         controls.tap("m")
-        assert game.resource("ui")["menu"]
+        assert game.resource("flow")["menu"]
         player, progress = game.resource("player"), controls.progress()
         practice = game.resource("practice")
         controls.hover([720, 870])
@@ -393,7 +393,7 @@ def run(ctx, game):
         game.advance(1)
         assert game.resource("player") == player and controls.progress() == progress
         assert game.resource("practice")["shots"] == practice["shots"]
-        assert game.resource("ui")["menu"] and not game.resource("view")["captured"]
+        assert game.resource("flow")["menu"] and not game.resource("capture")["active"]
         controls.click_label("Standardwerte")
         restored = controls.saved()
         assert (restored["sensitivity"], restored["speed"], restored["fov"]) == (1.0, 4.5, 75.0)
@@ -426,7 +426,7 @@ def run(ctx, game):
         route = controls.travel([-32.3, 0, -1])
         controls.face_station("Table part 0")
         controls.tap("escape")
-        assert game.resource("view")["first_person"] and not game.resource("view")["captured"]
+        assert game.resource("view")["mode"] == "FirstPerson" and not game.resource("capture")["active"]
         controls.focus_field("Spielername")
         controls.select_all()
         controls.commit("Eingabe E")
@@ -434,7 +434,7 @@ def run(ctx, game):
         focus = game.resource(FOCUS)["current_focus"]
         player, progress = game.resource("player"), controls.progress()
         assert progress["parts"] == [False, False]
-        assert not game.resource("ui")["menu"]
+        assert not game.resource("flow")["menu"]
         for key in ("w", "space", "e", "v", "r", "m"):
             controls.key(key)
         controls.move_by([90, 40])
@@ -443,7 +443,7 @@ def run(ctx, game):
         game.advance(1)
         assert game.resource("player") == player, "Texteingabe hat den Spieler bewegt"
         assert controls.progress() == progress, "E im Textfeld hat interagiert"
-        assert not game.resource("ui")["menu"] and game.resource("view")["first_person"]
+        assert not game.resource("flow")["menu"] and game.resource("view")["mode"] == "FirstPerson"
         assert game.resource(FOCUS)["current_focus"] == focus
         assert controls.saved()["player_name"] == "Eingabe E"
         controls.tap("enter")

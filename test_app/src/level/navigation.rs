@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use serde::Deserialize;
 use std::{
     cmp::Reverse,
-    collections::{BinaryHeap, HashMap, VecDeque},
+    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     sync::OnceLock,
 };
 
@@ -13,14 +13,101 @@ pub const STEP_HEIGHT: f32 = 0.3;
 const GRID: f32 = 0.5;
 const BIN: f32 = 2.0;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn moving_and_restoring_an_obstacle_updates_collision_and_cached_paths() {
+        let mut nav = Navigation::new(
+            Vec::new(),
+            vec![
+                Obstacle::new("divider".into(), [0., 1., 0.], [0.2, 1., 4.]).unwrap(),
+                Obstacle::new("barrier".into(), [0., 1., 6.], [3., 1., 1.]).unwrap(),
+            ],
+            Vec2::splat(-8.),
+            Vec2::splat(8.),
+        );
+        let start = Vec3::new(-3., 0., 0.);
+        let goal = Vec3::new(3., 0., 0.);
+        let lower_route = nav.path(start, goal).unwrap();
+        assert!(lower_route.iter().any(|p| p.z < -4.5));
+        assert!(!nav.can_occupy(Vec3::new(0., 0., 6.)));
+        nav.set_obstacle_pose("barrier", Vec3::new(0., 1., -6.))
+            .unwrap();
+        assert!(nav.can_occupy(Vec3::new(0., 0., 6.)));
+        assert!(!nav.can_occupy(Vec3::new(0., 0., -6.)));
+        let upper_route = nav.path(start, goal).unwrap();
+        assert!(upper_route.iter().any(|p| p.z > 4.5));
+        let mut previous = start;
+        for point in upper_route {
+            assert!(nav.clear_segment(previous, point));
+            previous = point;
+        }
+        nav.set_obstacle_pose("barrier", Vec3::new(0., 1., 6.))
+            .unwrap();
+        assert!(nav.path(start, goal).unwrap().iter().any(|p| p.z < -4.5));
+        assert!(
+            nav.set_obstacle_pose("barrier", Vec3::splat(f32::NAN))
+                .is_err()
+        );
+        assert!(!nav.can_occupy(Vec3::new(0., 0., 6.)));
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(try_from = "RawSurface")]
 pub struct Surface {
-    pub center: [f32; 2],
-    pub half: [f32; 2],
-    pub height: f32,
-    pub bottom: f32,
+    center: [f32; 2],
+    half: [f32; 2],
+    height: f32,
+    bottom: f32,
+}
+#[derive(Deserialize)]
+struct RawSurface {
+    center: [f32; 2],
+    half: [f32; 2],
+    height: f32,
+    bottom: f32,
+}
+impl TryFrom<RawSurface> for Surface {
+    type Error = String;
+    fn try_from(raw: RawSurface) -> Result<Self, String> {
+        Self::new(raw.center, raw.half, raw.height, raw.bottom)
+    }
 }
 impl Surface {
+    pub fn new(center: [f32; 2], half: [f32; 2], height: f32, bottom: f32) -> Result<Self, String> {
+        if !center
+            .iter()
+            .chain(half.iter())
+            .chain([&height, &bottom])
+            .all(|n| n.is_finite())
+            || half.iter().any(|n| *n <= 0.)
+            || bottom > height
+        {
+            return Err("invalid surface extents or height".into());
+        }
+        Ok(Self {
+            center,
+            half,
+            height,
+            bottom,
+        })
+    }
+    pub fn center(&self) -> [f32; 2] {
+        self.center
+    }
+    pub fn half(&self) -> [f32; 2] {
+        self.half
+    }
+    pub fn height(&self) -> f32 {
+        self.height
+    }
+    pub fn bottom(&self) -> f32 {
+        self.bottom
+    }
+
     pub fn contains(&self, p: Vec2) -> bool {
         (p - Vec2::from(self.center))
             .abs()
@@ -35,12 +122,44 @@ impl Surface {
     }
 }
 #[derive(Clone, Debug, Deserialize)]
+#[serde(try_from = "RawObstacle")]
 pub struct Obstacle {
-    pub name: String,
-    pub center: [f32; 3],
-    pub half: [f32; 3],
+    name: String,
+    center: [f32; 3],
+    half: [f32; 3],
+}
+#[derive(Deserialize)]
+struct RawObstacle {
+    name: String,
+    center: [f32; 3],
+    half: [f32; 3],
+}
+impl TryFrom<RawObstacle> for Obstacle {
+    type Error = String;
+    fn try_from(raw: RawObstacle) -> Result<Self, String> {
+        Self::new(raw.name, raw.center, raw.half)
+    }
 }
 impl Obstacle {
+    pub fn new(name: String, center: [f32; 3], half: [f32; 3]) -> Result<Self, String> {
+        if name.trim().is_empty()
+            || !center.iter().chain(half.iter()).all(|n| n.is_finite())
+            || half.iter().any(|n| *n <= 0.)
+        {
+            return Err("invalid obstacle name or extents".into());
+        }
+        Ok(Self { name, center, half })
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn center(&self) -> [f32; 3] {
+        self.center
+    }
+    pub fn half(&self) -> [f32; 3] {
+        self.half
+    }
+
     fn overlaps(&self, p: Vec2) -> bool {
         let c = Vec3::from(self.center).xz();
         let h = Vec3::from(self.half).xz();
@@ -66,10 +185,10 @@ struct Graph {
 }
 #[derive(Resource)]
 pub struct Navigation {
-    pub surfaces: Vec<Surface>,
-    pub obstacles: Vec<Obstacle>,
-    pub min: Vec2,
-    pub max: Vec2,
+    surfaces: Vec<Surface>,
+    obstacles: Vec<Obstacle>,
+    min: Vec2,
+    max: Vec2,
     bins: HashMap<(i32, i32), Bin>,
     graph: OnceLock<Graph>,
 }
@@ -79,7 +198,50 @@ impl Default for Navigation {
     }
 }
 impl Navigation {
+    pub fn obstacles(&self) -> &[Obstacle] {
+        &self.obstacles
+    }
+    pub fn surfaces(&self) -> &[Surface] {
+        &self.surfaces
+    }
+    /// A new pose is checked at entry. Cache maintenance belongs to Navigation.
+    pub fn set_obstacle_pose(&mut self, name: &str, center: Vec3) -> Result<bool, String> {
+        if !center.is_finite() {
+            return Err("obstacle pose must be finite".into());
+        }
+        let obstacle = self
+            .obstacles
+            .iter_mut()
+            .find(|o| o.name == name)
+            .ok_or_else(|| format!("unknown obstacle {name}"))?;
+        if obstacle.center == center.to_array() {
+            return Ok(false);
+        }
+        obstacle.center = center.to_array();
+        self.rebuild();
+        Ok(true)
+    }
+    #[cfg(test)]
+    pub(crate) fn with_obstacle(&self, obstacle: Obstacle) -> Self {
+        let mut obstacles = self.obstacles.clone();
+        obstacles.push(obstacle);
+        Self::new(self.surfaces.clone(), obstacles, self.min, self.max)
+    }
+
     pub fn new(surfaces: Vec<Surface>, obstacles: Vec<Obstacle>, min: Vec2, max: Vec2) -> Self {
+        assert!(
+            min.is_finite() && max.is_finite() && min.cmplt(max).all(),
+            "invalid navigation bounds"
+        );
+        assert_eq!(
+            obstacles
+                .iter()
+                .map(Obstacle::name)
+                .collect::<HashSet<_>>()
+                .len(),
+            obstacles.len(),
+            "obstacle names must be unique"
+        );
         let mut nav = Self {
             surfaces,
             obstacles,
@@ -94,7 +256,7 @@ impl Navigation {
     fn bin(p: Vec2) -> (i32, i32) {
         ((p.x / BIN).floor() as i32, (p.y / BIN).floor() as i32)
     }
-    pub fn rebuild(&mut self) {
+    fn rebuild(&mut self) {
         self.bins.clear();
         self.graph.take();
         for (i, s) in self.surfaces.iter().enumerate() {

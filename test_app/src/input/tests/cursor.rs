@@ -53,7 +53,7 @@ fn route_click(app: &mut App) {
     buttons.reset_all();
     buttons.press(MouseButton::Left);
     app.world_mut()
-        .run_system_cached(player::click_to_move)
+        .run_system_cached(crate::input::devices::click_to_move)
         .unwrap();
 }
 
@@ -76,7 +76,7 @@ fn virtual_route_and_ui_hit_test_share_logical_coordinates_without_moving_os_cur
         ))
         .id();
     route_click(&mut app);
-    let target = *app.world().resource::<Player>().route.back().unwrap();
+    let target = *app.world().resource::<Player>().route().back().unwrap();
     assert!(
         target.distance(Vec3::new(5.0, 0.0, 0.0)) < 0.001,
         "{target:?}"
@@ -87,17 +87,27 @@ fn virtual_route_and_ui_hit_test_share_logical_coordinates_without_moving_os_cur
     // Cover the virtual cursor instead. A panel click must not create a route or bind FPV.
     *app.world_mut().get_mut::<UiGlobalTransform>(panel).unwrap() =
         UiGlobalTransform::from_translation(Vec2::new(600.0, 400.0));
-    app.world_mut().resource_mut::<Player>().route.clear();
+    app.world_mut().resource_mut::<Player>().clear_route();
     let text = app.world_mut().spawn(EditableText::new("notes")).id();
     app.world_mut()
         .resource_mut::<InputFocus>()
         .set(text, FocusCause::Pressed);
     route_click(&mut app);
-    assert!(app.world().resource::<Player>().route.is_empty());
+    assert!(app.world().resource::<Player>().route().is_empty());
     assert_eq!(app.world().resource::<InputFocus>().get(), Some(text));
-    app.world_mut().resource_mut::<ViewState>().first_person = true;
+    app.world_mut()
+        .resource_mut::<ViewState>()
+        .set_mode(if true {
+            crate::player::camera::ViewMode::FirstPerson
+        } else {
+            crate::player::camera::ViewMode::Overview
+        });
     route_click(&mut app);
-    assert!(!app.world().resource::<ViewState>().captured);
+    assert!(
+        !app.world()
+            .resource::<crate::input::PointerCapture>()
+            .active()
+    );
     // No native position is required to click back into the game with the virtual pointer.
     app.world_mut().despawn(panel);
     app.world_mut()
@@ -105,7 +115,11 @@ fn virtual_route_and_ui_hit_test_share_logical_coordinates_without_moving_os_cur
         .unwrap()
         .set_cursor_position(None);
     route_click(&mut app);
-    assert!(app.world().resource::<ViewState>().captured);
+    assert!(
+        app.world()
+            .resource::<crate::input::PointerCapture>()
+            .active()
+    );
     assert!(app.world().resource::<InputFocus>().get().is_none());
 }
 
@@ -129,16 +143,16 @@ fn invalid_virtual_locations_never_fall_back_to_the_native_mouse() {
     ] {
         *app.world_mut().get_mut::<PointerLocation>(pointer).unwrap() = invalid;
         route_click(&mut app);
-        assert!(app.world().resource::<Player>().route.is_empty());
+        assert!(app.world().resource::<Player>().route().is_empty());
     }
     app.world_mut().despawn(pointer);
     route_click(&mut app);
-    assert!(app.world().resource::<Player>().route.is_empty());
+    assert!(app.world().resource::<Player>().route().is_empty());
     // Standalone play still uses the native position, even with custom pointers present.
     app.world_mut().insert_resource(InputMode::Native);
     app.world_mut().get_mut::<Window>(window).unwrap().focused = true;
     route_click(&mut app);
-    let target = *app.world().resource::<Player>().route.back().unwrap();
+    let target = *app.world().resource::<Player>().route().back().unwrap();
     assert!(
         target.distance(Vec3::new(-5.0, 0.0, 0.0)) < 0.001,
         "{target:?}"
@@ -157,8 +171,8 @@ fn the_same_pointer_id_has_independent_positions_in_separate_sessions() {
         .spawn((VIRTUAL_ID, location(other_window, Vec2::new(200.0, 300.0))));
     route_click(&mut first);
     route_click(&mut second);
-    let a = *first.world().resource::<Player>().route.back().unwrap();
-    let b = *second.world().resource::<Player>().route.back().unwrap();
+    let a = *first.world().resource::<Player>().route().back().unwrap();
+    let b = *second.world().resource::<Player>().route().back().unwrap();
     assert!(a.distance(Vec3::new(5.0, 0.0, 0.0)) < 0.001, "{a:?}");
     assert!(b.distance(Vec3::new(0.0, 0.0, 5.0)) < 0.001, "{b:?}");
 }
