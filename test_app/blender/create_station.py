@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "asset" / "meshes" / "station"
+OUT = ROOT / "asset" / "meshes"
 OUT.mkdir(parents=True, exist_ok=True)
 (ROOT / "artifacts").mkdir(exist_ok=True)
 
@@ -218,12 +218,12 @@ def cliff_module():
 
 
 BUILDERS = {
-    "energy_cell": energy_cell,
-    "relay_console": relay_console,
-    "signal_tower": signal_tower,
-    "bridge_module": bridge_module,
-    "energy_gate": energy_gate,
-    "cliff_module": cliff_module,
+    "energy_cell": ("collectibles", energy_cell),
+    "relay_console": ("props", relay_console),
+    "signal_tower": ("environment", signal_tower),
+    "bridge_module": ("environment", bridge_module),
+    "energy_gate": ("environment", energy_gate),
+    "cliff_module": ("environment", cliff_module),
 }
 
 
@@ -277,7 +277,7 @@ def exported_bounds(path):
 
 manifest = {}
 models = {}
-for name, build in BUILDERS.items():
+for name, (category, build) in BUILDERS.items():
     current = bpy.data.collections.new(name)
     source.collection.children.link(current)
     bpy.ops.object.select_all(action="DESELECT")
@@ -293,13 +293,13 @@ for name, build in BUILDERS.items():
     source.cursor.location = (0, 0, 0)
     bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
-    path = OUT / f"{name}.gltf"
+    path = OUT / category / f"{name}.gltf"
     export_model(path, use_selection=True, use_active_scene=True, export_apply=True,
                  export_animations=False, export_cameras=False, export_lights=False)
     manifest[name] = exported_bounds(path)
     models[name] = current
 
-(OUT / "dimensions.json").write_text(json.dumps(manifest, indent=2) + "\n")
+(ROOT / "artifacts" / "station-dimensions.json").write_text(json.dumps(manifest, indent=2) + "\n")
 
 # A separate preview scene shows collection instances. Source geometry stays at
 # its export origin, and no preview furniture enters the glTF exports.

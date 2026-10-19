@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'planning/groundplate'))
 import layout as plan
 
-OUT = ROOT / 'asset/meshes/courtyard'
+OUT = ROOT / 'asset/meshes/environment'
 OUT.mkdir(parents=True, exist_ok=True)
 
 # Collections may be hidden for structural/decorative inspection in Blender.

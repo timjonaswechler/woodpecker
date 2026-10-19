@@ -26,10 +26,6 @@ impl Scenery<'_, '_, '_> {
         self.spawn((Name::new(path), WorldAssetRoot(handle), transform))
     }
 
-    pub fn kaykit(&mut self, name: &str, transform: Transform) -> Entity {
-        self.model(format!("meshes/kaykit/{name}.gltf"), transform)
-    }
-
     pub fn block(&mut self, position: Vec3, size: Vec3, color: Color) -> Entity {
         let mesh = self.meshes.add(Cuboid::from_size(size));
         let material = self.materials.add(StandardMaterial {

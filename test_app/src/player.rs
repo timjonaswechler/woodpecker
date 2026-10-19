@@ -47,8 +47,8 @@ pub fn spawn_player(
         materials: &mut materials,
         parent: None,
     };
-    let player = scene.kaykit(
-        "Dummy_Base",
+    let player = scene.model(
+        "meshes/characters/Dummy_Base.gltf".into(),
         Transform::from_translation(START).with_scale(Vec3::splat(crate::player::MODEL_SCALE)),
     );
     scene.commands.entity(player).insert(PlayerModel);

@@ -89,7 +89,7 @@ Steuerung, Zustandsvorschau und Bildexport sind in [test_zoo/README.md](../test_
 
 ### Blender und Level-Export
 
-Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/meshes/courtyard/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
+Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/meshes/environment/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
 
 Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol unabhängig ausblenden. Das Kamerasymbol steuert die Sichtbarkeit im Renderbild.
 
@@ -139,13 +139,24 @@ Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellunge
 
 ### Asset-Formate
 
-Alle Modelldateien liegen unter `asset/meshes/`: KayKit-Modelle in `kaykit/`, Stationsmodelle in `station/`, der Blaster in `blaster/` und der Level-Export mit seinen glTF-Metadaten in `courtyard/`.
+Alle Modelldateien liegen unter `asset/meshes/`, geordnet nach ihrer Verwendung im Spiel:
 
-Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle unter `asset/meshes/kaykit/` teilen genau eine `prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
+- `characters/`: Spielfiguren.
+- `weapons/`: Waffen wie der Trainingsblaster.
+- `environment/`: Level, Wände, Böden, Treppen, Brücken, Tore und Gelände.
+- `props/`: Einrichtung, Behälter, Paletten, Tische und Konsolen.
+- `collectibles/`: Sammelobjekte wie Münzen und Energiezellen.
+- `targets/`: Zielscheiben, Ständer und Bruchstücke für den Schießstand.
+
+Die Herkunft eines Modells bestimmt keinen eigenen Ordner. glTF und zugehörige BIN-Datei liegen jeweils zusammen; gemeinsam verwendete Texturen liegen unter `asset/textures/`.
+
+Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
 
 Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen und Sicherungen gehören außerhalb von `asset/` nach `blender/` beziehungsweise `planning/`; der bearbeitbare Dummy liegt unter [blender/dummy_base.blend](blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
 
 Die Blender-Skripte verwenden den gemeinsamen Exporter `blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die Rust-Tests prüfen die glTF-Dokumente, externe Abhängigkeiten, aktuelle Ladepfade und die einmalige gemeinsame KayKit-Textur. Dateien mit eingebetteten Buffern oder Texturen sowie parallele Modellformate im Asset-Ordner lassen diese Prüfung scheitern.
+
+Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `blender/create_station.py` legt die erzeugte Maßübersicht unter `artifacts/station-dimensions.json` ab.
 
 ### Module
 

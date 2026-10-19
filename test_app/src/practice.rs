@@ -149,7 +149,7 @@ pub fn spawn_range(
                 Transform::from_translation(position),
             ));
         }
-        let scene = assets.load(GltfAssetLabel::Scene(0).from_asset("meshes/kaykit/target.gltf"));
+        let scene = assets.load(GltfAssetLabel::Scene(0).from_asset("meshes/targets/target.gltf"));
         tracked.0.push(scene.clone().untyped());
         commands.spawn((
             Name::new(format!("Zielscheibe {}", index + 1)),
@@ -189,14 +189,14 @@ pub fn spawn_range(
     for letter in ['A', 'B', 'C', 'D', 'E', 'F'] {
         let scene = assets.load(
             GltfAssetLabel::Scene(0)
-                .from_asset(format!("meshes/kaykit/target_pieces_{letter}.gltf")),
+                .from_asset(format!("meshes/targets/target_pieces_{letter}.gltf")),
         );
         tracked.0.push(scene.clone().untyped());
         fragments.0.push(scene);
     }
     commands.insert_resource(fragments);
     let weapon =
-        assets.load(GltfAssetLabel::Scene(0).from_asset("meshes/blaster/training_blaster.gltf"));
+        assets.load(GltfAssetLabel::Scene(0).from_asset("meshes/weapons/training_blaster.gltf"));
     tracked.0.push(weapon.clone().untyped());
     commands.spawn((
         Name::new("Blender Trainingsblaster"),

@@ -22,8 +22,8 @@ pub fn spawn_coins(
         parent: None,
     };
     for (i, pos) in DATA.coins.into_iter().enumerate() {
-        let coin = scene.kaykit(
-            "Coin_A",
+        let coin = scene.model(
+            "meshes/collectibles/Coin_A.gltf".into(),
             Transform::from_translation(Vec3::from(pos) + Vec3::Y).with_scale(Vec3::splat(0.65)),
         );
         scene.commands.entity(coin).insert(Coin(i));

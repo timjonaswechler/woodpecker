@@ -122,10 +122,10 @@ fn runtime_models_use_only_external_gltf_bin_and_png() {
         );
     }
     for model in [
-        "meshes/kaykit/Dummy_Base.gltf",
-        "meshes/kaykit/target.gltf",
-        "meshes/courtyard/courtyard.gltf",
-        "meshes/blaster/training_blaster.gltf",
+        "meshes/characters/Dummy_Base.gltf",
+        "meshes/targets/target.gltf",
+        "meshes/environment/courtyard.gltf",
+        "meshes/weapons/training_blaster.gltf",
     ] {
         assert!(root.join(model).is_file(), "missing runtime model {model}");
     }
@@ -166,26 +166,30 @@ fn game_spawn_paths_point_to_existing_gltf_files() {
 
 #[test]
 fn kaykit_models_share_one_texture_file() {
-    let root = Path::new(crate::ASSET_DIR);
-    let textures: Vec<_> = files_under(root)
-        .into_iter()
+    let root = Path::new(crate::ASSET_DIR).canonicalize().unwrap();
+    let shared = root.join("textures/prototypebits_texture.png");
+    let files = files_under(&root);
+    let textures: Vec<_> = files
+        .iter()
         .filter(|p| {
             p.file_name()
                 .is_some_and(|name| name == "prototypebits_texture.png")
         })
         .collect();
-    assert_eq!(
-        textures,
-        [root.join("meshes/kaykit/prototypebits_texture.png")]
-    );
-    for entry in fs::read_dir(root.join("meshes/kaykit")).unwrap() {
-        let path = entry.unwrap().path();
-        if path.extension().is_some_and(|e| e == "gltf") {
-            let document: serde_json::Value =
-                serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
-            for image in document["images"].as_array().unwrap() {
-                assert_eq!(image["uri"], "prototypebits_texture.png");
+    assert_eq!(textures, [&shared]);
+    let mut references = 0;
+    for path in files
+        .iter()
+        .filter(|p| p.extension().is_some_and(|e| e == "gltf"))
+    {
+        let document: serde_json::Value = serde_json::from_slice(&fs::read(path).unwrap()).unwrap();
+        for image in document["images"].as_array().into_iter().flatten() {
+            let uri = image["uri"].as_str().unwrap();
+            if uri.ends_with("prototypebits_texture.png") {
+                assert_eq!(dependency(path, uri, &root, "png"), shared);
+                references += 1;
             }
         }
     }
+    assert_eq!(references, 72);
 }
