@@ -37,9 +37,12 @@ pub fn install(app: &mut App, options: &Options, log_plugin: bevy::log::LogPlugi
                         visible: !options.offscreen,
                         resolution,
                         resize_constraints: if options.fixed_window {
+                            // Winit interprets minimum bounds in desktop points even
+                            // with a scale override. Keep them below the pixel size;
+                            // `resizable: false` prevents interactive resizing.
                             bevy::window::WindowResizeConstraints {
-                                min_width: 1440.0,
-                                min_height: 900.0,
+                                min_width: 1.0,
+                                min_height: 1.0,
                                 max_width: 1440.0,
                                 max_height: 900.0,
                             }
