@@ -12,7 +12,7 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "asset" / "meshes" / "weapons"
 OUT.mkdir(parents=True, exist_ok=True)
 (ROOT / "artifacts").mkdir(exist_ok=True)
@@ -146,6 +146,6 @@ for area in bpy.context.screen.areas:
         area.spaces.active.region_3d.view_perspective = "CAMERA"
         area.spaces.active.shading.type = "MATERIAL"
         area.spaces.active.overlay.show_overlays = False
-bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / "blender" / "training_blaster.blend"))
+bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / "asset" / "blender" / "training_blaster.blend"))
 print({"model": str(OUT / "training_blaster.gltf"), "objects": len(model.objects),
        "triangles": sum(len(p.vertices) - 2 for o in model.objects for p in o.data.polygons)})

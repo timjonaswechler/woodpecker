@@ -1,8 +1,8 @@
 """Export the edited training_blaster.blend without rebuilding the model.
 
 Run with Blender:
-  blender --background test_app/blender/training_blaster.blend \
-      --python test_app/blender/export_blaster.py
+  blender --background test_app/asset/blender/training_blaster.blend \
+      --python test_app/asset/blender/export_blaster.py
 Append -- --preview to also render artifacts/blaster.png.
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
 
-root = Path(__file__).resolve().parents[1]
+root = Path(__file__).resolve().parents[2]
 scene = bpy.data.scenes.get("Demo_Blaster")
 model = bpy.data.collections.get("Training Blaster")
 if scene is None or model is None or not any(o.type == "MESH" for o in model.all_objects):

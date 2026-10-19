@@ -1,6 +1,6 @@
 """Create the demo's low-poly research station kit without touching the blaster.
 
-Run: Blender --background --python-exit-code 1 --python create_station.py
+Run: Blender --background --python-exit-code 1 --python test_app/asset/blender/create_station.py
 All dimensions in the builders use glTF/game coordinates: X right, Y up, Z front.
 Exports six .gltf + .bin models, an editable .blend and a rendered contact sheet.
 """
@@ -16,7 +16,7 @@ from mathutils import Matrix, Quaternion, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "asset" / "meshes"
 OUT.mkdir(parents=True, exist_ok=True)
 (ROOT / "artifacts").mkdir(exist_ok=True)
@@ -385,6 +385,6 @@ for screen in bpy.data.screens:
             area.spaces.active.region_3d.view_perspective = "CAMERA"
             area.spaces.active.shading.type = "MATERIAL"
             area.spaces.active.overlay.show_overlays = False
-bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / "blender" / "station_kit.blend"))
+bpy.ops.wm.save_as_mainfile(filepath=str(ROOT / "asset" / "blender" / "station_kit.blend"))
 bpy.ops.render.render(write_still=True)
 print("STATION ASSETS VERIFIED " + json.dumps(manifest, sort_keys=True))

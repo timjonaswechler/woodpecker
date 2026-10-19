@@ -1,6 +1,6 @@
 # Signalstation
 
-Eigenständige Bevy-Demo auf der Grundplatte aus dem [Levelplan](planning/grundplatte_levelplan.pdf). Acht Räume, Galerien auf drei Metern Höhe, sechs Treppen und Brücken verbinden die Aufgaben. Unter den Galerien bleibt der Boden begehbar. Drei versteckte Bereiche bieten zusätzliche Verbindungen und Fundstücke. Der Sprungparcours in der zentralen Halle ist freiwillig.
+Eigenständige Bevy-Demo auf der Grundplatte aus dem [Levelplan](../planning/grundplatte_levelplan.pdf). Acht Räume, Galerien auf drei Metern Höhe, sechs Treppen und Brücken verbinden die Aufgaben. Unter den Galerien bleibt der Boden begehbar. Drei versteckte Bereiche bieten zusätzliche Verbindungen und Fundstücke. Der Sprungparcours in der zentralen Halle ist freiwillig.
 
 ## Spielen
 
@@ -71,7 +71,7 @@ Die Leiste am oberen Bildschirmrand zeigt den gesamten aktuellen Besitz, ohne Ge
 | Grüne Batterie | Energiezellen auf grünen Ausgabetischen und in den Sockeln des Generators |
 | Blaues Blatt | Baupläne im Level und in der blauen Truhe der Zielübung |
 
-Die Form bleibt auch ohne Farberkennung unterscheidbar. Stationen tragen Beschriftungen für Zweck, Voraussetzungen und Erledigt-Zustand. Die UI-Symbole lassen sich mit `python3 test_app/planning/create_resource_icons.py` und die Stationsschilder mit `python3 test_app/planning/create_station_labels.py` neu erzeugen. Die räumlichen Gegenstände stehen in `src/items.rs`.
+Die Form bleibt auch ohne Farberkennung unterscheidbar. Stationen tragen Beschriftungen für Zweck, Voraussetzungen und Erledigt-Zustand. Die UI-Symbole lassen sich mit `python3 planning/create_resource_icons.py` und die Stationsschilder mit `python3 planning/create_station_labels.py` neu erzeugen. Die räumlichen Gegenstände stehen in `src/items.rs`.
 
 Das Namensfeld unterstützt Unicode und die Systemzwischenablage. Während der Eingabe bleiben Spieltasten gesperrt. Enter oder Esc beendet die Eingabe. Das Einstellungsmenü bietet Maus-Empfindlichkeit, Sichtfeld, Lauftempo, Schatten, Routenanzeige und eine umkehrbare vertikale Mausachse. Name und Einstellungen werden in `test_app/settings.json` gespeichert.
 
@@ -89,7 +89,7 @@ Steuerung, Zustandsvorschau und Bildexport sind in [test_zoo/README.md](../test_
 
 ### Blender und Level-Export
 
-Die [Blender-Datei](planning/groundplate/groundplate_concept.blend), der [PDF-Plan](planning/grundplatte_levelplan.pdf) und das [Style-Handoff](planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Das Spiel lädt `asset/meshes/environment/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
+Die [Blender-Datei](../planning/groundplate/groundplate_concept.blend), der [PDF-Plan](../planning/grundplatte_levelplan.pdf) und das [Style-Handoff](../planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Die Planungsdateien liegen im Repository-Root unter `planning/`. Das Spiel lädt `asset/meshes/environment/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
 
 Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol unabhängig ausblenden. Das Kamerasymbol steuert die Sichtbarkeit im Renderbild.
 
@@ -100,11 +100,11 @@ Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol 
 | `03 Planung` | Raumbeschriftungen, Größenvergleichsfigur und die alte Startkonsole des Schießstands |
 | `04 Kamera und Licht` | Kamera und Renderbeleuchtung |
 
-Für die reine Spielstruktur `02 Deko` und `03 Planung` ausblenden. Für die Dekoration allein `01 Notwendig` und `03 Planung` ausblenden. Funktionsobjekte bleiben samt Details zusammen, etwa der Generator mit seinen Zellensockeln. Das versteckende Regal an G2 gehört ebenfalls zur Spielstruktur. Dekorative Möbel behalten ihre Kollision im Spiel. Die Aufteilung in [scene_collections.py](planning/groundplate/scene_collections.py) gilt auch beim Neuerstellen mit `create_model.py`.
+Für die reine Spielstruktur `02 Deko` und `03 Planung` ausblenden. Für die Dekoration allein `01 Notwendig` und `03 Planung` ausblenden. Funktionsobjekte bleiben samt Details zusammen, etwa der Generator mit seinen Zellensockeln. Das versteckende Regal an G2 gehört ebenfalls zur Spielstruktur. Dekorative Möbel behalten ihre Kollision im Spiel. Die Aufteilung in [scene_collections.py](../planning/groundplate/scene_collections.py) gilt auch beim Neuerstellen mit `create_model.py`.
 
 ```sh
-blender --background test_app/planning/groundplate/groundplate_concept.blend \
-  --python-exit-code 1 --python test_app/blender/export_level.py
+blender --background planning/groundplate/groundplate_concept.blend \
+  --python-exit-code 1 --python test_app/asset/blender/export_level.py
 ```
 
 Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/layout.rs` liest diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei; Navigation und Spiellogik verwenden weiterhin ihre eigenen Rust-Module.
@@ -113,11 +113,11 @@ Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender 
 
 Die spielbaren Bedienobjekte aus `src/expedition/stations.rs` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/expedition/stations/targets.rs`. `src/expedition/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
 
-Der bearbeitete Blaster bleibt in [blender/training_blaster.blend](blender/training_blaster.blend). Nach Änderungen separat exportieren:
+Der bearbeitete Blaster liegt in [asset/blender/training_blaster.blend](asset/blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
 ```sh
-blender --background test_app/blender/training_blaster.blend \
-  --python-exit-code 1 --python test_app/blender/export_blaster.py
+blender --background test_app/asset/blender/training_blaster.blend \
+  --python-exit-code 1 --python test_app/asset/blender/export_blaster.py
 ```
 
 ## Prüfen
@@ -152,11 +152,11 @@ Die Herkunft eines Modells bestimmt keinen eigenen Ordner. glTF und zugehörige 
 
 Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Stationsmodelle bleiben davon unabhängig.
 
-Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen und Sicherungen gehören außerhalb von `asset/` nach `blender/` beziehungsweise `planning/`; der bearbeitbare Dummy liegt unter [blender/dummy_base.blend](blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
+Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen, Sicherungen und Exportskripte liegen unter `asset/blender/`, Planungsdateien unter [`planning/`](../planning/) im Repository-Root. Der Bearbeitungsordner `asset/blender/` ist von den Prüfungen für Laufzeitmodelle ausgenommen. Der bearbeitbare Dummy liegt unter [asset/blender/dummy_base.blend](asset/blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
 
-Die Blender-Skripte verwenden den gemeinsamen Exporter `blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die Rust-Tests prüfen die glTF-Dokumente, externe Abhängigkeiten, aktuelle Ladepfade und die einmalige gemeinsame KayKit-Textur. Dateien mit eingebetteten Buffern oder Texturen sowie parallele Modellformate im Asset-Ordner lassen diese Prüfung scheitern.
+Die Blender-Skripte verwenden den gemeinsamen Exporter `asset/blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die Rust-Tests prüfen die glTF-Dokumente, externe Abhängigkeiten, aktuelle Ladepfade und die einmalige gemeinsame KayKit-Textur. Dateien mit eingebetteten Buffern oder Texturen sowie parallele Modellformate außerhalb des Bearbeitungsordners lassen diese Prüfung scheitern.
 
-Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `blender/create_station.py` legt die erzeugte Maßübersicht unter `artifacts/station-dimensions.json` ab.
+Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blender/create_station.py` legt die erzeugte Maßübersicht unter `artifacts/station-dimensions.json` ab.
 
 ### Module
 

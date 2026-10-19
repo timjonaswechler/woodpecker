@@ -15,7 +15,7 @@ from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1] / "test_app"
 OUTPUT = Path(__file__).with_name("level_varianten.pdf")
 pdfmetrics.registerFont(TTFont("Barlow", str(ROOT / "asset/fonts/Barlow-Regular.ttf")))
 W, H = 960, 540

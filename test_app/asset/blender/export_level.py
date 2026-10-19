@@ -1,7 +1,7 @@
 """Export the planning scene as the playable demo's static scenery and collision data.
 
 blender --background planning/groundplate/groundplate_concept.blend \
-  --python-exit-code 1 --python blender/export_level.py
+  --python-exit-code 1 --python test_app/asset/blender/export_level.py
 The saved planning scene is never modified.
 """
 import sys
@@ -12,8 +12,8 @@ from mathutils import Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'planning/groundplate'))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT.parent / 'planning/groundplate'))
 import layout as plan
 
 OUT = ROOT / 'asset/meshes/environment'

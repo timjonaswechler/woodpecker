@@ -2,7 +2,7 @@
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1] / 'test_app'
 OUT = ROOT / 'asset/ui/stations'
 LABELS = {
     'board': ('AUFTRAG', 'Drei Zellen für den Sendemast', 'Auftrag lesen', 'Auftrag gelesen'),

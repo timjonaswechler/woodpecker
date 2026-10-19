@@ -16,8 +16,8 @@ from reportlab.platypus import Paragraph
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.utils import ImageReader
 
-ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "planning/grundplatte_levelplan.pdf"
+ROOT = Path(__file__).resolve().parents[2] / "test_app"
+OUT = Path(__file__).resolve().parents[1] / "grundplatte_levelplan.pdf"
 ART = ROOT / "artifacts/groundplate-plan"
 pdfmetrics.registerFont(TTFont("Barlow", str(ROOT / "asset/fonts/Barlow-Regular.ttf")))
 W, H = 960, 540

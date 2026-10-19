@@ -18,6 +18,14 @@ fn files_under(directory: &Path) -> Vec<PathBuf> {
     files
 }
 
+fn runtime_files(root: &Path) -> Vec<PathBuf> {
+    let blender = root.join("blender");
+    files_under(root)
+        .into_iter()
+        .filter(|path| !path.starts_with(&blender))
+        .collect()
+}
+
 fn dependency(model: &Path, uri: &str, root: &Path, extension: &str) -> PathBuf {
     assert!(
         !uri.starts_with("data:") && !uri.contains("://"),
@@ -59,7 +67,7 @@ fn dependency(model: &Path, uri: &str, root: &Path, extension: &str) -> PathBuf 
 fn runtime_models_use_only_external_gltf_bin_and_png() {
     use bevy::gltf::gltf::{self, buffer, image};
     let root = Path::new(crate::ASSET_DIR).canonicalize().unwrap();
-    let files = files_under(&root);
+    let files = runtime_files(&root);
     let forbidden: Vec<_> = files
         .iter()
         .filter(|path| {
@@ -168,7 +176,7 @@ fn game_spawn_paths_point_to_existing_gltf_files() {
 fn kaykit_models_share_one_texture_file() {
     let root = Path::new(crate::ASSET_DIR).canonicalize().unwrap();
     let shared = root.join("textures/prototypebits_texture.png");
-    let files = files_under(&root);
+    let files = runtime_files(&root);
     let textures: Vec<_> = files
         .iter()
         .filter(|p| {

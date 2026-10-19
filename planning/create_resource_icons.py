@@ -3,7 +3,7 @@ from math import sin, cos, pi
 from pathlib import Path
 from PIL import Image, ImageDraw
 
-OUT = Path(__file__).resolve().parents[1] / 'asset' / 'ui'
+OUT = Path(__file__).resolve().parents[1] / 'test_app' / 'asset' / 'ui'
 COLORS = {'coin': (255,193,62), 'part': (255,139,62), 'cell': (68,215,153), 'blueprint': (83,170,255)}
 for name, color in COLORS.items():
     image = Image.new('RGBA', (256,256))
