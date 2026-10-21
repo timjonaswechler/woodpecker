@@ -178,26 +178,3 @@ fn print(value: &impl serde::Serialize) -> Result<(), Error> {
     stdout.flush()?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn local_operations_require_no_credentials() {
-        let args = Arguments::try_parse_from([
-            "woodpecker",
-            "--address",
-            "127.0.0.1:4100",
-            "session",
-            "ls",
-        ])
-        .unwrap();
-        assert!(matches!(
-            args.resource,
-            Resource::Session {
-                action: Session::Ls
-            }
-        ));
-    }
-}

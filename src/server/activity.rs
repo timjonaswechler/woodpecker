@@ -78,34 +78,3 @@ impl Store {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn eviction_oversize_and_foreign_cursor() {
-        let mut store = Store::new("a".repeat(32), 256);
-        for _ in 0..10 {
-            store.push(serde_json::json!({"kind":"pending","request_id":1}));
-        }
-        let Result::Gap { cursor, .. } = store.poll(None) else {
-            panic!("expected gap")
-        };
-        assert!(matches!(store.poll(Some(&cursor)), Result::Activity { .. }));
-        store.push(serde_json::json!({"value": "x".repeat(1000)}));
-        let Result::Gap { cursor, .. } = store.poll(Some(&cursor)) else {
-            panic!("oversize must leave gap")
-        };
-        let Result::Activity { entries, .. } = store.poll(Some(&cursor)) else {
-            panic!()
-        };
-        assert!(entries.is_empty());
-        assert!(matches!(
-            store.poll(Some(&Cursor {
-                session_id: "b".repeat(32),
-                position: 0
-            })),
-            Result::Error { .. }
-        ));
-    }
-}

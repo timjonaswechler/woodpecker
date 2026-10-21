@@ -1,11 +1,8 @@
 //! Playable application and the object models shared with the model zoo.
 pub mod app;
-pub mod dev;
 mod input;
 pub mod level;
 mod player;
-#[cfg(test)]
-mod tests;
 mod ui;
 #[cfg(feature = "automation")]
 pub mod woodpecker;

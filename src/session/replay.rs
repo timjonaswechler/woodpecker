@@ -12,8 +12,6 @@ use std::{
 };
 
 mod loader;
-#[cfg(test)]
-mod tests;
 
 enum Phase {
     Waiting(String),

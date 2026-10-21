@@ -3,6 +3,4 @@
 /test_zoo/target/
 /test_zoo/artifacts/
 /bevy_test_apps/target/
-/tests/connection/protocol_faults/peer/target/
-/tests/reports/panic_abort/program/target/
 __pycache__/

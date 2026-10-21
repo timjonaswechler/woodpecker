@@ -88,9 +88,6 @@ pub fn keyboard_shortcuts(
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 #[expect(
     clippy::too_many_arguments,
     reason = "Samples keyboard, mouse and action permissions into one frame."

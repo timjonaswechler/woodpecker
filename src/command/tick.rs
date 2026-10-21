@@ -44,57 +44,6 @@ impl Clock {
     }
 }
 
-#[cfg(test)]
-mod clock_tests {
-    use super::*;
-
-    #[test]
-    fn old_configs_keep_application_time_and_clock_fields_are_strict() {
-        let config: Config =
-            serde_json::from_str(r#"{"pace":{"kind":"as_fast_as_possible"}}"#).unwrap();
-        assert_eq!(config.clock, Clock::Application {});
-        let fixed = r#"{"kind":"fixed","seconds_per_tick":0.016666667}"#;
-        let clock: Clock = serde_json::from_str(fixed).unwrap();
-        assert_eq!(
-            clock.duration(),
-            Some(std::time::Duration::from_nanos(16_666_667))
-        );
-        assert!(clock.is_valid());
-        for invalid in [
-            r#"{"kind":"fixed"}"#,
-            r#"{"kind":"application","seconds_per_tick":0.016}"#,
-            r#"{"kind":"fixed","seconds_per_tick":0.016,"extra":true}"#,
-            r#"{"kind":"other"}"#,
-        ] {
-            assert!(serde_json::from_str::<Clock>(invalid).is_err(), "{invalid}");
-        }
-    }
-
-    #[test]
-    fn fixed_durations_must_be_finite_positive_and_representable() {
-        for seconds_per_tick in [
-            0.0,
-            -1.0,
-            f64::NAN,
-            f64::INFINITY,
-            f64::NEG_INFINITY,
-            f64::MAX,
-            1e-20,
-        ] {
-            assert!(
-                !Clock::Fixed { seconds_per_tick }.is_valid(),
-                "{seconds_per_tick}"
-            );
-        }
-        assert!(
-            Clock::Fixed {
-                seconds_per_tick: 0.000_000_001
-            }
-            .is_valid()
-        );
-    }
-}
-
 pub mod warp {
     use super::*;
 

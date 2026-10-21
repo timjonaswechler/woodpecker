@@ -74,22 +74,3 @@ pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
         gears: raw.gears,
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    const LEVEL: &str = include_str!("../../asset/meshes/environment/courtyard.gltf");
-    #[test]
-    fn exported_level_is_checked_and_invalid_geometry_or_ids_are_rejected() {
-        let level = from_gltf(LEVEL).unwrap();
-        assert_eq!(level.rooms().len(), 8);
-        let mut data: serde_json::Value = serde_json::from_str(LEVEL).unwrap();
-        data["extras"]["signalstation"]["layout"]["surfaces"][0]["half"][0] = (-1.).into();
-        assert!(from_gltf(&data.to_string()).is_err());
-        let mut data: serde_json::Value = serde_json::from_str(LEVEL).unwrap();
-        let id = data["extras"]["signalstation"]["layout"]["rooms"][0]["id"].clone();
-        data["extras"]["signalstation"]["layout"]["rooms"][1]["id"] = id;
-        assert!(from_gltf(&data.to_string()).is_err());
-        assert!(from_gltf("{}").is_err());
-    }
-}

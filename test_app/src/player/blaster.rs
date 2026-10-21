@@ -38,10 +38,6 @@ impl FiredShot {
     }
 }
 impl Blaster {
-    #[cfg(test)]
-    pub fn tracer(&self) -> Option<(Vec3, Vec3, f32)> {
-        self.tracer
-    }
     pub fn reset(&mut self) {
         *self = Self::default();
     }

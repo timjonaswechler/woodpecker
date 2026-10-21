@@ -50,7 +50,6 @@ Der Export verwendet Einzelansichten, läuft ohne sichtbares Fenster und erzeugt
 
 ```sh
 cargo check -p test_app -p test_zoo --all-targets --all-features
-cargo test -p test_app -p test_zoo --all-features
 ```
 
-Die Zoo-Tests prüfen den gemeinsamen Asset-Pfad, den Aufbau der 13 Modelle, die Zustandsvorschau, Vierer- und Einzelansichten, Tasten und Ansichtsschalter, Mauszuordnung, Fenstergrößen und DPI-Skalierung sowie den Einzelansichts-Bildexport ohne Fenster oder Renderer. Der Schattenfänger wird zusätzlich mit den Bevy-Lichtmodulen zu WGSL übersetzt und mit Naga validiert; dieser Test verwendet weder ein Fenster noch ein GPU-Backend.
+Die bisherigen Rust-Tests wurden für den [Neustart der Testsuite](../docs/testing-plan.md) entfernt. Der Build-Check ist kein automatisierter Verhaltensnachweis. Modellansichten und Bildexport bleiben normale Funktionen des Zoos.

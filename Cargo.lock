@@ -4930,7 +4930,6 @@ name = "test_zoo"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "naga",
  "test_app",
 ]
 

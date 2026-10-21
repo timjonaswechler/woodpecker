@@ -1,6 +1,6 @@
+use test_app::app;
 #[cfg(feature = "automation")]
 use test_app::woodpecker;
-use test_app::{app, dev};
 
 fn main() {
     let options = app::launch::Options::from_env();
@@ -11,7 +11,6 @@ fn main() {
     let log_plugin = bevy::log::LogPlugin::default();
 
     app::install(&mut app, &options, log_plugin);
-    dev::install(&mut app, &options);
     #[cfg(feature = "automation")]
     woodpecker::install(&mut app);
     app.run();

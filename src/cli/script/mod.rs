@@ -1,8 +1,6 @@
 //! Fully validated command lists executed through the shared, bound client.
 mod execution;
 mod launch;
-#[cfg(test)]
-mod tests;
 
 use crate::{client::Client, command::Command};
 use serde::{Deserialize, Serialize};

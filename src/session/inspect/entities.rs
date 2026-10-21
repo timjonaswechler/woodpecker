@@ -207,6 +207,3 @@ fn hierarchy(world: &World, entity: EntityRef<'_>, depth: u8) -> entity::hierarc
         children,
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -75,35 +75,3 @@ impl TryFrom<RawSettings> for Settings {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn import_and_edits_share_normalization_and_preserve_notes() {
-        let mut settings: Settings = serde_json::from_str(
-            r#"{"player_name":"  Jäger\n  ","speed":999,"notes":"\n世界🙂\n"}"#,
-        )
-        .unwrap();
-        assert_eq!(settings.player_name(), "Jäger");
-        assert_eq!(settings.speed(), 8.0);
-        settings.apply(super::super::Edit::Speed(-100.0)).unwrap();
-        assert_eq!(settings.speed(), 2.0);
-        assert!(settings.apply(super::super::Edit::Speed(f32::NAN)).is_err());
-        assert_eq!(settings.speed(), 2.0);
-        settings.set_name("\n  ");
-        settings.apply(super::super::Edit::Defaults).unwrap();
-        assert_eq!(settings.player_name(), "Spieler");
-        assert_eq!(settings.notes(), "\n世界🙂\n");
-        let round_trip: Settings =
-            serde_json::from_str(&serde_json::to_string(&settings).unwrap()).unwrap();
-        assert_eq!(round_trip.notes(), settings.notes());
-    }
-    #[test]
-    fn old_files_keep_missing_field_defaults() {
-        let settings: Settings =
-            serde_json::from_str(r#"{"player_name":"Jäger","speed":6.0}"#).unwrap();
-        assert_eq!(settings.speed(), 6.0);
-        assert!(settings.notes().is_empty());
-    }
-}

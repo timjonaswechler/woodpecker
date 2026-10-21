@@ -2,8 +2,6 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-#[cfg(test)]
-mod api_tests;
 pub(crate) mod capture;
 mod failure;
 mod markdown;
@@ -13,8 +11,6 @@ pub(crate) mod observer;
 pub mod provider;
 mod signature;
 mod snapshot;
-#[cfg(test)]
-mod tests;
 pub(crate) mod work;
 pub use failure::{BacktraceStatus, Failure, Location, Origin};
 pub use signature::Signature;
@@ -114,16 +110,6 @@ impl Destination {
         self.submit_using(report, cancel, || {
             provider::github::submit_cancellable(&self.project, report, cancel)
         })
-    }
-
-    #[cfg(test)]
-    fn submit_with(
-        &self,
-        report: &Report,
-        remote: impl FnOnce() -> Result<provider::Outcome, provider::github::Error>,
-    ) -> Result<provider::Outcome, Error> {
-        self.submit_using(report, &std::sync::atomic::AtomicBool::new(false), remote)
-            .unlimited()
     }
 
     fn submit_using(

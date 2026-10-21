@@ -67,24 +67,3 @@ impl Result {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cancellation_interrupts_buffered_marker_reading_without_retrying_forever() {
-        let cancel = AtomicBool::new(false);
-        let mut reader = Reader {
-            inner: io::Cursor::new(b"first\nsecond\n"),
-            cancel: &cancel,
-        };
-        let mut line = String::new();
-        reader.read_line(&mut line).unwrap();
-        assert_eq!(line, "first\n");
-        cancel.store(true, Ordering::Release);
-        let error = reader.read_line(&mut line).unwrap_err();
-        assert_eq!(error.kind(), io::ErrorKind::Other);
-        assert_eq!(line, "first\n");
-    }
-}

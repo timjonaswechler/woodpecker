@@ -26,8 +26,8 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 - [Target contract](docs/api/target.md)
 - [Completion plan and coverage](docs/api/implementation-plan.md)
 - [Handoff and remaining tasks](docs/api/next-steps.md)
-- [CLI usage and acceptance tests](docs/api/usage.md)
-- [Test suite and shared application contract](tests/README.md)
+- [CLI usage and historical acceptance notes](docs/api/usage.md)
+- [Agreed test-suite redesign and overall acceptance plan](docs/testing-plan.md)
 - [Playable collection game and shared test app](test_app/README.md)
 - [Standalone station model zoo](test_zoo/README.md)
 
@@ -41,7 +41,8 @@ target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-Provide a launch TOML for your application; the [configuration examples](tests/application/README.md) describe the fields. In another terminal:
+Provide a launch TOML for your application; its fields are defined in
+[`src/cli/config.rs`](src/cli/config.rs) and the referenced public configuration types. In another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
@@ -71,24 +72,14 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 
 ## Tests
 
-The suite selects product behavior by session mode and command interface:
+The previous Python and Rust tests, fixtures and smoke-test entry points have
+been removed for a clean rebuild. There is currently no automated behavioral
+suite; successful build checks do not establish feature acceptance.
 
-```sh
-python3 -m tests.run --list
-python3 -m tests.run --layer rust
-python3 -m tests.run --feature warp --mode headless --interface repl
-python3 -m tests.run --all --allow-rendered
-```
-
-Python 3.11 or later is required. See [tests/README.md](tests/README.md) for the
-feature matrix and [the shared test application contract](tests/application/README.md).
-The shared collection game in `test_app/` is configured for both session modes.
-System scenarios use its actual input, text and gameplay state. Missing scenarios
-never count as a passed complete suite.
-Rendered runs need an awake desktop and explicit permission for that run.
-
-The process contracts launch real children. macOS Gatekeeper can delay or reject
-locally built executables; see the [environment note](docs/api/usage.md#noch-nicht-enthalten).
+The [agreed redesign](docs/testing-plan.md) defines the new feature examples and
+shared overall acceptance run. They are not implemented yet. The playable
+Signalstation and the model zoo remain available. Rendered acceptance runs will
+require an awake desktop and explicit permission for each run.
 
 ## Origin
 

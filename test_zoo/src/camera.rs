@@ -4,9 +4,6 @@ use bevy::{
     prelude::*,
 };
 
-#[cfg(test)]
-mod tests;
-
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum View {
     Top,

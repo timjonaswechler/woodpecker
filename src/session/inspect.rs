@@ -7,9 +7,6 @@ use bevy::{
 mod entities;
 mod value;
 
-#[cfg(test)]
-mod reflection_tests;
-
 pub(super) fn query(world: &World, query: Command) -> std::result::Result<Output, Diagnostic> {
     match query {
         Command::Entities {
@@ -82,95 +79,4 @@ fn resources(
         items.push(Item::Resource { result });
     }
     Ok(Output { items })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::command::inspect::{Command, Projection, Result, Value};
-    use bevy::prelude::*;
-
-    #[derive(Resource, Reflect)]
-    #[reflect(Resource)]
-    struct Sample {
-        number: f64,
-        labels: std::collections::HashSet<String>,
-    }
-
-    #[test]
-    fn resource_values_are_strict_read_only_and_sets_are_sorted() {
-        let mut app = App::new();
-        app.register_type::<Sample>();
-        let selector = Selector::Type {
-            type_path: std::any::type_name::<Sample>().into(),
-        };
-        assert!(
-            query(
-                app.world(),
-                Command::Resources {
-                    selector: Selector::Type {
-                        type_path: "Sample".into()
-                    },
-                    projection: Projection::Value {},
-                }
-            )
-            .is_err()
-        );
-        let missing = query(
-            app.world(),
-            Command::Resources {
-                selector: selector.clone(),
-                projection: Projection::Value {},
-            },
-        )
-        .unwrap();
-        assert!(matches!(
-            &missing.items[0],
-            Item::Resource {
-                result: Result::Value {
-                    value: Value::Unavailable {
-                        reason: Status::Missing
-                    },
-                    ..
-                }
-            }
-        ));
-        app.insert_resource(Sample {
-            number: 2.0,
-            labels: ["z".into(), "a".into()].into_iter().collect(),
-        });
-        let output = query(
-            app.world(),
-            Command::Resources {
-                selector: selector.clone(),
-                projection: Projection::Value {},
-            },
-        )
-        .unwrap();
-        let value = serde_json::to_value(output).unwrap();
-        assert_eq!(
-            value["items"][0]["result"]["value"]["value"]["labels"],
-            serde_json::json!(["a", "z"])
-        );
-        app.world_mut().resource_mut::<Sample>().number = f64::NAN;
-        let output = query(
-            app.world(),
-            Command::Resources {
-                selector,
-                projection: Projection::Value {},
-            },
-        )
-        .unwrap();
-        assert!(matches!(
-            &output.items[0],
-            Item::Resource {
-                result: Result::Value {
-                    value: Value::Unavailable {
-                        reason: Status::NotSerializable
-                    },
-                    ..
-                }
-            }
-        ));
-    }
 }

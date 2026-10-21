@@ -2,8 +2,6 @@ pub(crate) mod actions;
 pub(crate) mod blaster;
 mod model;
 mod movement;
-#[cfg(test)]
-pub(crate) use model::{BODY_BOB, BodyMotion, MODEL_BOB, PlayerModel, limb_rotation, pose_part};
 pub(crate) use model::{MODEL_SCALE, pose_player, spawn_player, update_model};
 pub(crate) use movement::move_player;
 pub(crate) mod camera;
@@ -15,11 +13,7 @@ use crate::{
     level::{self, ground},
     player::camera::ViewState,
 };
-#[cfg(test)]
-use crate::{level::LevelLoad, ui::UiState};
 use bevy::prelude::*;
-#[cfg(test)]
-use bevy::{input_focus::InputFocus, window::PrimaryWindow};
 use std::collections::VecDeque;
 
 /// Locomotion state for the demo's single player.
@@ -148,12 +142,6 @@ impl Player {
             self.yaw = yaw;
         }
     }
-    #[cfg(test)]
-    pub(crate) fn set_test_motion(&mut self, height: f32, speed: f32) {
-        assert!(height.is_finite() && speed.is_finite());
-        self.height = height;
-        self.vertical_speed = speed;
-    }
 
     pub fn respawn(&mut self, position: Vec2, height: f32) {
         assert!(
@@ -235,9 +223,6 @@ impl Player {
         }
     }
 }
-
-#[cfg(test)]
-mod tests;
 
 pub(crate) fn install(app: &mut App) {
     use crate::app::schedule::Phase;

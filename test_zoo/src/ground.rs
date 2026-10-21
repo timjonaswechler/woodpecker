@@ -10,9 +10,6 @@ use bevy::{
 };
 use test_app::level::LevelAssets;
 
-#[cfg(test)]
-mod tests;
-
 const SHADER: &str = "embedded://test_zoo/ground/shadow_catcher.wesl";
 
 pub struct GroundPlugin;

@@ -1,5 +1,11 @@
 # Dokumentation
 
+Der aktuelle [Testsuite-Plan](../testing-plan.md) beschreibt den beschlossenen
+Neustart. Die bisherigen Python-/Rust-Tests und Testprogramme sind entfernt;
+aktuell gibt es keine ausführbare Verhaltenssuite. Die folgenden Dokumente
+enthalten historische Abnahmen und Pfade zu inzwischen entfernten Tests. Diese
+sind kein aktueller Prüfstand und keine ausführbare Testanleitung für den Neustart.
+
 - [target.md](target.md) beschreibt das gewünschte Verhalten und seine Modulverantwortlichkeiten.
 - [goal.rs](goal.rs) zeigt die dazugehörige Rust-ähnliche Interface-Skizze.
 - [implementation-plan.md](implementation-plan.md) besitzt den Abschlussplan,

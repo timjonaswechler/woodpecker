@@ -66,13 +66,6 @@ impl Settings {
         &self.notes
     }
 
-    /// Also used by development checks to read the persisted snapshot.
-    pub fn load() -> Self {
-        storage::Storage::current()
-            .and_then(|s| s.load())
-            .expect("settings initialization failed")
-    }
-
     pub fn apply(&mut self, edit: Edit) -> Result<(), String> {
         match edit {
             Edit::Sensitivity(delta) => {
@@ -119,13 +112,9 @@ impl Settings {
 #[derive(Resource)]
 pub(crate) struct Persistence(storage::Storage);
 
-pub(crate) fn install(app: &mut App, smoke: bool) {
+pub(crate) fn install(app: &mut App) {
     let storage = storage::Storage::current().expect("settings storage initialization failed");
-    let settings = if smoke {
-        Settings::default()
-    } else {
-        storage.load().expect("settings initialization failed")
-    };
+    let settings = storage.load().expect("settings initialization failed");
     app.insert_resource(settings)
         .insert_resource(Persistence(storage))
         .add_systems(

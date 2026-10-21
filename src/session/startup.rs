@@ -236,6 +236,3 @@ fn prerequisites(world: &World) -> Result<Probe, Diagnostic> {
     }
     Ok(Probe::Ready(ids))
 }
-
-#[cfg(test)]
-mod tests;

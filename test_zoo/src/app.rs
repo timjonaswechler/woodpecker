@@ -1,6 +1,4 @@
 //! Inspect the same station models as the level, in isolation and in each state.
-#[cfg(test)]
-mod tests;
 
 use crate::{
     camera::{self, Separator, View, Views},

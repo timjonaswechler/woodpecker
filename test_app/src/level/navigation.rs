@@ -13,48 +13,6 @@ pub const STEP_HEIGHT: f32 = 0.3;
 const GRID: f32 = 0.5;
 const BIN: f32 = 2.0;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn moving_and_restoring_an_obstacle_updates_collision_and_cached_paths() {
-        let mut nav = Navigation::new(
-            Vec::new(),
-            vec![
-                Obstacle::new("divider".into(), [0., 1., 0.], [0.2, 1., 4.]).unwrap(),
-                Obstacle::new("barrier".into(), [0., 1., 6.], [3., 1., 1.]).unwrap(),
-            ],
-            Vec2::splat(-8.),
-            Vec2::splat(8.),
-        );
-        let start = Vec3::new(-3., 0., 0.);
-        let goal = Vec3::new(3., 0., 0.);
-        let lower_route = nav.path(start, goal).unwrap();
-        assert!(lower_route.iter().any(|p| p.z < -4.5));
-        assert!(!nav.can_occupy(Vec3::new(0., 0., 6.)));
-        nav.set_obstacle_pose("barrier", Vec3::new(0., 1., -6.))
-            .unwrap();
-        assert!(nav.can_occupy(Vec3::new(0., 0., 6.)));
-        assert!(!nav.can_occupy(Vec3::new(0., 0., -6.)));
-        let upper_route = nav.path(start, goal).unwrap();
-        assert!(upper_route.iter().any(|p| p.z > 4.5));
-        let mut previous = start;
-        for point in upper_route {
-            assert!(nav.clear_segment(previous, point));
-            previous = point;
-        }
-        nav.set_obstacle_pose("barrier", Vec3::new(0., 1., 6.))
-            .unwrap();
-        assert!(nav.path(start, goal).unwrap().iter().any(|p| p.z < -4.5));
-        assert!(
-            nav.set_obstacle_pose("barrier", Vec3::splat(f32::NAN))
-                .is_err()
-        );
-        assert!(!nav.can_occupy(Vec3::new(0., 0., 6.)));
-    }
-}
-
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(try_from = "RawSurface")]
 pub struct Surface {
@@ -220,12 +178,6 @@ impl Navigation {
         obstacle.center = center.to_array();
         self.rebuild();
         Ok(true)
-    }
-    #[cfg(test)]
-    pub(crate) fn with_obstacle(&self, obstacle: Obstacle) -> Self {
-        let mut obstacles = self.obstacles.clone();
-        obstacles.push(obstacle);
-        Self::new(self.surfaces.clone(), obstacles, self.min, self.max)
     }
 
     pub fn new(surfaces: Vec<Surface>, obstacles: Vec<Obstacle>, min: Vec2, max: Vec2) -> Self {

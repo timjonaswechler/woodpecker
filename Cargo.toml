@@ -48,11 +48,3 @@ unicode-width = { version = "0.2", optional = true }
 name = "woodpecker"
 path = "src/cli/main.rs"
 required-features = ["cli"]
-
-[[example]]
-name = "activity_fixture"
-path = "tests/connection/activity_retention/producer.rs"
-
-[[example]]
-name = "observation_fixture"
-path = "tests/reports/failure_source.rs"

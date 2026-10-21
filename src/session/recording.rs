@@ -14,9 +14,6 @@ use std::{
 pub(super) mod file;
 mod worker;
 
-#[cfg(test)]
-mod tests;
-
 enum State {
     Idle,
     Starting { id: u64, path: String },

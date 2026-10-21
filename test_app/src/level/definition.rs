@@ -77,8 +77,6 @@ pub const REWARDS: [Vec3; 3] = [
 pub const GENERATOR: Vec3 = point(61., 5.5, 0.);
 pub const SIGNAL: Vec3 = point(73., 11.8, 3.);
 pub const RANGE_ENTRY: Vec3 = point(35., 41., 0.);
-#[cfg(test)]
-pub const BOARD: Vec3 = point(4., 11.5, 0.);
 
 use crate::level::{mission::Interaction, objects::definitions::ObjectDefinition};
 pub const CHEST_CENTER: Vec3 = point(46., 51., 0.4);

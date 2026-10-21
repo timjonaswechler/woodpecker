@@ -697,30 +697,3 @@ pub(super) fn push_event(shared: &Shared, reason: &mut Option<EndReason>, value:
     }
     shared.changed.notify_all();
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn internal_commands_keep_bounded_history_without_unclaimed_results() {
-        let shared = Shared::default();
-        let command = Command::Stop(command::tick::warp::Stop {});
-        for id in 1..=100 {
-            accepted(&shared, id, &command, true);
-        }
-        assert_eq!(shared.state.lock().unwrap().history.len(), 50);
-        for id in 1..=100 {
-            complete(&shared, id, Ok(serde_json::json!({"was_running":false})));
-        }
-        let state = shared.state.lock().unwrap();
-        assert!(state.results.is_empty());
-        assert!(state.abandoned.is_empty());
-        assert!(
-            state
-                .history
-                .iter()
-                .all(|(_, entry)| matches!(entry.outcome, history::Outcome::Completed { .. }))
-        );
-    }
-}

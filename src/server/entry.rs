@@ -230,31 +230,6 @@ fn prepare(root: &std::path::Path) -> std::result::Result<(), Error> {
     std::fs::create_dir(root).map_err(Error::io)
 }
 
-#[cfg(test)]
-mod snapshot_tests {
-    use super::*;
-
-    #[test]
-    fn current_pending_survives_eviction_and_settles_atomically_with_activity() {
-        let entry = Entry::new("a".repeat(32), "unused".into(), 1);
-        entry.transition(Lifecycle::SessionReady, None);
-        entry.accepted(1, "tick.warp.start");
-        entry.accepted(2, "replay.start");
-        let snapshot = entry.snapshot();
-        assert_eq!(snapshot.state, Lifecycle::SessionReady);
-        assert_eq!(snapshot.pending.len(), 2);
-        assert_eq!(snapshot.pending[0].request_id, 1);
-        assert_eq!(snapshot.pending[1].command, "replay.start");
-        assert!(matches!(entry.poll(None), Result::Gap { .. }));
-        assert!(matches!(entry.poll(Some(&snapshot.cursor)),
-            Result::Activity { entries, .. } if entries.is_empty()));
-        entry.settled(1, json!({"kind":"completed","request_id":1}));
-        assert_eq!(entry.snapshot().pending.len(), 1);
-        entry.transition(Lifecycle::Failed, Some(Error::ended()));
-        assert!(entry.snapshot().pending.is_empty());
-    }
-}
-
 fn accept(
     entry: &Entry,
     session: &mut Session,
@@ -455,31 +430,5 @@ fn run(
         // A client-issued shutdown already went through the same session acceptance checks.
         shutdown_sent |= pending.iter().any(|p| p.request_id().as_u64() == u64::MAX);
         std::thread::sleep(Duration::from_millis(2));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn exclusive_creation_does_not_adopt_an_external_directory_or_symlink() {
-        let parent = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target/server-tests")
-            .join(super::super::random_id().unwrap());
-        std::fs::create_dir_all(&parent).unwrap();
-        let root = parent.join("assigned");
-        prepare(&root).unwrap();
-        std::fs::write(root.join("external"), "preserve").unwrap();
-        assert!(prepare(&root).is_err());
-        assert_eq!(
-            std::fs::read_to_string(root.join("external")).unwrap(),
-            "preserve"
-        );
-        #[cfg(unix)]
-        {
-            let link = parent.join("link");
-            std::os::unix::fs::symlink(&root, &link).unwrap();
-            assert!(prepare(&link).is_err());
-        }
     }
 }

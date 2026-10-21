@@ -68,16 +68,6 @@ impl ViewState {
     pub fn new(mode: ViewMode) -> Self {
         Self { mode, ..default() }
     }
-    #[cfg(test)]
-    pub(crate) fn with_test_pose(mut self, pitch: f32, eye: Option<Transform>) -> Self {
-        self.set_pitch(pitch);
-        self.eye = eye;
-        self
-    }
-    #[cfg(test)]
-    pub(crate) fn set_test_eye(&mut self, eye: Option<Transform>) {
-        self.eye = eye;
-    }
 
     pub fn first_person(&self) -> bool {
         self.mode == ViewMode::FirstPerson
@@ -106,13 +96,6 @@ impl ViewState {
             ViewMode::FirstPerson
         };
         self.pitch = 0.;
-    }
-    #[cfg(test)]
-    pub fn from_eye(eye: Transform) -> Self {
-        Self {
-            eye: Some(eye),
-            ..default()
-        }
     }
 }
 
@@ -245,6 +228,3 @@ pub fn update_camera(
     }
     *previous_fpv = view.first_person();
 }
-
-#[cfg(test)]
-mod tests;

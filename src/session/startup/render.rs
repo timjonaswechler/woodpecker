@@ -181,12 +181,6 @@ fn prepare(
     }
 }
 
-#[cfg(test)]
-pub(super) fn acknowledge(world: &World) {
-    let state = world.resource::<State>();
-    let _ = state.frame.as_ref().unwrap().result.set(Ok(()));
-}
-
 fn submitted(mut frame: ResMut<Frame>, queue: Res<RenderQueue>) {
     if !frame.prepared || frame.submitted {
         return;

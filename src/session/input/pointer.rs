@@ -114,6 +114,3 @@ fn finite(pair: [f32; 2]) -> Result<Vec2, Diagnostic> {
         ))
     }
 }
-
-#[cfg(test)]
-mod tests;

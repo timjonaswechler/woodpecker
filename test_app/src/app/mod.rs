@@ -15,9 +15,9 @@ use bevy::{
 };
 
 pub fn install(app: &mut App, options: &Options, log_plugin: bevy::log::LogPlugin) {
-    settings::install(app, options.smoke_test);
+    settings::install(app);
     schedule::install(app);
-    let resolution = match options.scale_factor.or(options.offscreen.then_some(1.0)) {
+    let resolution = match options.scale_factor {
         Some(scale) => WindowResolution::new(1440, 900).with_scale_factor_override(scale),
         None => WindowResolution::new(1440, 900),
     };
@@ -34,7 +34,6 @@ pub fn install(app: &mut App, options: &Options, log_plugin: bevy::log::LogPlugi
                         title: "Signalstation | Räume und Entdeckungen".into(),
                         focused: !options.start_unfocused,
                         resizable: !options.fixed_window,
-                        visible: !options.offscreen,
                         resolution,
                         resize_constraints: if options.fixed_window {
                             // Winit interprets minimum bounds in desktop points even

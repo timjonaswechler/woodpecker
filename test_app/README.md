@@ -123,17 +123,13 @@ blender --background test_app/asset/blender/training_blaster.blend \
 ## Prüfen
 
 ```sh
-cargo test --manifest-path test_app/Cargo.toml
-cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --offscreen
+cargo check --manifest-path test_app/Cargo.toml --all-targets --all-features
 ```
 
-Die Tests laufen mit der tatsächlichen Levelgeometrie und Bewegungsphysik. Sie prüfen Aufgaben und Sammelwege, alle Treppen, den Sprungparcours, getrennte Laufwege unter und auf einer Galerie, Kollision mit deren Unterseite, Blickrichtung, den sichtbaren Körper innerhalb der Kollisionsbox, Inventarverbrauch und den Mindestabstand jedes Zieltreffers.
-
-Der gezielte Aufruf `cargo run --manifest-path test_app/Cargo.toml -- --smoke-test --smoke-objects --offscreen` prüft Bedienung von hinten, Fadenkreuz-Hinweise, Montage und getrennte Abholung, das Verschwinden eingesammelter Gegenstände, erledigte Scanner und Ventile sowie den Neustart. Die Unit-Tests decken alle vier Seiten eines Scanners, Blickrichtung, Reichweite, Sichtschutz und Stockwerke ab.
-
-Unter macOS beim unsichtbaren Test `-NSAppSleepDisabled YES` hinter `--offscreen` ergänzen, damit App Nap den Hintergrundprozess nicht drosselt. Die Option gilt nur für diesen Prozess.
-
-Der gerenderte Test prüft Pfeiltasten, Klickwege, Unicode-Eingabe, Einstellungen und FPV. Anschließend erledigt er den Hauptauftrag, sammelt die Baupläne, trifft alle drei Scheiben und öffnet die Truhe. Er prüft den Checkpoint, die beiden Galerieebenen und den Neustart. Mit `--smoke-test --smoke-range --offscreen` lässt sich die Zielübung separat prüfen, einschließlich verdeckter Schüsse, abgewiesener Nahschüsse und seitlicher Bewegung. Bilder und separate Testeinstellungen landen in `test_app/artifacts/`. Ohne `--offscreen` öffnet der Test ein sichtbares Fenster, das den Eingabefokus behalten muss.
+Die bisherigen Rust- und gerenderten Smoke-Tests samt Startoptionen sind für den
+[Neustart der Testsuite](../docs/testing-plan.md) entfernt. Die neue Feature-Suite
+und der Gesamtabnahmelauf sind noch nicht implementiert. Ein erfolgreicher
+Build-Check belegt keine korrekte Spiel- oder Woodpecker-Funktion.
 
 ## Code und Assets
 
@@ -152,9 +148,9 @@ Die Herkunft eines Modells bestimmt keinen eigenen Ordner. glTF und zugehörige 
 
 Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Objektmodelle bleiben davon unabhängig.
 
-Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen, Sicherungen und Exportskripte liegen unter `asset/blender/`, Planungsdateien unter [`planning/`](../planning/) im Repository-Root. Der Bearbeitungsordner `asset/blender/` ist von den Prüfungen für Laufzeitmodelle ausgenommen. Der bearbeitbare Dummy liegt unter [asset/blender/dummy_base.blend](asset/blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
+Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen, Sicherungen und Exportskripte liegen unter `asset/blender/`, Planungsdateien unter [`planning/`](../planning/) im Repository-Root. Der Bearbeitungsordner `asset/blender/` enthält Quellen, keine Laufzeitmodelle. Der bearbeitbare Dummy liegt unter [asset/blender/dummy_base.blend](asset/blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
 
-Die Blender-Skripte verwenden den gemeinsamen Exporter `asset/blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die Rust-Tests prüfen die glTF-Dokumente, externe Abhängigkeiten, aktuelle Ladepfade und die einmalige gemeinsame KayKit-Textur. Dateien mit eingebetteten Buffern oder Texturen sowie parallele Modellformate außerhalb des Bearbeitungsordners lassen diese Prüfung scheitern.
+Die Blender-Skripte verwenden den gemeinsamen Exporter `asset/blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die bisherigen automatisierten Asset-Prüfungen sind entfernt; die beschriebenen Formate bleiben die Vorgabe für Laufzeitmodelle.
 
 Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blender/create_station.py` legt die erzeugte Maßübersicht unter `artifacts/station-dimensions.json` ab.
 
@@ -173,7 +169,6 @@ Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blende
 | `level/objects/shooting_range/` | Zielscheiben, Treffer und Punkte; meldet den Abschluss an den Auftrag |
 | `level/mission/` | Aufgabenfortschritt, auftragsgebundene Objektzustände, Inventar und atomare Aktionen |
 | `ui/` | Oberfläche, Eingabefelder und Texte; zeigt Zustand an und reicht Änderungswünsche weiter |
-| `dev/`, `tests/` | Gerenderte Smoke-Tests und modulübergreifende Rust-Tests |
 
 Dateidaten werden beim Eintritt geprüft: Der Levelimport liefert gültige Flächen, Hindernisse, Referenzen und Fundpositionen. `Settings` normalisiert geladene Werte und spätere Änderungen mit denselben Regeln. Private Felder und geprüfte IDs verhindern ungültige direkte Änderungen. Veränderliche Voraussetzungen wie Besitz, Reichweite oder ein bereits bedientes Objekt werden beim Ausführen der Aktion geprüft. Ein angezeigter Bedienhinweis garantiert keinen späteren Erfolg.
 
