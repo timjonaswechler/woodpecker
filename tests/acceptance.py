@@ -178,7 +178,7 @@ def main(argv=None):
         return not row["external"] and (not args.non_graphical or not row["graphics"])
     keys = [key for key, row in rows.items() if selected(key, row)]
     # Windowless Rust first, then independent windowless Python, then graphics.
-    # Known 4.40 remains an ordinary red case, after the other windowless cases.
+    # Keep command-shape rejection checks after the other windowless cases.
     keys.sort(key=lambda key: (rows[key]["graphics"], rows[key]["kind"] in ("python", "control"),
                                rows[key].get("module") == "tests.cli.command_errors", key))
     feature_matrix = args.feature_matrix or selection == "full-local"

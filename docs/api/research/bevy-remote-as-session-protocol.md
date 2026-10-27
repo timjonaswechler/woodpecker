@@ -63,7 +63,7 @@ separater, lokal gebundener Entwicklungs-Inspector betrachtet werden, nicht als 
   vorhanden. Ein stdio-Adapter wäre daher neue, projektspezifische Transportlogik. Das lokale
   Projekt besitzt diese Framing-Schicht bereits: `JsonLinesInput` liest nicht blockierend aus
   einem begrenzten Kanal, `StdoutOutput` schreibt und flusht genau eine JSON-Zeile.
-  [`src/client/transport.rs:1-110`](../../../src/client/transport.rs#L1-L110)
+  damalige Referenz `src/client/transport.rs:1-110`
 
 **Folgerung:** BRP kann den bestehenden Prozesskanal nicht ohne Adapter ersetzen. Ein Adapter ist
 nicht nur eine andere Socket-Adresse: Er muss JSONL-Framing, stdout-Exklusivität, EOF, Fehler,
@@ -146,12 +146,12 @@ serielle Weltverarbeitung auf. Watch ist ein fortlaufender Stream, nicht die v3-
 - `AutomationControlPlugin` nimmt die vorhandene Main-Reihenfolge auf und ersetzt sie durch
   `Input`, `Frames`, `Output`; die ursprüngliche Reihenfolge wird in
   `SimulationScheduleOrder` für explizite kontrollierte Frames behalten.
-  [`src/client/plugin.rs:122-220`](../../../src/client/plugin.rs#L122-L220)
-  [`src/client/plugin.rs:620-700`](../../../src/client/plugin.rs#L620-L700)
+  damalige Referenz `src/client/plugin.rs:122-220`
+  damalige Referenz `src/client/plugin.rs:620-700`
 - Die aktuelle Frame-Schleife setzt für jeden expliziten Step eine manuelle Duration, führt die
   gespeicherten Schedules aus und zählt erst danach die Clock. Der v3-Entwurf verlangt dagegen
   Warp-Steuerung ohne versteckte Ticks und will die Zeitbedeutung bei der Anwendung belassen.
-  [`src/client/plugin.rs:580-650`](../../../src/client/plugin.rs#L580-L650),
+  damalige Referenz `src/client/plugin.rs:580-650`,
   damalige Quellreferenz `src/command/tick.rs:1-116`,
   [aktueller Tick-Warp-Vertrag](../target.md#tick-warp)
 
@@ -277,7 +277,7 @@ Validierung und keine IME-Grenze von 16 KiB. Die lokalen Adapter validieren Zust
 queue'n Events erst für den nächsten kontrollierten Frame.
 Damals referenzierte Quellpfade: `src/command/input/keyboard.rs:1-220`,
 `src/command/input/pointer.rs:1-300`, `src/command/input/text.rs:1-180`.
-[`src/client/plugin.rs:267-530`](../../../src/client/plugin.rs#L267-L530)
+damalige Referenz `src/client/plugin.rs:267-530`
 
 **Tick-Warp**
 
@@ -589,9 +589,9 @@ ist das ein Argument für A, nicht für Stock-BRP als vollständigen Vertrag.
 - [Bevy Remote Client-Beispiel, v0.19.1](https://raw.githubusercontent.com/bevyengine/bevy/v0.19.1/examples/remote/client.rs) — Query, Schema-/Entity-ID-Nutzung und Message-Beispiel.
 - [Bevy Remote Integration-Test, v0.19.1](https://raw.githubusercontent.com/bevyengine/bevy/v0.19.1/examples/remote/integration_test.rs) — Screenshot-Entity, Event-Watch und WindowEvent-Input als praktische Referenz.
 - Lokale Quellen der Untersuchung: `goal.rs`, die damalige Migrationsplanung,
-  [`src/client/plugin.rs`](../../../src/client/plugin.rs),
-  [`src/client/transport.rs`](../../../src/client/transport.rs),
-  [`src/protocol.rs`](../../../src/protocol.rs) sowie die damaligen Pfade
+  damalige Referenz `src/client/plugin.rs`,
+  damalige Referenz `src/client/transport.rs`,
+  damalige Referenz `src/protocol.rs` sowie die damaligen Pfade
   `src/handle/mod.rs`, `src/observe/world/mod.rs`, `src/observe/world/projection.rs`,
   `src/screenshot/plugin.rs` und `src/screenshot/capture.rs`.
 

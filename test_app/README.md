@@ -133,16 +133,12 @@ blender --background test_app/asset/blender/training_blaster.blend \
 cargo check --manifest-path test_app/Cargo.toml --all-targets --all-features
 ```
 
-Die bisherigen Rust- und gerenderten Smoke-Tests samt Startoptionen sind für den
-[Neustart der Testsuite](../docs/testing-plan.md) entfernt. Die
-[neuen CLI-Tests](../tests/README.md) haben Server-/Session-Verwaltung, den ersten
-Resource-Wert, Manual-/Engine-Startup, exakte Ticks sowie die repräsentativen
-Bewegungs-, Screenshot-, Recording/Replay- und Report-Abläufe belegt. Replay lief
-mit beiden versetzten Fensterpositionen. Auch die Inspect-Sonderfälle 4.16–4.19
-und die einmalige G-Aktion trotz Hold in 4.20 sind live belegt. Der
-[Arbeitsplan](../docs/testing-plan.md) enthält die Einzelbelege aus mehreren
-Läufen und die bestätigte negative Kontrolle; eine vollständige lokale/externe
-Gesamtabnahme fehlt.
+Die [Abnahmesuite](../tests/README.md) prüft Woodpeckers Verträge gegen diese
+Referenz-App: Verwaltung, Startup/Ticks, Inspect, virtuelle Eingaben, Screenshots,
+Recording/Replay, Reports und Shutdown. Der vollständige lokale Lauf und der
+separat freigegebene echte GitHub-Nachweis sind bestanden; geprüfter Quellstand
+und Belege stehen ausschließlich im [Arbeitsplan](../docs/testing-plan.md).
+Die früheren Smoke-Test-Startoptionen gehören nicht mehr zur aktuellen Suite.
 In kontrollierten Sessions macht `src/woodpecker.rs` die Last-Schedule-Durchläufe
 als reflektierte Resource `SimulationTicks` lesbar. Der Zähler führt keine Ticks
 aus und bleibt ohne kontrollierte Session deaktiviert. Ein erfolgreicher
@@ -193,14 +189,14 @@ Auch dieses Argument wirkt nur mit kontrollierter Automation und Diagnose-Opt-in
 
 4.49 baut separat mit `CARGO_PROFILE_DEV_PANIC=abort` in ein eigenes
 `CARGO_TARGET_DIR`, ohne das normale Buildprofil zu ändern. F11 beendet dann
-absichtlich die App per Abort. Diese neuen Fixtures sind für normale/Automation-
-Builds geprüft, **nicht grafisch ausgeführt**; der echte Abort-Build ist noch offen.
+absichtlich die App per Abort. Die Fälle 4.47–4.50 einschließlich echtem
+Abort-Build sind im vollständigen lokalen Abnahmelauf bestanden.
 4.53 verwendet für den Github-Provider nur ein testeigenes externes gh-Werkzeug,
 keine echte Veröffentlichung.
 
 4.68 verwendet einen direkten Rust-Handle ohne Server, aktiviert nur den
 passenden Error-Target und liest vor dem absichtlichen Pufferüberlauf keine
-Events. Der Burst ist build-geprüft, der echte App-Lauf noch nicht ausgeführt.
+Events. Auch dieser echte App-Lauf ist im lokalen Gesamtnachweis bestanden.
 
 ### Prozess-/Fortschrittsprobe für Shutdown-/Rust-Handle-Tests
 
@@ -219,7 +215,8 @@ zusätzlichen Spiel-Command; interne Replay-Pendings werden nicht als öffentlic
 Server-Activity vorausgesetzt. Direkte Rust-Tests beobachten damit auch den
 Fortschritt nach Pending-Drop und eigenes Prozess-Cleanup ohne Eventabholung. SIGSTOP/SIGCONT bzw. erzwungenes Produktende stehen
 ausdrücklich im jeweiligen Test. Normale App-/Automation-Starts ohne dieses
-zusätzliche Opt-in bleiben unverändert. Build-geprüft, grafischer Nachweis offen.
+zusätzliche Opt-in bleiben unverändert. Die zugehörigen Shutdown-/Rust-Fälle
+sind Bestandteil des bestandenen lokalen Gesamtnachweises.
 
 ### Vorbereitung weiterer Abnahmefälle (4.1)
 
@@ -286,8 +283,8 @@ Auch die Reflection-Funktionsnachweise 4.16–4.19 sind live belegt, einschließ
 der F10-Hierarchieersetzung mit genau zwei ausdrücklich angeforderten Ticks,
 frischen Handles und Ablehnung aller alten Handles.
 Belege stehen im
-[Arbeitsplan](../docs/testing-plan.md). Weitere spezielle Fehlerauslöser und der
-Abort-Build werden erst bei ihren jeweiligen Nachweisen ergänzt.
+[Arbeitsplan](../docs/testing-plan.md). Die Report-, Prozess- und Abort-Proben
+sind oben mit ihren jeweiligen Opt-ins und Risiken beschrieben.
 
 ## Code und Assets
 

@@ -1,9 +1,10 @@
 # Abschlussplan
 
-Historischer Prüfstand vor dem Neuaufbau der Suite. Die damaligen Szenen und
-Testpfade sind nicht mehr aktiv. Aktuelle Struktur und ausstehende App-Anbindung
-stehen in [tests/README.md](../../tests/README.md). Die Nachweise unten gelten
-für ihre damaligen Codezustände.
+**Historischer Entwicklungsplan vor dem Suite-Neuaufbau, keine aktuelle Arbeitsliste.**
+Die damaligen Szenen, Testpfade und Befehle sind nicht mehr aktiv; Nachweise und
+Checkboxen gelten ausschließlich für ihre damaligen Codezustände. Aktuelle
+Ausführung: [Testanleitung](../../tests/README.md). Aktueller Stand und offene
+Arbeit: [Testsuite-Plan](../testing-plan.md).
 
 Die wesentliche Command- und Session-Funktionalität ist implementiert.
 Die ergänzten Steuerungsfälle und technischen Screenshot-Prüfungen bei stabilen
@@ -18,9 +19,10 @@ Abschlussblocker. Vorhandene Tests belegen ihre jeweiligen Fälle, nicht den
 vollständigen Abschluss des Zielvertrags.
 
 [target.md](target.md) bleibt die maßgebliche Verhaltensbeschreibung;
-[goal.rs](goal.rs) bleibt als Interface-Skizze erhalten. Dieser Plan besitzt
-Aufgaben, Abdeckung und Abschlusskriterien. [next-steps.md](next-steps.md)
-beschreibt den unmittelbaren Wiedereinstieg, [usage.md](usage.md) die Bedienung.
+[goal.rs](goal.rs) bleibt als Interface-Skizze erhalten. Dieser historische Plan
+bewahrt frühere Aufgaben, Abdeckung und Abschlusskriterien;
+[next-steps.md](next-steps.md) die damaligen Übergaben. Aktuelle Bedienung steht
+in [usage.md](usage.md), aktuelle Testarbeit ausschließlich im Testsuite-Plan.
 
 ## Checkliste für den Abschluss
 
@@ -124,7 +126,7 @@ Zustandsprüfungen. Relevante Layout-/Hierarchiewechsel und tote Handles mitprü
 
 #### Beispiel 1: Mausklick in logical_state
 
-In [logical_state.py](../../tests/acceptance/rendered/logical_state.py) den Button
+In logical_state.py (historischer Pfad `../../tests/acceptance/rendered/logical_state.py`) den Button
 `logical-button` nach einem expliziten Layout-Tick per Inspect finden.
 Den virtuellen Pointer zur gelesenen Mitte bewegen und per Tick positionieren.
 `pointer_presses` aus `SessionObservation` lesen, dann links drücken.
@@ -171,7 +173,7 @@ Die lokalen Artefakte sind nicht im Git-Transfer enthalten.
 
 #### Beispiel 2: Tastenkürzel und Quit in game_menu
 
-In [game_menu.py](../../tests/acceptance/rendered/game_menu.py) das Hauptmenü erreichen.
+In game_menu.py (historischer Pfad `../../tests/acceptance/rendered/game_menu.py`) das Hauptmenü erreichen.
 `s` drücken und die nötigen expliziten Ticks für Eingabeverarbeitung und
 State-Wechsel ausführen: Es müssen die Einstellungen erscheinen. Taste freigeben.
 Mit `Escape` entsprechend ins Hauptmenü zurückkehren; `n` muss dort das Spiel starten.
@@ -306,7 +308,7 @@ Lauf und der separate Library-Start-Timeout bleiben als historische Befunde erha
 
 #### Beispiel 3: Objekt verschwindet während eines Drags
 
-In [ui_drag_drop.py](../../tests/acceptance/rendered/ui_drag_drop.py) die Kachel Amber greifen
+In ui_drag_drop.py (historischer Pfad `../../tests/acceptance/rendered/ui_drag_drop.py`) die Kachel Amber greifen
 und mit expliziten Ticks einen Drag beginnen. Während die Taste gehalten wird,
 lässt die Testszene Amber bei einem festgelegten weiteren Tick verschwinden.
 Danach den Pointer weiterbewegen, loslassen und die Eingaben per Tick verarbeiten.
@@ -365,7 +367,7 @@ Die lokalen Artefakte sind nicht im Git-Transfer enthalten.
 
 #### Beispiel 4: Vertikaler Drag und weitere Meshes
 
-In [mesh_picking.py](../../tests/acceptance/rendered/mesh_picking.py) den Würfel greifen und
+In mesh_picking.py (historischer Pfad `../../tests/acceptance/rendered/mesh_picking.py`) den Würfel greifen und
 den virtuellen Pointer beispielsweise zwölf logische Pixel nach unten bewegen.
 Vor dem Warp bleiben Transform und Drag-Zähler unverändert. Nach dem Tick muss
 `drag_events` um eins steigen und die Rotation den vertikalen Drag berücksichtigen.
@@ -1387,25 +1389,25 @@ und Clippy-Bereinigung versioniert; lokale `target/`-Evidenz bleibt außerhalb v
 CLI-Abnahmen verwenden CLI, HTTP/WebSocket, Session und Bevy. Native Tests
 prüfen zusätzliche Fälle. Die Tabelle beschreibt vorhandene Testabdeckung;
 konkrete historische Ergebnisse stehen in
-[next-steps.md](next-steps.md#letzter-dokumentierter-prüfstand) und den
+[next-steps.md](next-steps.md) und den
 [Screenshotnachweisen](diagnostics/screenshot-evidence.md).
 
 | Bereich | Vorhandener Nachweis | Noch offen im Abschluss |
 | --- | --- | --- |
-| `counter` | [session_lifecycle.py](../../tests/acceptance/headless/session_lifecycle.py): Ticks, Stillstand, Pace/Stop, Isolation, Recording/Replay und Verwaltungs-Stopp. | Kombinierter Lifecycle und Last bestanden; Schlussprüfung im aktuellen Umfang abgeschlossen. |
-| `context_menu` | [context_menu.py](../../tests/acceptance/rendered/context_menu.py): virtuelle Inputs, Fokus, Unicode-Werte und Grenzen, Menüersetzung/-auswahl, Itemlayout, tote Teilbaum-Handles, Bilder, Recording/Replay und zwei Sessions. | Keine zusätzliche Steuerungsvariante. |
-| `logical_state` | [logical_state.py](../../tests/acceptance/rendered/logical_state.py): Update, FixedUpdate, Timer, Keyboard- und Pointer-Press/Hold/Release, Stillstand und fünf PNGs einschließlich vorgemerkter Inputs. | Keine zusätzliche Steuerungsvariante. |
-| `game_menu` | [game_menu.py](../../tests/acceptance/rendered/game_menu.py): Navigation, Einstellungen, Timer, Klicks, Hierarchien, tote Handles, Keyboard-Kurzwege, neun PNGs und Quit mit Failure/Report sowie Session-Isolation. | Keine zusätzliche Steuerungsvariante. |
-| `ui_drag_drop` | [ui_drag_drop.py](../../tests/acceptance/rendered/ui_drag_drop.py): gültiger/ungültiger Drop, Zwischenposition, Drag-Phasen, Belegung, Darstellung, Despawn während Drag, tote Handles/Hierarchie, erneuter Drag und acht PNGs. | Keine zusätzliche Steuerungsvariante. |
-| `mesh_picking` | [mesh_picking.py](../../tests/acceptance/rendered/mesh_picking.py): Hover/Press/Release/Out aller Meshes, horizontaler/vertikaler Würfel-Drag, diagonale Kugel-/Zylinder-Drags, vollständige Rotation/Isolation, 48 Ticks und 19 PNGs. | Keine zusätzliche Steuerungsvariante. |
-| `blend_modes` | [blend_modes.py](../../tests/acceptance/rendered/blend_modes.py): zwei Sessions, gehaltene Tasten, Orbit, Alpha-Grenzen, HDR/Unlit, Materialidentität, reproduzierbare Farben und sechs PNGs. | Keine zusätzliche Steuerungsvariante; vollständige Blend-/HDR-Validierung ist zurückgestellt. |
-| Inspect | [Entity-Tests](../../src/session/inspect/entities/tests.rs), Reflection-Matrix sowie Game-Menu-, Context-Menu- und Drag-Lebenszyklen mit toten Handles. | Lastnachweis bestanden; keine neue Inspect-Architektur. |
-| Recording/Replay/Reports | [session.rs](../../tests/integration/session.rs), [automatic_reports.py](../../tests/acceptance/headless/automatic_reports.py), [Report-Tests](../../src/server/report_tests.rs). | Kombinations-, Last-/Shutdown-, Abort- und frische grafische Nachweise bestanden; Schlussprüfung abgeschlossen. |
-| CLI/REPL/Script | [repl.py](../../tests/acceptance/headless/repl.py), [script.py](../../tests/acceptance/headless/script.py), Netzwerkfixtures. | Große Outputs/Activity und langsame Clients geprüft; frische headless CLI-Nachweise bestanden. |
+| `counter` | session_lifecycle.py (historischer Pfad `../../tests/acceptance/headless/session_lifecycle.py`): Ticks, Stillstand, Pace/Stop, Isolation, Recording/Replay und Verwaltungs-Stopp. | Kombinierter Lifecycle und Last bestanden; Schlussprüfung im aktuellen Umfang abgeschlossen. |
+| `context_menu` | context_menu.py (historischer Pfad `../../tests/acceptance/rendered/context_menu.py`): virtuelle Inputs, Fokus, Unicode-Werte und Grenzen, Menüersetzung/-auswahl, Itemlayout, tote Teilbaum-Handles, Bilder, Recording/Replay und zwei Sessions. | Keine zusätzliche Steuerungsvariante. |
+| `logical_state` | logical_state.py (historischer Pfad `../../tests/acceptance/rendered/logical_state.py`): Update, FixedUpdate, Timer, Keyboard- und Pointer-Press/Hold/Release, Stillstand und fünf PNGs einschließlich vorgemerkter Inputs. | Keine zusätzliche Steuerungsvariante. |
+| `game_menu` | game_menu.py (historischer Pfad `../../tests/acceptance/rendered/game_menu.py`): Navigation, Einstellungen, Timer, Klicks, Hierarchien, tote Handles, Keyboard-Kurzwege, neun PNGs und Quit mit Failure/Report sowie Session-Isolation. | Keine zusätzliche Steuerungsvariante. |
+| `ui_drag_drop` | ui_drag_drop.py (historischer Pfad `../../tests/acceptance/rendered/ui_drag_drop.py`): gültiger/ungültiger Drop, Zwischenposition, Drag-Phasen, Belegung, Darstellung, Despawn während Drag, tote Handles/Hierarchie, erneuter Drag und acht PNGs. | Keine zusätzliche Steuerungsvariante. |
+| `mesh_picking` | mesh_picking.py (historischer Pfad `../../tests/acceptance/rendered/mesh_picking.py`): Hover/Press/Release/Out aller Meshes, horizontaler/vertikaler Würfel-Drag, diagonale Kugel-/Zylinder-Drags, vollständige Rotation/Isolation, 48 Ticks und 19 PNGs. | Keine zusätzliche Steuerungsvariante. |
+| `blend_modes` | blend_modes.py (historischer Pfad `../../tests/acceptance/rendered/blend_modes.py`): zwei Sessions, gehaltene Tasten, Orbit, Alpha-Grenzen, HDR/Unlit, Materialidentität, reproduzierbare Farben und sechs PNGs. | Keine zusätzliche Steuerungsvariante; vollständige Blend-/HDR-Validierung ist zurückgestellt. |
+| Inspect | Entity-Tests (historischer Pfad `../../src/session/inspect/entities/tests.rs`), Reflection-Matrix sowie Game-Menu-, Context-Menu- und Drag-Lebenszyklen mit toten Handles. | Lastnachweis bestanden; keine neue Inspect-Architektur. |
+| Recording/Replay/Reports | session.rs (historischer Pfad `../../tests/integration/session.rs`), automatic_reports.py (historischer Pfad `../../tests/acceptance/headless/automatic_reports.py`), Report-Tests (historischer Pfad `../../src/server/report_tests.rs`). | Kombinations-, Last-/Shutdown-, Abort- und frische grafische Nachweise bestanden; Schlussprüfung abgeschlossen. |
+| CLI/REPL/Script | repl.py (historischer Pfad `../../tests/acceptance/headless/repl.py`), script.py (historischer Pfad `../../tests/acceptance/headless/script.py`), Netzwerkfixtures. | Große Outputs/Activity und langsame Clients geprüft; frische headless CLI-Nachweise bestanden. |
 
 ### Reflection-Matrix
 
-Die [gemeinsamen Reflection-Fixtures](../../src/session/inspect/reflection_tests.rs)
+Die gemeinsamen Reflection-Fixtures (historischer Pfad `../../src/session/inspect/reflection_tests.rs`)
 prüfen Resource- und Component-Werte ohne Mutation oder Tickfortschritt:
 
 - exakte registrierte Type Paths und Fehler bei unbekannten Eingabepfaden;

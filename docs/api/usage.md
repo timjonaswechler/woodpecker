@@ -1,63 +1,36 @@
 # Bedienung und Tests
 
-Die vollständige Systemabnahme dieses Builds steht noch aus. Er implementiert Warp,
-Resource-/Entity-Inspect, Pointer-/Keyboard-/Text-Input, Screenshot, Recording, Replay und Shutdown.
-Fehlerbeobachtung, Report-Snapshots, Report-Darstellung sowie Local und GitHub sind vorhanden.
-Der Server verarbeitet Reports automatisch und unabhängig von Clients. Der einzige unterstützte Weg verwendet
-`session`; die v2-Implementation und ihre öffentlichen Einstiegspunkte sind entfernt.
+Woodpecker unterstützt Sessionverwaltung, explizite Warps, Resource-/Entity-Inspect,
+virtuelle Eingaben, Screenshots, Recording/Replay, Reports, REPL, Scripts und Shutdown.
+Der [Zielvertrag](target.md) ist maßgeblich; aktueller Prüfstand und verbleibende
+Arbeit stehen ausschließlich im [Testsuite-Plan](../testing-plan.md). Die
+[Testanleitung](../../tests/README.md) enthält die ausführbaren Abnahmebefehle.
+Die entfernten v2-Einstiegspunkte und früheren Bevy-Testszenen sind keine Voraussetzung.
 
-Entity-Inspect unterstützt Handle-Abfragen, Componentfilter, Summary, Component-Namen,
-Component-Werte und Hierarchien. Adapter-, Codec- und Plugin-Tests prüfen diese Varianten
-einschließlich unverändertem Anwendungszustand und unveränderter Zeit zwischen Warps.
-Der reale Context-Menu-Ablauf über Server, Pointer-Eingabe und Warp ist in
-`tests/acceptance/rendered/context_menu.py` geprüft. Er findet den Button per allgemeinem Inspect und liest seine
-Layoutposition, statt Koordinaten für den Klick festzuschreiben.
-Pointer-Erfolg bestätigt nur die Vormerkung. Bevy erhält die Input-Messages erst
-beim nächsten Tick. Der Kontrolllauf entleert zwischen Ticks den Render-Zeitkanal,
-ohne die Simulationszeit fortzuschreiben.
+Inspect liest Resources, Entities, Components und Hierarchien ohne Tick oder
+Zustandsänderung. Pointer-/Keyboard-Erfolg bestätigt nur die Vormerkung; Bevy
+erhält die Eingaben beim nächsten expliziten Tick. Der virtuelle Pointer ist
+sessionlokal, bewegt keinen OS-Cursor und benötigt keinen nativen Fensterfokus.
+Native Maus-, Touch-, Keyboard- und IME-Eingaben werden in kontrollierten Sessions
+verworfen; Resize-/Close-Ereignisse bleiben erhalten.
 
-Der Pointer ist virtuell und sessionlokal. Commands bewegen den Betriebssystem-Cursor
-nicht und funktionieren ohne nativen Fensterfokus. Native Maus-, Touch-, Keyboard-
-und IME-Eingaben werden verworfen, Resize-/Close-Ereignisse bleiben erhalten.
-`tests/acceptance/rendered/context_menu.py` steuert zwei gleichzeitig laufende Anwendungen mit getrennten Buttonzuständen.
-Keyboard-Commands halten Tasten pro Session bis zum ausdrücklichen Release.
-Die Abnahme prüft `a` in beiden Sessions vor und nach Ticks sowie über mehrere Ticks.
-Text-Commands verwenden den beim Annehmen geprüften Bevy-Fokus. Die Abnahme fokussiert
-zwei Textfelder per virtuellem Pointer und prüft getrennte Unicode-Eingaben.
+`input.text.input` nimmt `{"text":"Grüße 🦜"}` bis 16.384 UTF-8-Bytes an.
+Erfolg liefert `null`, keine sofortige Textänderung. Auch leerer Text verlangt
+ein eindeutiges primäres Fenster und einen lebenden Fokus auf `EditableText`.
+Die App aktiviert `woodpecker/ui`, für ein vollständiges Bevy-0.20-Widget außerdem
+`bevy/bevy_ui_widgets` und `bevy::ui_widgets::TextInputPlugin`.
+Der Command bindet das Ziel bei Annahme. Erst beim nächsten Tick geht der Edit
+an dieses noch vorhandene, editierbare Ziel; ein Fokuswechsel leitet ihn nicht um.
+Normale Widget-Filter und Längengrenzen gelten weiter. Fehlender Fokus bzw. Fenster
+ergibt `text_focus_unavailable` bzw. `text_window_unavailable`, Übergröße
+`text_too_large`. Keine OS-Zwischenablage oder nativen IME-Ereignisse.
 
-`input.text.input` nimmt `{"text":"Grüße 🦜"}` mit höchstens 16.384 UTF-8-Bytes an.
-Erfolg liefert `null`; das Textfeld bleibt bis zum Tick unverändert. Leerer Text ist
-zulässig. Voraussetzung sind ein eindeutiges primäres Fenster und ein lebender
-Bevy-Fokus auf einer `EditableText`-Entity. Die Anwendung benötigt `woodpecker/ui`.
-In Bevy 0.20 besteht ein vollständiges Textfeld aus `bevy::text::EditableText`
-und `bevy::ui_widgets::TextInput`. Die Anwendung aktiviert dafür
-`bevy/bevy_ui_widgets` und installiert `bevy::ui_widgets::TextInputPlugin`.
-Der Adapter prüft den Editierzustand und stellt
-den Edit direkt in dessen Queue; das Widget und seine normalen Bevy-Systeme
-gehören zur Anwendung.
-Ohne diese Unterstützung wird die Eingabe mit `text_focus_unavailable` abgelehnt,
-bei fehlendem Fenster mit `text_window_unavailable`. Übergröße ergibt `text_too_large`.
-Der Adapter stellt den Edit erst beim Tick dem geprüften Feld zu. Er verändert
-weder die Betriebssystem-Zwischenablage noch sendet er native IME-Ereignisse.
-
-Keyboard-Commands verwenden `{"key":"a"}` mit `input.keyboard.press` oder
-`input.keyboard.release`. Erfolg liefert `null` und bedeutet nur Vormerkung.
-Unterstützt sind Buchstaben `a` bis `z`, Ziffern `digit_0` bis `digit_9`, Satzzeichen,
-Navigation, linke/rechte Modifikatortasten und `f1` bis `f12`.
-Die vollständigen Tokens und festen Bevy-Zuordnungen stehen in
-[keyboard.rs](../../src/command/input/keyboard.rs).
-Die Zuordnung hängt nicht vom Betriebssystemlayout ab; Shift verändert den
-festen logischen Buchstaben nicht. Text kommt ausschließlich über den
-Text-Command, nicht über Keyboard-Events. Es gibt keinen automatischen Key-Repeat.
-Bei beiden gehaltenen Shift-Tasten bleibt logisch Shift gedrückt, bis beide losgelassen sind.
-
-Die gerenderte Abnahme benötigt eine Desktop-Sitzung:
-
-```sh
-cargo build --features cli --bin woodpecker
-cargo build --manifest-path bevy_test_apps/Cargo.toml --features slice --bin context_menu
-python3 -m tests.acceptance.rendered.context_menu
-```
+Keyboard-Commands verwenden `{"key":"a"}` mit `input.keyboard.press` bzw.
+`input.keyboard.release`. Tasten bleiben bis zum Release gehalten, ohne Key-Repeat.
+Unterstützte Tokens und feste Bevy-Zuordnungen stehen in
+[keyboard.rs](../../src/command/input/keyboard.rs); die Zuordnung ist unabhängig
+vom OS-Layout. Text kommt ausschließlich über den Text-Command.
+Die Anwendung selbst stellt UI, Spielbereitschaft und Renderer bereit.
 
 ## Screenshot
 
@@ -128,10 +101,10 @@ Einschränkung. Eine tatsächlich schwarze Szene bleibt ein gültiges Bild; Pixe
 werden nicht zur Verfügbarkeitsprüfung benutzt. Der Command vergleicht das Bild
 nicht mit einem Sollbild und bewertet nicht die visuelle Richtigkeit des Spiels.
 
-`tests/acceptance/rendered/context_menu.py` prüft vollständige PNGs, sichtbare Menüänderung nach einem ausdrücklichen
-Tick, Überschreiben, parallele Requests und Session-Isolation. Tickzähler,
-simulierte Zeit und Anwendungszustand bleiben während Capture unverändert.
-Mit `--capture-dir target/ui-captures` bleiben die Bilder nach der Abnahme erhalten.
+Die aktuellen [Screenshot-Tests](../../tests/screenshot/) prüfen vollständige
+PNGs in einer festen Referenzszene, Capture vor dem ersten Tick, Overwrite und
+Pfadsicherheit ohne Simulationsfortschritt. Bilder und Logs bleiben in den
+jeweiligen Laufartefakten; der Command selbst führt keinen Sollbildvergleich aus.
 
 ## Recording
 
@@ -211,11 +184,10 @@ zulässig. Weitere Starts ergeben `replay_already_running`, andere Commands
 Stop während des Ladens wartet auf die Bestätigung der Ladeaufgabe.
 Eine vorher angenommene Recording-Dateibarriere hält auch den Loader zurück.
 
-`tests/acceptance/headless/session_lifecycle.py` prüft eine echte Zähleraufnahme, vollständige Vorabvalidierung
-ohne Tick sowie Verwaltungs-Stopp bei gleichzeitigem Replay und Recording.
-`tests/acceptance/rendered/context_menu.py` enthält zusätzlich die Wiederholung der vollständigen UI-Aufnahme.
-Der aktuelle Nachweis und offene Render-Befund stehen in
-[next-steps.md](next-steps.md#letzter-dokumentierter-prüfstand).
+Die aktuellen Fälle unter [recording/](../../tests/recording/) und
+[replay/](../../tests/replay/) prüfen Dateivertrag, Vorvalidierung, Barrieren,
+frische Sessions, Stop und Exklusivität. Laufbelege stehen im
+[Testsuite-Plan](../testing-plan.md), nicht in historischen Übergaben.
 
 ## Fehlerbeobachtung und Snapshots
 
@@ -413,22 +385,24 @@ Virtueller Input und der interne Bevy-`InputFocus` funktionieren unabhängig dav
 
 ## Ausführen
 
-Vom Repository-Root aus bauen:
+**Das folgende Beispiel öffnet ein echtes Signalstation-Fenster und fordert
+13 Ticks ohne Eingaben an.** Als Agent nur nach passender Grafikfreigabe ausführen;
+Desktop wach und Fenster zumindest teilweise sichtbar halten.
+
+Vom Repository-Root CLI und Referenz-App mit denselben Features wie die
+Startkonfiguration bauen:
 
 ```sh
-cargo build --features cli --bin woodpecker
-cargo build --manifest-path bevy_test_apps/Cargo.toml --features slice --bin counter
+cargo build --locked --features cli --bin woodpecker
+cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 ```
 
-Es sind keine Zugangsdaten oder vorbereiteten Umgebungsvariablen nötig.
-Der Server vertraut lokalen Clients und bindet ausschließlich an Loopback.
-Remote-Betrieb ist nicht unterstützt.
-
-Terminal 1:
+Lokale Clients benötigen keine Zugangsdaten. Der Server bindet nur an Loopback;
+Remote-Betrieb wird nicht unterstützt. Terminal 1:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  server start --artifact-dir target/slice-artifacts
+  server start --artifact-dir target/session-artifacts
 ```
 
 Terminal 2:
@@ -436,11 +410,14 @@ Terminal 2:
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 session ls
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session create --config tests/fixtures/counter.toml
+  session create --config tests/app.toml
 ```
 
-Die vollständige zurückgegebene ID in `ID` übernehmen. Detail zeigt den
-Startfortschritt. Erst bei `Ready` Spiel-Commands einreichen:
+Die vollständige zurückgegebene ID in `ID` übernehmen. Die Konfiguration nutzt
+Manual-Startup und einen isolierten Settings-Seed, keine persönlichen Settings.
+`session inspect` beobachten, bis `state` den Wert `SessionReady` hat; bei
+`Starting` weiter beobachten, bei `Failed` abbrechen. `SessionReady` ist keine
+Garantie für fertig geladene Assets oder ein verfügbares Screenshot-Fenster.
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 session inspect "$ID"
@@ -450,25 +427,24 @@ target/debug/woodpecker --address 127.0.0.1:4100 \
   session poll "$ID" --wait-ms 1000
 ```
 
-`submit` bestätigt ausschließlich Pending. Das korrelierte `completed` steht in
-Activity. Für weitere Polls den zurückgegebenen Cursor als JSON mit `--cursor`
-übergeben. Erst nach Warp-Abschluss den Zähler lesen:
+`submit` bestätigt nur Pending. Request-ID und Command merken und bis zu deren
+korreliertem terminalen Ergebnis pollen; für Folgereads den zurückgegebenen Cursor
+als JSON mit `--cursor` übergeben. Nicht erneut submitten. Erst nach erfolgreichem
+Warp-Abschluss den unabhängigen App-Zähler lesen:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session submit "$ID" --command '{"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"counter::Counter"},"projection":{"kind":"value"}}}'
-target/debug/woodpecker --address 127.0.0.1:4100 session poll "$ID"
+  session submit "$ID" --command '{"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"test_app::woodpecker::SimulationTicks"},"projection":{"kind":"value"}}}'
+target/debug/woodpecker --address 127.0.0.1:4100 session poll "$ID" --wait-ms 1000
+# Auch die Query bis zum korrelierten Abschluss beobachten, dann beenden:
 target/debug/woodpecker --address 127.0.0.1:4100 session stop "$ID"
 target/debug/woodpecker --address 127.0.0.1:4100 server stop
 ```
 
-Ein einzelner CLI-Aufruf trennt beim Ende nur die Verbindung. Server und
-angenommene Commands laufen weiter. `session stop` beendet nur die ausgewählte
-Session. Den Gesamtstatus des Serverendes liefert der Vordergrundprozess in
-Terminal 1; der Verwaltungsaufruf bestätigt zunächst nur den Stoppauftrag.
-
-Relative Manifestpfade beziehen sich auf das Arbeitsverzeichnis des Servers.
-Die Config-Datei verschiebt diesen Bezug nicht.
+Ein CLI-Ende trennt nur diesen Client; angenommene Arbeit läuft weiter.
+`session stop` betrifft nur die ausgewählte Session. Den endgültigen Serverstatus
+liefert der Vordergrundprozess in Terminal 1, nicht die Stop-Auftragsbestätigung.
+Relative Manifestpfade gelten vom Server-Arbeitsverzeichnis, nicht vom Ort der TOML-Datei.
 
 ## Interaktive REPL
 
@@ -482,7 +458,7 @@ Beispiele innerhalb der REPL:
 help
 tick warp 10000 pace 20
 pending
-inspect resource counter::Counter
+inspect resource test_app::woodpecker::SimulationTicks
 tick warp stop
 help inspect
 command {"command":"screenshot.capture","arguments":{"path":"shots/current.png"}}
@@ -627,84 +603,26 @@ auf stdout aus. Die REPL verwendet dagegen einen Prompt, Statuszeilen und JSON-P
 
 ## Nachweise
 
-Die [Testübersicht](../../tests/README.md) beschreibt Gruppen, Voraussetzungen und
-Abdeckungsentscheidungen. Python-Abnahmen vom Repository-Root mit `python3 -m`
-starten; keine Imports zwischen ausführbaren Tests. Rust-Integrationstests liegen
-unter `tests/integration/` und sind explizite Cargo-Test-Targets. Diagnoseexperimente
-gehören nicht zum normalen Abnahmelauf.
+Auswahl, Voraussetzungen und ausführbare Tests stehen in der
+[Testanleitung](../../tests/README.md); aktueller Stand und genaue Belege im
+[Testsuite-Plan](../testing-plan.md). Python-Fälle liegen in `tests/<feature>/`,
+zehn öffentliche Rust-Targets in `tests/rust/`, neun interne Owner-Tests unter
+`src/`. Die entfernten `tests/fixtures/`-, `tests/integration/`- und
+`tests/acceptance/headless/`-/`rendered/`-Einstiege sind nicht mehr auszuführen.
 
-Separater echter `panic=abort`-Build (eigenes Cargo-Profil, keine simulierte
-Abort-Strategie):
-
-```sh
-cargo build --manifest-path tests/fixtures/panic_abort/Cargo.toml --locked
-cargo test --test panic_abort -- --nocapture
-```
-
-Die Fixture verweigert Builds ohne Abort-Strategie. Der Test prüft Panic-Marker vor
-Session-Ende, fehlende Tick-Completion, lokalen Report und Prozessbereinigung.
-Artefakte: `target/panic-abort-acceptance-<pid>/`.
-
-Headless-Lastnachweis mit echten großen Reflect-/Report-Ausgaben und langsamen
-Clients an der 4-MiB-Activity-Grenze:
-
-```sh
-cargo build --example activity_fixture
-cargo test --features client --test activity_retention -- --nocapture
-```
-
-Artefakte bleiben unter `target/activity-load-<pid>/`. Eine Activity-Lücke bedeutet
-unbekannte fehlende Outcomes, keinen Erfolg. Der Test deckt weder die wartende
-Report-Queue unter Dauerlast noch alle Mehrsession-Shutdown-Fälle ab.
-
-```sh
-cargo test --features cli --lib --test session
-python3 -m tests.acceptance.headless.session_lifecycle
-python3 -m tests.acceptance.headless.server_shutdown
-python3 -m tests.acceptance.headless.repl
-python3 -m tests.acceptance.headless.script
-cargo check --no-default-features --lib
-cargo check --no-default-features --features server --lib
-cargo check --no-default-features --features client --lib
-cargo check --all-features --all-targets
-cargo test --manifest-path bevy_test_apps/Cargo.toml --all-features --all-targets
-```
-
-`slice.py` startet echte CLI- und Bevy-Prozesse. Es prüft leeres Verzeichnis,
-frühe Erstellungsantwort, Zählerstillstand ohne Warp, exakte Tickzahl, Trennung
-mit weiterlaufendem Warp, Pace/Stop über neue Verbindungen, getrennte
-Request-ID-Räume, Einzel-Stopp, Starting-Abbruch und Fehler unter angenommener ID.
-
-`shutdown.py` prüft zwölf echte Spielprozesse in vier Serverläufen. Reguläres
-HTTP-Ende, Abbruch nach bereits erfolgtem Prozessstart, SIGTERM mit gemeinsamer
-Frist und zweites Ctrl+C müssen alle Prozessgruppen bereinigen.
-
-Die Rust-Prozessfixtures prüfen zusätzlich ungeordnete Antworten, bekannte und
-unbekannte IDs, volle stderr-Pipe, Pending-Drop, History-Verdrängung, falsche
-Protokollversion, Event-Überlauf und einen Kindprozess, dessen Nachfolger die
-Pipes nach dem direkten Prozessende offen hält.
-
-`repl.py` prüft zwei echte Bevy-Sessions, laufenden Warp mit weiteren Eingaben,
-Pending anderer Clients, Replay-Gate, ausdrücklichen Shutdown und unerwartetes Ende.
-Pseudoterminal-Tests prüfen die teilweise eingegebene Zeile während Activity-Ausgabe,
-Ctrl+C, Ctrl+D und die Wiederherstellung des Terminalmodus. Pipe-EOF, Quit und SIGINT
-lassen angenommene Arbeit weiterlaufen. Rust-Netzwerkfixtures prüfen zusätzlich
-Wiederverbindung, Cursor-Lücke, ungewisse Einreichung ohne Wiederholung und den Abbruch
-blockierter Handshakes beziehungsweise Activity-Antworten.
-
-`script.py` prüft vollständige Vorvalidierung ohne ausgeführtes Präfix, weiterlaufende
-normale Commands, fachliche Ablehnungen, reale Recording-Header-/Footer-Barrieren,
-Shutdown sowie Ctrl+C bei weiterhin laufendem Warp. Netzwerkfixtures prüfen zusätzlich
-vertauschte Outcomes, fremde Request-IDs, Cursor-Lücken, verlorene Submit-Bestätigung,
-fehlerhafte Outputs und Session-Ende. Die Zusammenfassung behält ursprüngliche Indizes.
+Der echte Abort-Build gehört zu `tests.reports.panic_abort`, der begrenzte
+Provider-/Shutdown-Lastnachweis zu den jeweiligen Report-/Shutdown-Fällen.
+Kein fensterloser Teilumfang ersetzt eine grafische Abnahme; echte GitHub-Wirkung
+bleibt separat freizugeben. Historische Szenen-/Lastbelege stehen im ausdrücklich
+archivierten [Entwicklungsplan](implementation-plan.md).
 
 ## Noch nicht enthalten
 
-Die vollständige Szenen-/Lastabnahme bleibt offen. Aufgaben und Abdeckung stehen
-im [Abschlussplan](implementation-plan.md), der unmittelbare Wiedereinstieg in
-[next-steps.md](next-steps.md).
-Panic-/Tracing-Beobachtung, Snapshot-Metadaten, gemeinsame Report-Darstellung
-und beide Report-Provider einschließlich automatischer Server-Verarbeitung sind implementiert.
+Die definierte lokale Abnahme und der getrennte GitHub-Nachweis sind belegt;
+sie versprechen keine unbegrenzte Dauerlast oder Abdeckung aller Anwendungsszenarien.
+Verbleibende Testarbeit steht ausschließlich im [Testsuite-Plan](../testing-plan.md).
+Panic-/Tracing-Beobachtung, Snapshot-Metadaten, Report-Darstellung und beide
+Provider einschließlich automatischer Server-Verarbeitung sind implementiert.
 Spiel-stderr bleibt ein laufender menschlicher Diagnosestrom;
 vollständig validierte interne Marker werden entfernt.
 Startfehler enthalten einen begrenzten stderr-Auszug.
@@ -717,7 +635,8 @@ Provider kann daher Speicherbedarf ansammeln, obwohl die fertige Activity begren
 Der Server meldet bei Fristablauf Fehler und wartet auf die Prozessbereinigung;
 er behauptet keine harte Zeitgarantie für nicht unterbrechbare Betriebssystemarbeit.
 
-Auf dem verwendeten macOS-Rechner hat Gatekeeper das generierte `process_fixture`
+Historischer Hostbefund mit der inzwischen entfernten Testfixture: Auf dem
+verwendeten macOS-Rechner hat Gatekeeper das generierte `process_fixture`
 bei wiederholten Starts vereinzelt verzögert oder mit SIGKILL beendet.
 Das wurde auch mit direkten `cargo run`-Aufrufen außerhalb des Servers reproduziert;
 das Systemlog nennt `Gatekeeper rejection`. Solche Läufe können in `Starting`

@@ -24,9 +24,9 @@ enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0
 text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
 - [Target contract](docs/api/target.md)
-- [Completion plan and coverage](docs/api/implementation-plan.md)
-- [Handoff and remaining tasks](docs/api/next-steps.md)
-- [CLI usage and historical acceptance notes](docs/api/usage.md)
+- [CLI usage](docs/api/usage.md)
+- [Historical implementation notes](docs/api/implementation-plan.md)
+- [Historical handoff snapshots](docs/api/next-steps.md)
 - [Agreed test-suite redesign and overall acceptance plan](docs/testing-plan.md)
 - [Playable collection game and shared test app](test_app/README.md)
 - [Standalone station model zoo](test_zoo/README.md)
@@ -72,25 +72,23 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 
 ## Tests
 
-The previous Python and Rust tests, fixtures and smoke-test entry points have
-been removed for a clean rebuild. The [new acceptance checks](tests/README.md)
-have individual evidence for the initial CLI-based pilot, including representative
-movement, screenshot, recording/replay and failure-report flows. Its deliberate
-negative control also detected the intended failure. These results span multiple
-runs; they are not a complete feature acceptance run.
+The [acceptance guide](tests/README.md) is the executable entry point. There are
+94 product tests: 93 local cases and one separately authorized real GitHub case.
+The common local run also checks the existing deliberate negative control and
+the feature/build matrix. Harness checks are separate, not extra product cases.
 
-The [agreed redesign](docs/testing-plan.md) records the completed test-form pilot
-and feature coverage under `tests/`. The shared entry now discovers all 94 cases,
-separating 93 local cases (plus the existing negative control) from real GitHub
-acceptance, and validates the feature/build matrix. All local cases now have
-individual passing evidence from acceptance stages and focused fixes. The feature
-matrix, windowless CI selection, workspace check and Clippy pass locally. This is
-not a complete final acceptance run: the latest common run stopped on an unavailable
-window surface. Real GitHub verification also needs a designated test repository.
-The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints) records
-the remaining gates; user-facing examples still follow acceptance. The playable Signalstation and the model zoo remain available.
-Rendered acceptance runs require an awake desktop, visible game windows and
-explicit permission for each run.
+```sh
+python3 -m tests.acceptance --list             # plan only; no builds or processes
+python3 -m tests.acceptance --non-graphical    # passing subset still exits 2
+```
+
+The latest complete local run and separate real GitHub verification passed.
+The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints)
+records their exact source state, evidence and remaining work; this is not a
+claim that every future run or all possible application behavior is verified.
+Rendered runs require explicit scoped permission, an awake desktop and visible
+windows. No headless replacement or automatic retry is used. User-facing examples
+and mutation checks remain separate later steps.
 
 ## Origin
 

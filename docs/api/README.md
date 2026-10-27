@@ -1,34 +1,29 @@
-# Dokumentation
+# API-Dokumentation
 
-Der aktuelle [Testsuite-Plan](../testing-plan.md) beschreibt den beschlossenen
-Neustart. Die bisherigen Python-/Rust-Tests und Testprogramme sind entfernt.
-Die [neuen CLI-Tests](../../tests/README.md) haben die Pilot-Einzelfälle samt
-repräsentativen Spielwirkungen und Fehlerreports belegt; die vollständige
-Feature-Abnahme fehlt weiterhin. Die folgenden Dokumente
-enthalten historische Abnahmen und Pfade zu inzwischen entfernten Tests. Diese
-sind kein aktueller Prüfstand und keine ausführbare Testanleitung für den Neustart.
+- [target.md](target.md): maßgeblicher öffentlicher Vertrag und Modulverantwortlichkeiten.
+- [goal.rs](goal.rs): Rust-ähnliche Interface-Skizze; muss nicht kompilieren.
+- [usage.md](usage.md): aktuelle CLI-Bedienung und Start mit der Referenz-App.
+- [Testanleitung](../../tests/README.md): ausführbare Auswahl, Voraussetzungen und Grenzen.
+- [Testsuite-Plan](../testing-plan.md): einziger aktueller Arbeitsstand und Abnahmenachweise.
 
-- [target.md](target.md) beschreibt das gewünschte Verhalten und seine Modulverantwortlichkeiten.
-- [goal.rs](goal.rs) zeigt die dazugehörige Rust-ähnliche Interface-Skizze.
-- [implementation-plan.md](implementation-plan.md) besitzt den Abschlussplan,
-  die Abdeckungsmatrix und noch offene Entscheidungen.
-- [usage.md](usage.md) beschreibt Bedienung, Builds und ausführbare Tests.
-- [next-steps.md](next-steps.md) ist der Einstieg für eine neue Session: Arbeitsstand,
-  unmittelbarer nächster Schritt, letzter Prüfstand und Arbeitsregeln.
-- Bei Screenshotproblemen: [Fehler und Guard](diagnostics/black-screenshots.md),
-  [Nachweise und Reproduktion](diagnostics/screenshot-evidence.md),
-  [datierter Upstream-Stand](diagnostics/bevy-upstream-screenshot-status.md).
-  [Resize und Kameraaktualisierung](diagnostics/window-schedules.md) sind ein getrennter Befund.
+Der vollständige lokale Testumfang und der getrennte echte GitHub-Fall sind
+belegt. Sie ersetzen weder künftige Läufe noch eine Prüfung aller denkbaren
+Anwendungsszenarien. Stand und genaue Belege werden nur im Testplan fortgeschrieben.
 
-Eine Regel hat eine maßgebliche Stelle. Interface-Kommentare erklären nur, was zum Verständnis
-der Signatur nötig ist. Die Skizze muss nicht kompilieren.
+[implementation-plan.md](implementation-plan.md) und [next-steps.md](next-steps.md)
+sind **historische** Entwicklungs-/Übergabeaufzeichnungen vor dem Suite-Neuaufbau.
+Ihre Checkboxen, Befehle und inzwischen entfernten Szenen sind keine aktuelle
+Arbeitsliste oder ausführbare Testanleitung. Historische Pfade bleiben als Zitate,
+nicht als Links zu nicht mehr vorhandenen Dateien.
 
-Der vorhandene Code ist technische Referenz, keine automatische Zielanforderung.
-[Research](research/) liefert technische Nachweise;
-[ADRs](../adr/README.md) bewahren Entscheidungsherkunft. Beide werden bei Bedarf gelesen,
-nicht als parallel zu pflegende Zielbeschreibung verwendet.
+Für Screenshotgrenzen: [Fehler und Guard](diagnostics/black-screenshots.md),
+[historische Reproduktion](diagnostics/screenshot-evidence.md),
+[datierter Upstream-Stand](diagnostics/bevy-upstream-screenshot-status.md) und
+[zurückgestellte Resize-Diagnose](diagnostics/window-schedules.md).
+[Research](research/) bewahrt technische Quellenstände,
+[ADRs](../adr/README.md) die Entscheidungsherkunft; beide sind keine zweite Zielbeschreibung.
 
-Neue Produktentscheidungen benötigen ausdrückliche Zustimmung. Aus bestehenden Regeln
-ableitbare Schritte und reversible Implementierungsdetails werden ohne erneute
-Bestätigungsschleife bearbeitet. Bestehende Nutzeränderungen bleiben erhalten.
-Subagenten werden nur nach ausdrücklicher Zustimmung eingesetzt.
+Eine Regel hat eine maßgebliche Stelle. Code ist technische Referenz, keine
+automatische Anforderung. Neue Produktentscheidungen brauchen ausdrückliche
+Zustimmung; vorhandene Nutzeränderungen bleiben erhalten. Subagenten werden
+nur nach ausdrücklicher Zustimmung eingesetzt.
