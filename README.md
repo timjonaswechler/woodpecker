@@ -73,13 +73,24 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 ## Tests
 
 The previous Python and Rust tests, fixtures and smoke-test entry points have
-been removed for a clean rebuild. There is currently no automated behavioral
-suite; successful build checks do not establish feature acceptance.
+been removed for a clean rebuild. The [new acceptance checks](tests/README.md)
+have individual evidence for the initial CLI-based pilot, including representative
+movement, screenshot, recording/replay and failure-report flows. Its deliberate
+negative control also detected the intended failure. These results span multiple
+runs; they are not a complete feature acceptance run.
 
-The [agreed redesign](docs/testing-plan.md) defines the new feature examples and
-shared overall acceptance run. They are not implemented yet. The playable
-Signalstation and the model zoo remain available. Rendered acceptance runs will
-require an awake desktop and explicit permission for each run.
+The [agreed redesign](docs/testing-plan.md) records the completed test-form pilot
+and feature coverage under `tests/`. The shared entry now discovers all 94 cases,
+separating 93 local cases (plus the existing negative control) from real GitHub
+acceptance, and validates the feature/build matrix. All local cases now have
+individual passing evidence from acceptance stages and focused fixes. The feature
+matrix, windowless CI selection, workspace check and Clippy pass locally. This is
+not a complete final acceptance run: the latest common run stopped on an unavailable
+window surface. Real GitHub verification also needs a designated test repository.
+The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints) records
+the remaining gates; user-facing examples still follow acceptance. The playable Signalstation and the model zoo remain available.
+Rendered acceptance runs require an awake desktop, visible game windows and
+explicit permission for each run.
 
 ## Origin
 

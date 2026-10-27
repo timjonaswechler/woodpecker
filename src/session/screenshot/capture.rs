@@ -23,6 +23,10 @@ use std::{
 
 mod surface;
 
+#[cfg(test)]
+#[path = "capture/tests/test_readback_lifecycle.rs"]
+mod test_readback_lifecycle;
+
 const READBACK_TIMEOUT: Duration = Duration::from_secs(30);
 const COMMAND: &str = "screenshot.capture";
 

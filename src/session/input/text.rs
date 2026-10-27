@@ -6,6 +6,10 @@ use bevy::{
     text::{EditableText, TextEdit},
 };
 
+#[cfg(all(test, feature = "ui"))]
+#[path = "text/tests/test_target_binding.rs"]
+mod test_target_binding;
+
 const MAX_BYTES: usize = 16_384;
 
 #[derive(Default)]

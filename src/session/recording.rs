@@ -14,6 +14,10 @@ use std::{
 pub(super) mod file;
 mod worker;
 
+#[cfg(all(test, unix))]
+#[path = "tests/test_transition_races.rs"]
+mod test_transition_races;
+
 enum State {
     Idle,
     Starting { id: u64, path: String },
@@ -43,6 +47,13 @@ pub(super) struct Recorder {
 impl Recorder {
     pub fn new(root: Dir, clock: crate::command::tick::Clock) -> Self {
         let (operations, replies) = worker::spawn(root, clock);
+        Self::from_io(operations, replies)
+    }
+
+    fn from_io(
+        operations: mpsc::Sender<worker::Operation>,
+        replies: mpsc::Receiver<worker::Reply>,
+    ) -> Self {
         Self {
             state: State::Idle,
             path: String::new(),

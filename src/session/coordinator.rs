@@ -6,6 +6,36 @@ use std::time::{Duration, Instant};
 // bound the wait for a child that closed a required pipe and remains alive.
 const EOF_EXIT_TIMEOUT: Duration = Duration::from_secs(1);
 
+#[cfg(test)]
+#[path = "coordinator/tests/test_request_id_exhaustion.rs"]
+mod test_request_id_exhaustion;
+
+#[cfg(test)]
+pub(super) struct TestControls {
+    pub launched: Option<(
+        process::Process,
+        cap_std::fs::Dir,
+        crate::report::Context,
+        std::path::PathBuf,
+    )>,
+    pub next_id: u64,
+    pub recorder: Option<recording::Recorder>,
+    pub replay: Option<replay::Replay>,
+    pub loop_checkpoint: Option<(mpsc::Receiver<()>, mpsc::Sender<()>)>,
+}
+#[cfg(test)]
+impl Default for TestControls {
+    fn default() -> Self {
+        Self {
+            launched: None,
+            next_id: 1,
+            recorder: None,
+            replay: None,
+            loop_checkpoint: None,
+        }
+    }
+}
+
 fn launch(
     config: &Config,
     cancel: &Arc<AtomicBool>,
@@ -93,6 +123,7 @@ pub(super) fn run(
     shared: Arc<Shared>,
     cancel: Arc<AtomicBool>,
     ready: mpsc::Sender<Result<Capabilities, Error>>,
+    #[cfg(test)] mut controls: Option<TestControls>,
 ) {
     // A lost coordinator must wake receivers even when unwinding bypasses the normal end path.
     struct EndOnDrop(Arc<Shared>);
@@ -103,6 +134,12 @@ pub(super) fn run(
         }
     }
     let _end = EndOnDrop(shared.clone());
+    #[cfg(test)]
+    let result = match controls.as_mut().and_then(|c| c.launched.take()) {
+        Some(launched) => Ok(launched),
+        None => launch(&config, &cancel),
+    };
+    #[cfg(not(test))]
     let result = launch(&config, &cancel);
     let (mut process, root, context, project) = match result {
         Ok(process) => process,
@@ -120,6 +157,10 @@ pub(super) fn run(
     );
     let mut active = BTreeMap::<u64, Command>::new();
     let mut next = 1u64;
+    #[cfg(test)]
+    if let Some(controls) = &controls {
+        next = controls.next_id;
+    }
     let mut shutdown: Option<Outcome> = None;
     let mut stopping = false;
     let mut reason = None;
@@ -137,7 +178,19 @@ pub(super) fn run(
     shared.state.lock().unwrap().report_destination = Some(Arc::new(
         crate::report::Destination::new(replay_root.clone(), config.report.clone(), project),
     ));
+    #[cfg(test)]
+    let mut replay = controls
+        .as_mut()
+        .and_then(|c| c.replay.take())
+        .unwrap_or_else(|| replay::Replay::new(replay_root, config.tick.clock.clone()));
+    #[cfg(not(test))]
     let mut replay = replay::Replay::new(replay_root, config.tick.clock.clone());
+    #[cfg(test)]
+    let mut recorder = controls
+        .as_mut()
+        .and_then(|c| c.recorder.take())
+        .unwrap_or_else(|| recording::Recorder::new(root, config.tick.clock.clone()));
+    #[cfg(not(test))]
     let mut recorder = recording::Recorder::new(root, config.tick.clock.clone());
     let mut deferred = VecDeque::<(u64, Command)>::new();
     let mut startup_pending = config.startup.enabled();
@@ -317,9 +370,8 @@ pub(super) fn run(
             && let startup::Config::Engine {
                 timeout_seconds, ..
             } = config.startup
-            && startup_started.is_some_and(|started| {
-                started.elapsed().as_secs() >= u64::from(timeout_seconds) + 1
-            })
+            && startup_started
+                .is_some_and(|started| started.elapsed().as_secs() > u64::from(timeout_seconds))
         {
             startup_pending = false;
             let error = protocol::Diagnostic::new(
@@ -551,6 +603,12 @@ pub(super) fn run(
                         break;
                     }
                 }
+            }
+        }
+        #[cfg(test)]
+        if let Some((requests, acks)) = controls.as_ref().and_then(|c| c.loop_checkpoint.as_ref()) {
+            while requests.try_recv().is_ok() {
+                let _ = acks.send(());
             }
         }
         std::thread::sleep(Duration::from_millis(2));

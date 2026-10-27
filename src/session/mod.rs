@@ -211,8 +211,17 @@ impl Session {
         let (ready, initialized) = mpsc::channel();
         let state = shared.clone();
         let abort = cancel.clone();
-        let worker =
-            std::thread::spawn(move || coordinator::run(config, input, state, abort, ready));
+        let worker = std::thread::spawn(move || {
+            coordinator::run(
+                config,
+                input,
+                state,
+                abort,
+                ready,
+                #[cfg(test)]
+                None,
+            )
+        });
         match initialized.recv().unwrap_or_else(|_| Err(Error::ended())) {
             Ok(capabilities) => Ok(Self {
                 shared,

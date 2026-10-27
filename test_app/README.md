@@ -10,6 +10,13 @@ cargo run --manifest-path test_app/Cargo.toml
 
 Die Demo verwendet Bevy 0.20.0 und Rust 1.97.1 oder neuer. Sie gehört zum gemeinsamen Cargo-Workspace; Woodpecker wird nur mit dem Feature `automation` eingebunden. Der Asset-Pfad funktioniert unabhängig vom Arbeitsverzeichnis. Für einen optimierten Build `--release` ergänzen.
 
+Optional setzt `--window-position 640,400` hinter dem Cargo-Trenner `--` die
+anfängliche linke obere Fensterecke in physischen Desktop-Pixeln. Ohne das
+Argument bleibt die Platzierung beim Fenstermanager. Größe, Skalierung, Fokus
+und gespeicherte Spieleinstellungen werden dadurch nicht geändert. Die
+Zwei-Session-Tests verwenden unterschiedliche Positionen; ihre gemeinsamen
+Koordinaten stehen in `tests/_support.py` als `WINDOW_POSITIONS`.
+
 Der Auftrag ist, drei Energiezellen zu beschaffen und das Signal in H zu starten. Die Aufgaben lassen sich in beliebiger Reihenfolge erledigen:
 
 - In Werkhalle B und Lagerhalle D jeweils ein Bauteil vom Ablagetisch nehmen. Der Hebel in D verschiebt das Regal und gibt das zweite Bauteil frei. Am orangefarbenen Montageschalter in B entsteht daraus eine Energiezelle, die anschließend auf dem benachbarten Tisch liegt.
@@ -127,9 +134,160 @@ cargo check --manifest-path test_app/Cargo.toml --all-targets --all-features
 ```
 
 Die bisherigen Rust- und gerenderten Smoke-Tests samt Startoptionen sind für den
-[Neustart der Testsuite](../docs/testing-plan.md) entfernt. Die neue Feature-Suite
-und der Gesamtabnahmelauf sind noch nicht implementiert. Ein erfolgreicher
+[Neustart der Testsuite](../docs/testing-plan.md) entfernt. Die
+[neuen CLI-Tests](../tests/README.md) haben Server-/Session-Verwaltung, den ersten
+Resource-Wert, Manual-/Engine-Startup, exakte Ticks sowie die repräsentativen
+Bewegungs-, Screenshot-, Recording/Replay- und Report-Abläufe belegt. Replay lief
+mit beiden versetzten Fensterpositionen. Auch die Inspect-Sonderfälle 4.16–4.19
+und die einmalige G-Aktion trotz Hold in 4.20 sind live belegt. Der
+[Arbeitsplan](../docs/testing-plan.md) enthält die Einzelbelege aus mehreren
+Läufen und die bestätigte negative Kontrolle; eine vollständige lokale/externe
+Gesamtabnahme fehlt.
+In kontrollierten Sessions macht `src/woodpecker.rs` die Last-Schedule-Durchläufe
+als reflektierte Resource `SimulationTicks` lesbar. Der Zähler führt keine Ticks
+aus und bleibt ohne kontrollierte Session deaktiviert. Ein erfolgreicher
 Build-Check belegt keine korrekte Spiel- oder Woodpecker-Funktion.
+
+### Opt-in-Diagnose für Abnahmetests
+
+Nur mit dem Feature `automation`, einer kontrollierten Session und dem
+App-Startargument `--woodpecker-diagnostics` werden die Diagnoseaktionen
+installiert. **F11 erzeugt absichtlich eine Panic und kann den App-Prozess
+beenden.** Ohne diese Voraussetzungen bleibt die normale Bedienung unverändert.
+
+| Virtuelle Eingabe und nächster expliziter Tick | Wirkung |
+| --- | --- |
+| F12 | Ein Error-Level-tracing-Event mit Target `signalstation::diagnostics` und Meldung `Signalstation diagnostic tracing error` pro Press-Flanke |
+| F11 | Panic mit Meldung `Signalstation diagnostic panic` |
+
+Die Diagnoseaktionen führen selbst keine Ticks aus und sind keine neuen
+Woodpecker-Commands. Für einen tracing-Report muss zusätzlich
+`report.tracing_errors = true` gelten und der Logfilter Error-Events zulassen.
+Die Pilotfälle 3.16/3.17 wählen ausschließlich den lokalen Provider. Modul und Build sind
+geprüft; F12/tracing-Report und F11/Panic mit Prozessende sind durch die
+freigegebenen Tests 3.16/3.17 ebenfalls live belegt.
+
+### Report-Proben 4.47–4.50 und Event-Überlauf 4.68
+
+**Nur mit den obigen Diagnose-Voraussetzungen.** Zusätzliches
+`--woodpecker-report-action <mode>` registriert F9 und die reflektierte Resource
+`test_app::diagnostics::reports::ReportProbe`. Keine Probe führt selbst Ticks aus.
+**`event-overflow` erzeugt absichtlich einen Fehler-Burst: Ohne Eventabholung
+beendet Woodpecker die eigene Prozessgruppe wegen Pufferüberlauf.** Nur im
+entsprechend freigegebenen Test verwenden, nicht im normalen Spiel.
+
+| Mode, ausgelöst durch F9 und einen expliziten Tick | Wirkung |
+| --- | --- |
+| `caught-system` | Panic im System abgefangen; Hook bleibt beobachtbar. |
+| `caught-task` | Panic innerhalb eines AsyncCompute-Tasks abgefangen. |
+| `caught-worker` | Worker-Thread panikt, der Aufrufer verarbeitet das Join-Err. |
+| `caught-any` | Abgefangenes `panic_any(47_u32)`, ohne erfundene Stringmeldung. |
+| `handled-error` | Behandeltes Err ohne Panic oder tracing-Event. |
+| `exit-0`, `exit-17` | **Absichtlicher unerwarteter Prozess-Exit** mit Status 0/17. |
+| `event-overflow` | Begrenzt 300 Error-tracing-Events mit Target `signalstation::overflow`, Meldung `Signalstation overflow event 0` bis `299`; kein zusätzlicher Tick oder Thread. |
+
+ReportProbe zählt Aktionen, abgefangene Panics und behandelte Fehler.
+`--woodpecker-no-tracing-layer` lässt gezielt die sonst normale
+Layer-Registrierung weg; mit aktivierter tracing-Beobachtung muss Start scheitern.
+Auch dieses Argument wirkt nur mit kontrollierter Automation und Diagnose-Opt-in.
+
+4.49 baut separat mit `CARGO_PROFILE_DEV_PANIC=abort` in ein eigenes
+`CARGO_TARGET_DIR`, ohne das normale Buildprofil zu ändern. F11 beendet dann
+absichtlich die App per Abort. Diese neuen Fixtures sind für normale/Automation-
+Builds geprüft, **nicht grafisch ausgeführt**; der echte Abort-Build ist noch offen.
+4.53 verwendet für den Github-Provider nur ein testeigenes externes gh-Werkzeug,
+keine echte Veröffentlichung.
+
+4.68 verwendet einen direkten Rust-Handle ohne Server, aktiviert nur den
+passenden Error-Target und liest vor dem absichtlichen Pufferüberlauf keine
+Events. Der Burst ist build-geprüft, der echte App-Lauf noch nicht ausgeführt.
+
+### Prozess-/Fortschrittsprobe für Shutdown-/Rust-Handle-Tests
+
+Mit `--woodpecker-diagnostics --woodpecker-process-probe`, ausschließlich in
+kontrollierter Automation, schreibt die App in ihr eigenes Session-Artefaktverzeichnis:
+
+- `process-probe.json`: PID der wirklichen App; Tests prüfen vor Signalen
+  zusätzlich die lebende Abstammung vom eigenen Server beziehungsweise direkten
+  Rust-Testprozess.
+- `simulation-ticks.json`: atomar ersetzter Spiegel der bereits vorhandenen
+  reflektierten Resource `SimulationTicks`, nach deren Zählung im selben Last-Lauf.
+
+Die Probe sendet keine Signale, keine Inputs und fordert keine Ticks an. Sie
+ermöglicht während Replay eine unabhängige App-Fortschrittsbeobachtung ohne
+zusätzlichen Spiel-Command; interne Replay-Pendings werden nicht als öffentliche
+Server-Activity vorausgesetzt. Direkte Rust-Tests beobachten damit auch den
+Fortschritt nach Pending-Drop und eigenes Prozess-Cleanup ohne Eventabholung. SIGSTOP/SIGCONT bzw. erzwungenes Produktende stehen
+ausdrücklich im jeweiligen Test. Normale App-/Automation-Starts ohne dieses
+zusätzliche Opt-in bleiben unverändert. Build-geprüft, grafischer Nachweis offen.
+
+### Vorbereitung weiterer Abnahmefälle (4.1)
+
+Die folgenden Startargumente wirken **zusätzlich** zu `--woodpecker-diagnostics`,
+nur mit `automation` und kontrollierter Session. Ohne das jeweilige Argument
+bleiben die bestehende Startup-Registrierung, Zeitpolitik und World unverändert.
+F11/F12 allein installieren keine Beispieldaten. Es gibt keine zusätzlichen
+Woodpecker-Commands, versteckten Ticks oder eine Headless-Variante.
+
+| Startargument | Vorbereitete Situation |
+| --- | --- |
+| `--woodpecker-startup pending` | Die Startup-Asset-Liste bleibt unbekannt; der Test wählt Tick-/Zeitbudget in seiner Launchkonfiguration. |
+| `--woodpecker-startup missing-scope` | Der vorhandene Startup-Asset-Adapter wird entfernt. |
+| `--woodpecker-startup missing-asset` | Der Adapter verfolgt die bewusst nicht vorhandene Datei `__woodpecker_missing_startup__.png` unter dem Asset-Root. |
+| `--woodpecker-startup no-camera` | Alle App-Kameras werden in PostStartup deaktiviert; Renderer und echtes Fenster bleiben vorhanden. |
+| `--woodpecker-clock steady` | App-eigene Zeitstrategie mit 50 ms pro Tick und virtueller Geschwindigkeit 1. |
+| `--woodpecker-clock double` | Dieselbe Bevy-Real-Clock, virtuelle Geschwindigkeit 2. |
+| `--woodpecker-clock paused` | Dieselbe Bevy-Real-Clock, virtuelle Zeit pausiert. |
+| `--woodpecker-reflection` | Zusätzliche Resources, eine benannte Entity und eine per F10 ersetzbare Hierarchie für Inspect-Sonderfälle. |
+
+Die 50 ms beschreiben Bevys Zeitschritt, nicht die Wartezeit oder Warp-Pace.
+Die Clock-Vorgabe initialisiert nur den Real-Zeitursprung mit Dauer null; sie
+führt keinen Tick aus. Für den Erhaltungstest 4.4 muss im `[tick.clock]`-Block
+`kind = "application"` stehen; die Fixed-Option `seconds_per_tick` entfällt dort.
+Eine SDK-Fixed-Clock darf die App-Zeitstrategie weiterhin überschreiben;
+virtuelle Pause und Geschwindigkeit bleiben App-Zustand.
+
+Die Reflection-Typen stehen unter `test_app::diagnostics::reflection::`:
+- `Values`: String-/Integer-Key-Maps, Set, drei Enum-Varianten und Image-Handles
+  mit Pfad, zwei verschiedenen flüchtigen IDs (je typed/untyped) und UUID. Das
+  Pfad-Handle verwendet die vorhandene `textures/prototypebits_texture.png`;
+  die flüchtigen Handles werden nur reserviert. Vor Ready schreibt die Fixture
+  ihre nativen Indexbits unabhängig vom Inspect-Serializer nach
+  `reflection-handle-bits.json` im Session-Artefaktverzeichnis. Keine festen
+  Allocator-IDs über Sessions hinweg.
+  Die Fixture-UUID ist ausdrücklich `12345678-1234-5678-90ab-cdef01234567`, nicht
+  ein aus Bevys Default-Handle übernommener Sollwert.
+- `NonFinite`, `UnsupportedMapKey`, `OpaqueValue`: NaN, ein nicht als JSON-Key
+  darstellbarer Vektor und ein opaker Typ ohne Serializer.
+- `OpaqueNull`: opaker Unit-Typ mit Serde-Unterstützung für einen lesbaren Nullwert.
+- `NotReflectableResource`: vorhandener, registrierter Typ ohne ReflectResource.
+  `AbsentResource` und `AbsentComponent` sind registriert, aber nicht eingesetzt.
+- Die Entity heißt `Woodpecker reflection fixture`; sie besitzt den reflektierten
+  `Marker`, einen bewusst unregistrierten `Unregistered`-Component und
+  `NotReflectableComponent` ohne ReflectComponent.
+- Vier weitere `HierarchyNode`-Entities: `Inspect root` hat in Children-Reihenfolge
+  zuerst `Inspect child Z`, dann `Inspect child A`; Z hat ein unbenanntes Blatt.
+  Die Kinderreihenfolge ist absichtlich gegen die Handle-Indexsortierung gewählt.
+  **Nur mit Reflection-Opt-in** entfernt F10 beim nächsten ausdrücklich angeforderten
+  Tick den ganzen Baum und erstellt einen neuen mit denselben Namen/Beziehungen.
+  Kein Renderobjekt und kein automatischer Tick; normale Eingaben bleiben unverändert.
+
+Der unregistrierte Component wird über entdeckte Components abgefragt; sein
+Type Path ist kein gültiger Query-Selektor. Die Fixture-Typen sind von der globalen
+Auto-Registrierung ausgenommen; erst das Reflection-Opt-in registriert die
+oben dafür vorgesehenen Typen. Die Daten erzeugen keine Renderobjekte oder
+Spielaktionen. Erwartete Inspect-Ausgaben werden in 4.16–4.19 geprüft, nicht durch
+diese Vorbereitung als bestanden behauptet.
+
+Die vorhandenen Buildvarianten ohne Automation und mit `automation` genügen;
+keine neuen Dependencies oder Cargo-Profile sind nötig. **Build-/Formatprüfung
+bestanden; alle vier Startup- und drei Clock-Modi sind durch 4.2/4.4 live belegt.**
+Auch die Reflection-Funktionsnachweise 4.16–4.19 sind live belegt, einschließlich
+der F10-Hierarchieersetzung mit genau zwei ausdrücklich angeforderten Ticks,
+frischen Handles und Ablehnung aller alten Handles.
+Belege stehen im
+[Arbeitsplan](../docs/testing-plan.md). Weitere spezielle Fehlerauslöser und der
+Abort-Build werden erst bei ihren jeweiligen Nachweisen ergänzt.
 
 ## Code und Assets
 

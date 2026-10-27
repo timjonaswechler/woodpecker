@@ -16,6 +16,11 @@ pub use failure::{BacktraceStatus, Failure, Location, Origin};
 pub use signature::Signature;
 pub use snapshot::{Application, Context, Platform, Report, SourceRevision, Toolchain};
 
+#[cfg(all(test, feature = "server"))]
+pub(crate) fn test_report(failure: Failure, context: Context) -> Report {
+    Report::from_snapshot(failure, context, std::path::Path::new("/owned-fixture"))
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {

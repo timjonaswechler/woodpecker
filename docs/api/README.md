@@ -1,8 +1,10 @@
 # Dokumentation
 
 Der aktuelle [Testsuite-Plan](../testing-plan.md) beschreibt den beschlossenen
-Neustart. Die bisherigen Python-/Rust-Tests und Testprogramme sind entfernt;
-aktuell gibt es keine ausführbare Verhaltenssuite. Die folgenden Dokumente
+Neustart. Die bisherigen Python-/Rust-Tests und Testprogramme sind entfernt.
+Die [neuen CLI-Tests](../../tests/README.md) haben die Pilot-Einzelfälle samt
+repräsentativen Spielwirkungen und Fehlerreports belegt; die vollständige
+Feature-Abnahme fehlt weiterhin. Die folgenden Dokumente
 enthalten historische Abnahmen und Pfade zu inzwischen entfernten Tests. Diese
 sind kein aktueller Prüfstand und keine ausführbare Testanleitung für den Neustart.
 

@@ -1,0 +1,29 @@
+version = 1
+
+[launch]
+manifest_path = "test_app/Cargo.toml"
+package = "test_app"
+features = ["automation"]
+arguments = ["--settings-seed", "../tests/settings.json", "--start-unfocused", "--fixed-window", "--scale-factor", "1"]
+
+[launch.target]
+kind = "binary"
+name = "test_app"
+
+[tick.pace]
+kind = "as_fast_as_possible"
+
+[tick.clock]
+kind = "fixed"
+seconds_per_tick = 0.016666667
+
+# SessionReady does not imply engine or game readiness.
+[startup]
+kind = "manual"
+
+[report]
+tracing_errors = false
+output = "reports"
+
+[report.provider]
+kind = "local"

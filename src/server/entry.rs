@@ -13,6 +13,10 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(test)]
+#[path = "tests/test_report_completion.rs"]
+mod test_report_completion;
+
 pub(super) struct Entry {
     data: Mutex<Data>,
     admission: Mutex<()>,
@@ -191,7 +195,7 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 entry.cancel.clone(),
             )
         });
-        match result {
+        let reports = match result {
             Ok(mut session) => {
                 {
                     let mut data = entry.data.lock().unwrap();
@@ -206,9 +210,7 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                     super::reports::Reports::new(entry.clone(), session.report_destination());
                 run(&entry, &mut session, input, &reports);
                 drop(session);
-                // Session lifecycle may already be terminal. `done` includes report IO
-                // and process-group cleanup, so the server deadline still reaches it.
-                reports.finish();
+                Some(reports)
             }
             Err(e) => {
                 if entry.detail().state == Lifecycle::Stopping
@@ -219,11 +221,21 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 } else {
                     entry.transition(Lifecycle::Failed, Some(e));
                 }
+                None
             }
-        }
-        entry.done.store(true, Ordering::Release);
-        entry.changed.notify_waiters();
+        };
+        complete(&entry, reports);
     });
+}
+
+fn complete(entry: &Entry, reports: Option<super::reports::Reports>) {
+    // Lifecycle is not a report barrier. Completion includes all provider IO
+    // and (already dropped) session/process-group ownership.
+    if let Some(reports) = reports {
+        reports.finish();
+    }
+    entry.done.store(true, Ordering::Release);
+    entry.changed.notify_waiters();
 }
 
 fn prepare(root: &std::path::Path) -> std::result::Result<(), Error> {

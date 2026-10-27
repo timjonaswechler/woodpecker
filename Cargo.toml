@@ -48,3 +48,52 @@ unicode-width = { version = "0.2", optional = true }
 name = "woodpecker"
 path = "src/cli/main.rs"
 required-features = ["cli"]
+
+[[test]]
+name = "local_provider"
+path = "tests/rust/test_local_provider.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "github_provider"
+path = "tests/rust/test_github_provider.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "report_snapshot"
+path = "tests/rust/test_report_snapshot.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "report_signature"
+path = "tests/rust/test_report_signature.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "pending_ownership"
+path = "tests/rust/test_pending_ownership.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "pending_drop"
+path = "tests/rust/test_pending_drop.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "session_shutdown"
+path = "tests/rust/test_session_shutdown.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "history"
+path = "tests/rust/test_history.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "event_overflow"
+path = "tests/rust/test_event_overflow.rs"
+required-features = ["cli"]
+
+[[test]]
+name = "handle_encoding"
+path = "tests/rust/test_handle_encoding.rs"

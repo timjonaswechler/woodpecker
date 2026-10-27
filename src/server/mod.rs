@@ -1,4 +1,8 @@
 //! Loopback-only multi-session server for trusted local clients.
+#[cfg(all(test, unix))]
+#[path = "tests/test_session_identity.rs"]
+mod test_session_identity;
+
 mod activity;
 mod entry;
 pub mod protocol;

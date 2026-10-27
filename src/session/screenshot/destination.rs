@@ -6,6 +6,10 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
+#[cfg(all(test, unix))]
+#[path = "destination/tests/test_path_replacement.rs"]
+mod test_path_replacement;
+
 static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
 
 pub(super) fn failed(error: impl std::fmt::Display) -> Diagnostic {

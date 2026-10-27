@@ -1,8 +1,11 @@
 //! Optional launch settings; ordinary launches retain their defaults.
+use bevy::prelude::IVec2;
+
 pub struct Options {
     pub fixed_window: bool,
     pub start_unfocused: bool,
     pub scale_factor: Option<f32>,
+    pub window_position: Option<IVec2>,
 }
 
 impl Options {
@@ -16,6 +19,15 @@ impl Options {
             fixed_window: std::env::args().any(|arg| arg == "--fixed-window"),
             start_unfocused: std::env::args().any(|arg| arg == "--start-unfocused"),
             scale_factor,
+            window_position: value::<String>("--window-position").map(|position| {
+                let (x, y) = position
+                    .split_once(',')
+                    .expect("--window-position requires x,y in physical pixels");
+                IVec2::new(
+                    x.parse().expect("invalid --window-position x"),
+                    y.parse().expect("invalid --window-position y"),
+                )
+            }),
         }
     }
 }
