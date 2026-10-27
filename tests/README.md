@@ -1,7 +1,8 @@
 # Woodpecker-Abnahmesuite
 
 Diese Suite prüft Woodpeckers öffentliche Verträge, nicht die Missionen der
-Signalstation. Verständliche Anwender-Beispiele folgen getrennt unter `examples/`.
+Signalstation. [Anwender-Beispiele](../examples/README.md) liegen getrennt unter
+`examples/` und importieren keine Hilfen dieser Suite.
 [Arbeitsstand, Belege und offene Aufgaben](../docs/testing-plan.md) stehen nur im
 Testplan; diese Datei beschreibt Auswahl, Ausführung und Zuständigkeiten.
 

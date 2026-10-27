@@ -87,8 +87,10 @@ The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints)
 records their exact source state, evidence and remaining work; this is not a
 claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible
-windows. No headless replacement or automatic retry is used. User-facing examples
-and mutation checks remain separate later steps.
+windows. No headless replacement or automatic retry is used. The
+[game-testing examples](examples/README.md) demonstrate movement, text and replay
+over the public CLI; they are separate from acceptance. Mutation checks are a
+subsequent, isolated step.
 
 ## Origin
 

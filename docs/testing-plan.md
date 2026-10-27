@@ -12,7 +12,8 @@ Ausführbare Aufrufe, Einzeltests und Abhängigkeiten stehen in der
 - [x] **4. Abnahme vervollständigen:** alle Produkttests einschließlich 4.82 umgesetzt
   und ausgeführt; lokaler Gesamtlauf und echter GitHub-Nachweis bestanden.
 - [x] **5. Bereinigung abschließen:** Struktur, Einstiegsdokumentation und Inventar abgeglichen.
-- [ ] **6–7.** Anwender-Beispiele und Mutationsprüfungen.
+- [x] **6. Anwender-Beispiele:** Bewegung, Text und Replay über die öffentliche CLI belegt.
+- [ ] **7.** Isolierte Mutationsprüfungen.
 
 **Umfang:** 94 Produkttests: 75 Python, zehn öffentliche Rust-Integrationstests,
 neun interne Rust-Tests. Davon 93 lokal und ein externer GitHub-Fall.
@@ -49,6 +50,19 @@ und leerer Platzhalter entfernt; Quellhash-/AST-Abgleich hält den Bezug zu den
 obigen vollständigen Laufbelegen fest. Kein neuer vollständiger Grafik- oder
 GitHub-Lauf für diese Bereinigung.
 Belege: `target/test-runs/step-5-tamjub3t/`.
+
+**Abschnitt 6 geprüft:** Drei eigenständige [CLI-Beispiele](../examples/README.md)
+mit eigener Konfiguration und Seed, ohne Imports aus der Abnahmesuite. Bewegung
+und Text mit je acht Aktionsticks; Replay mit fünf Ticks in A und fünf in einer
+frischen B-Session. Vier serielle Appstarts, maximal ein Spiel gleichzeitig,
+je drei Startup-Ticks und keine zusätzlichen Spielbereitschaftsticks; alle
+PIDs/Gruppen verschwunden, keine Harness-Eskalation oder persönlichen Settings-
+Änderungen. Ein erster Versuch scheiterte vor Aktionen mit `window surface=false`;
+die Desktop-Abfrage bestätigte danach einen schlafenden Bildschirm. Nach
+verifiziertem Aufwecken bestanden dieselben Beispiele mit unveränderten Fristen
+und ohne Codeänderung. Beide Versuche bleiben erhalten:
+`target/test-runs/steps-6-7-ab8235by/`, Erfolgsbeleg unter
+`example-proof-attempt-2/examples-proof.json`. Das sind keine zusätzlichen Produkttests.
 
 **Keine Merge-Freigabe:** Vor einer PR bleiben die Basisbranch des leeren `origin`
 und das Review des um 42 genehmigte Vorgängercommits erweiterten Umfangs zu klären.
@@ -158,16 +172,16 @@ Vorbereitungs-/Arbeitspunkte und Kontrolle sind keine zusätzlichen Produkttests
 - [x] **5.4** Plan, tatsächliches Inventar und Zuständigkeiten abgeglichen;
   Auswahl-/Buildbefehle, CLI-Walkthrough, Links und frische Prüfungen belegt.
 
-### 6. Anwender-Beispiele — nach der Bereinigung
+### 6. Anwender-Beispiele — abgeschlossen
 
 Kein zweiter vollständiger Feature-Testbestand; verständliche öffentliche Abläufe
 für Spielentwickler ohne Import aus `tests/_support.py`.
 
-- [ ] **6.1** `examples/game_tests/movement.py`: Eingabe, explizite Ticks und Bewegung.
-- [ ] **6.2** `examples/game_tests/text.py`: fokussieren, Text eingeben, ticken, Wirkung prüfen.
-- [ ] **6.3** `examples/game_tests/replay.py`: Ablauf aufnehmen und in frischer Session wiedergeben.
-- [ ] **6.4** Einstieg dokumentieren und jedes Beispiel wirklich ausführen;
-  gemeinsame Hilfen klein und öffentlich nachvollziehbar halten.
+- [x] **6.1** `examples/game_tests/movement.py`: Eingabe, explizite Ticks und Bewegung.
+- [x] **6.2** `examples/game_tests/text.py`: fokussieren, Text eingeben, ticken, Wirkung prüfen.
+- [x] **6.3** `examples/game_tests/replay.py`: Ablauf aufnehmen und in frischer Session wiedergeben.
+- [x] **6.4** Einstieg in `examples/` dokumentiert und alle drei Beispiele wirklich
+  ausgeführt; gemeinsame Hilfen bleiben auf Transport, Beobachtung und Cleanup begrenzt.
 
 ### 7. Fehlersensitivität durch Mutationsprüfungen — zuletzt
 
