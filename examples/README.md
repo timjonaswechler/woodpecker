@@ -9,9 +9,9 @@ Start with [the three public-CLI recipes](game_tests/README.md):
 These examples use Signalstation-specific reflected data and a server you manage.
 They do not import the project's test helpers or certify full product acceptance.
 Build/server commands, exact app/tick budgets, scoped graphical permission and
-owned-session cleanup are described in the linked guide. A sleeping display or fully
-occluded game window does not provide the required render surface; make the desktop awake and windows
-partly visible before starting. No automatic retry or headless replacement.
+owned-session cleanup are described in the linked guide. Keep the desktop awake
+and the game windows partly visible before starting. No automatic retry or
+headless replacement.
 
 The [test plan](../docs/testing-plan.md) owns execution evidence and progress;
 the [acceptance suite](../tests/README.md) owns comprehensive feature coverage.

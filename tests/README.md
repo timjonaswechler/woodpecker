@@ -5,6 +5,9 @@ Signalstation. [Anwender-Beispiele](../examples/README.md) liegen getrennt unter
 `examples/` und importieren keine Hilfen dieser Suite.
 [Arbeitsstand, Belege und offene Aufgaben](../docs/testing-plan.md) stehen nur im
 Testplan; diese Datei beschreibt Auswahl, Ausführung und Zuständigkeiten.
+Die [begrenzte Mutationsprüfung](mutations.md) nutzt vier bestehende fensterlose
+Owner in isolierten Quellkopien; sie ist ein separates Werkzeug, keine weitere
+Produktsuite oder Gesamtabnahme.
 
 ## Voraussetzungen und Sicherheitsgrenzen
 

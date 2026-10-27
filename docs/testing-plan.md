@@ -13,12 +13,12 @@ Ausführbare Aufrufe, Einzeltests und Abhängigkeiten stehen in der
   und ausgeführt; lokaler Gesamtlauf und echter GitHub-Nachweis bestanden.
 - [x] **5. Bereinigung abschließen:** Struktur, Einstiegsdokumentation und Inventar abgeglichen.
 - [x] **6. Anwender-Beispiele:** Bewegung, Text und Replay über die öffentliche CLI belegt.
-- [ ] **7.** Isolierte Mutationsprüfungen.
+- [x] **7. Mutationsprüfungen:** vier Produktfehler isoliert fachlich erkannt, Äquivalenzkontrolle getrennt.
 
 **Umfang:** 94 Produkttests: 75 Python, zehn öffentliche Rust-Integrationstests,
 neun interne Rust-Tests. Davon 93 lokal und ein externer GitHub-Fall.
 Kontrolle 3.18 ist kein weiterer Produkttest, aber ein zusätzlicher Inventareintrag:
-insgesamt 95. Die 32 Harness-Prüfungen zählen separat.
+insgesamt 95. Die nun 49 Harness-Prüfungen zählen separat.
 
 **Produktnachweise 4.80/4.81:** `de5d795` mit den dokumentierten
 Live-Harness-Korrekturen im Arbeitsbaum. Lokaler und externer Nachweis stammen
@@ -64,6 +64,31 @@ und ohne Codeänderung. Beide Versuche bleiben erhalten:
 `target/test-runs/steps-6-7-ab8235by/`, Erfolgsbeleg unter
 `example-proof-attempt-2/examples-proof.json`. Das sind keine zusätzlichen Produkttests.
 
+**Abschnitt 7 geprüft:** Quellpin `121a536`, vier echte grüne Baselines und
+sechs erfolgreiche Cargo-Builds in einer Nicht-Git-Quellkopie mit privatem
+COW-Cache. Jeder Produktfehler scheiterte mit Exit 101 an seiner vorgesehenen
+fachlichen Assertion, nicht am Build oder Cleanup:
+
+| Mutation | Bestehender Owner | Tatsächlich erkannter Fehler |
+| --- | --- | --- |
+| Generation-Bit verloren | 4.69 | Generation `0` statt `2147483648`, `test_handle_encoding.rs:47` |
+| Native Tastaturmessages behalten | 4.71 | `KeyboardInput` nach Capture nicht leer, `test_native_input.rs:159` |
+| Text zum aktuellen Fokus umgeleitet | 4.72 | B enthält `beta:Grüße 🦉` statt `beta:`, `test_target_binding.rs:58` |
+| Request-Zähler nicht erhöht | 4.77 | zweiter Send liefert nicht `RequestIdExhausted`, `test_request_id_exhaustion.rs:83` |
+
+Vier erkannte Fehler, null Überlebende; `u32 | 0` blieb als vorab typbegründete
+Äquivalenzkontrolle grün. Quellen/Oracles restauriert, 35.804 Cachedateien ohne
+Parent-Hardlinks/Symlinks geprüft, ursprüngliche Quellen/Binaries unverändert,
+keine Apps, Grafik, GitHub-Aufrufe oder erzwungenes Cleanup. Zwei diagnostizierte
+Toolfehler bleiben separat erhalten und zählen nicht als Erkennung. Die
+[Mutationsanleitung](../tests/mutations.md) erklärt Umfang und Reproduktion;
+Rohbelege stehen unter `target/test-runs/steps-6-7-ab8235by/mutation-evidence/`,
+Erfolg in `mutations-p6vb0sa4/summary.json`. Diese Stichprobe beweist keine
+universelle Fehlersensitivität und ändert keine historischen Qualitätsnoten.
+Am integrierten Stand bestanden außerdem alle 49 Offline-Harness-Prüfungen,
+der echte fensterlose CI-Schritt mit 25 Produkttests, Workspace-Check, Clippy,
+Format und Link-/Inventarabgleich. Keine dauerhafte Änderung an SDK oder Oracles.
+
 **Keine Merge-Freigabe:** Vor einer PR bleiben die Basisbranch des leeren `origin`
 und das Review des um 42 genehmigte Vorgängercommits erweiterten Umfangs zu klären.
 
@@ -105,7 +130,7 @@ begründete interne Owner-Tests unter `src/`. Eine Datei je Test; Python ohne
 `test_`-Präfix. `tests/app.toml` und `tests/settings.json` sind die gemeinsame Basis.
 Hilfen verwalten Konfiguration, Prozesse, Artefakte, Transport, Fristen und reine
 Abfragen, keine Spielaktionen. Referenz-App-Missionen sind keine SDK-Features.
-Anwender-Beispiele folgen getrennt unter `examples/`, ohne `tests/_support.py`.
+Anwender-Beispiele liegen getrennt unter `examples/`, ohne `tests/_support.py`.
 
 ## Qualitätsnachschärfung nach dem Drei-Reviewer-Stand
 
@@ -183,18 +208,17 @@ für Spielentwickler ohne Import aus `tests/_support.py`.
 - [x] **6.4** Einstieg in `examples/` dokumentiert und alle drei Beispiele wirklich
   ausgeführt; gemeinsame Hilfen bleiben auf Transport, Beobachtung und Cleanup begrenzt.
 
-### 7. Fehlersensitivität durch Mutationsprüfungen — zuletzt
+### 7. Fehlersensitivität durch Mutationsprüfungen — abgeschlossen
 
 Erst nach Abnahmesuite, Bereinigung und Beispielen. Keine Behauptung,
 alle denkbaren Produktfehler erkennen zu können.
 
-- [ ] **7.1** Risikobasiert Mutationen zentraler Verträge auswählen, z. B. fehlende
-  Inspect-Einträge, ignoriertes Release oder falsche Request-Zuordnung.
-- [ ] **7.2** Nur isolierte Codekopien/temporäre Worktrees verändern; Projekt-Checkout
-  und persönliche Settings schützen. Grafikläufe und Wiederholungen separat freigeben.
-- [ ] **7.3** Zuständigen bestehenden Test, erwarteten fachlichen Fehlschlag,
-  tatsächliches Ergebnis und Cleanup dokumentieren. Setup-/Buildfehler sind keine
-  Erkennung; überlebende und verhaltensgleiche Mutationen getrennt bewerten.
+- [x] **7.1** Vier zentrale Risiken gewählt: Generationsbit, native Tastatureingabe,
+  Textzielbindung und Request-ID-Wiederverwendung; vorhandene Owner-Tests genutzt.
+- [x] **7.2** Nur isolierte Quellkopien und privaten Buildcache verändert;
+  Projekt-Checkout, persönliche Settings und ursprüngliche Binaries geschützt.
+- [x] **7.3** Owner, erwartete und tatsächliche Assertion sowie Cleanup belegt;
+  Setup-/Buildfehler sind keine Erkennung, Überlebende und Äquivalenz bleiben getrennt.
 
 ### Bisherige Belege, keine neue Gesamtabnahme
 

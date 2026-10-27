@@ -89,8 +89,9 @@ claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible
 windows. No headless replacement or automatic retry is used. The
 [game-testing examples](examples/README.md) demonstrate movement, text and replay
-over the public CLI; they are separate from acceptance. Mutation checks are a
-subsequent, isolated step.
+over the public CLI; they are separate from acceptance. The bounded
+[mutation campaign](tests/mutations.md) checks four existing windowless contracts
+in isolated source copies, without claiming universal fault detection.
 
 ## Origin
 
