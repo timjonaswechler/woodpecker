@@ -213,7 +213,8 @@ Eigene Custom-Layer müssen ausdrücklich mit diesem Layer zusammengesetzt werde
 Die Integration ändert keine Filter; nur tatsächlich dispatchte Error-Events werden
 beobachtet. Der Start wartet bei aktivierter Beobachtung auf die positive
 Layer-Bestätigung. Ein nicht installierter Layer ergibt einen Launch-Fehler.
-Die gerenderte `slice`-Komposition der Testanwendungen registriert den Callback bereits.
+Signalstation registriert den Callback mit dem Feature `automation` für
+kontrollierte Sessions über [seine Woodpecker-Integration](../../test_app/src/woodpecker.rs).
 
 Marker verwenden versionierte JSON-Chunks mit Event-ID, Index, Anzahl,
 Base64-Payload und SHA-256-Prüfsumme. Jeder Schreibaufruf ist höchstens 512 Bytes lang.
@@ -328,14 +329,9 @@ Ein unterbrochener Remote-Aufruf kann bereits ein Issue angelegt haben.
 `interrupted` behauptet daher weder erfolgreiche Übertragung noch Rücknahme.
 Unvollständige Report-Arbeit führt beim Serverende zum Fehlerstatus.
 
-Nachweise:
-
-```sh
-cargo test --no-default-features --lib report::provider -- --test-threads=1
-cargo test --all-features --test failure_reports -- --test-threads=1
-cargo build --features cli --bin woodpecker
-python3 -m tests.acceptance.headless.session_lifecycle
-```
+Ausführbare Report-, Provider- und Lifecycle-Nachweise stehen in der
+[Testanleitung](../../tests/README.md). Sie trennt fensterlose Prüfungen,
+grafische Läufe und den separat freizugebenden echten GitHub-Nachweis.
 
 ## Paketierung
 
@@ -347,18 +343,18 @@ statt der nativen Maus. Neue Anwendungs-Widgets sollten Bevys Picking-Events ver
 Die Pointerposition wird über `PointerLocation` gelesen; `Window` bleibt die
 Beschreibung des nativen Fensters, kein virtueller Eingabestatus.
 Die Prozessverwaltung dieses Durchstichs unterstützt Unix-Prozessgruppen.
-Alle sieben Szenen des Testpackages verwenden für kontrollierte Sessions das Feature
-`slice`. Ohne dieses Feature bleibt die native Bedienung erhalten; das alte Feature
-`automation` wurde entfernt.
+Die [Referenz-App Signalstation](../../test_app/README.md) bindet Woodpecker mit
+dem Feature `automation` ein. Kontrollierte Sessions benötigen dieses Feature;
+ohne Automation bleibt die App nativ bedienbar.
 Auch ohne `screenshot` installiert oder benötigt die Bibliothek keinen Renderer.
 Bevy-Render-Typen gehören für den Render-Bootstrap zum Kern; dessen Schutz wirkt auch
 ohne PNG-Capability. `screenshot` aktiviert den Readback-/PNG-Adapter, installiert
 aber keinen Renderer.
 Die übrigen Render-/UI-Abhängigkeiten der Testanwendungen gehören zu deren eigenem Manifest.
 
-Die aktuelle Abhängigkeit ist Bevy 0.20.0. Root und Panic-Abort-Testprogramm
-haben getrennte Lockfiles und müssen dieselbe Bevy-Version auflösen.
-Bevy benötigt dafür mindestens Rust 1.97.1; beide Manifeste deklarieren diese Grenze.
+Der Workspace verwendet Bevy 0.20.0 und benötigt mindestens Rust 1.97.1.
+Buildvarianten einschließlich des separaten Panic-Abort-Buildcaches stehen in der
+[Testanleitung](../../tests/README.md#artefakte-und-buildcache).
 Historische Research-Berichte und Diagnostik beziehen sich weiterhin auf ihren
 dokumentierten Bevy-0.19-Prüfstand.
 

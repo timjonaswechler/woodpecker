@@ -10,16 +10,14 @@ Fehlersensitivität: [Mutationsanleitung](../tests/mutations.md).
 
 ## Full-stop-Abnahme und offene Checkpoints
 
-**Noch keine Merge-Freigabe.** Offen sind:
+[PR #16](https://github.com/timjonaswechler/woodpecker/pull/16) ist im bisherigen,
+in `woodpecker` umbenannten Hauptrepository offen; Basis ist `upstream/main`.
+Auto-Merge und Merge Queue sind aus. Der lokale Arbeitsstand bleibt erhalten.
 
-- [ ] Genehmigte Basisbranch auf `origin` bereitstellen und prüfen. Beim letzten
-  Abgleich war das Repository ohne Branches; unter `full-stop` pusht der Agent
-  nicht auf den Default-Branch.
-- [ ] Die 42 zur Aufnahme genehmigten Vorgängercommits unabhängig reviewen.
-  Die bisherigen Reviews decken diesen erweiterten Umfang nicht ab.
-- [ ] Den gemeinsamen PR veröffentlichen und dessen tatsächlichen Head, Basis,
-  Checks, Reviews und Mergeability prüfen. Offen und ungemergt übergeben;
-  weder Auto-Merge noch Merge Queue aktivieren.
+Vor der manuellen Merge-Übergabe müssen CI, Nachweisgrenzen, offene Reviews und
+Threads, tatsächlicher Head, aktuelle Basis und Mergeability am finalen Stand
+geprüft sein. Der PR bleibt offen und ungemergt; weder Auto-Merge noch Merge Queue
+werden aktiviert.
 
 **Umfang:** 94 Produkttests: 75 Python, zehn öffentliche und neun interne Rust-Tests.
 Davon 93 lokal und einer extern. Mit Negativkontrolle 3.18 enthält das Inventar
@@ -36,11 +34,18 @@ Davon 93 lokal und einer extern. Mit Negativkontrolle 3.18 enthält das Inventar
 
 Die Belege erfassen ihren jeweiligen Quellstand. Lokale Gesamtabnahme und echter
 GitHub-Nachweis stammen aus getrennten Läufen; erfolgreiche Teilauswahlen sind
-keine neue Gesamtabnahme und können deshalb mit Exit 2 enden.
+keine neue Gesamtabnahme und können deshalb mit Exit 2 enden. Der echte GitHub-Test
+lief gegen das inzwischen auf Nutzerauftrag gelöschte dedizierte Testrepository,
+nicht gegen das jetzige Hauptrepository. GitHub Actions prüft ausschließlich den
+fensterlosen Umfang, keine Kamera-/GPU-Läufe oder vollständige Headless-Spielversion.
 
-Das unabhängige Review von Schritt 6/7 hat `91e2b3a` gegenüber `08f5b07` für die
-14 betroffenen Dateien mit **APPROVE** freigegeben, nicht den gesamten Branch.
-[Review- und Laufgrenzen](../target/test-runs/steps-6-7-ab8235by/completion.json)
+Das unabhängige Gesamt-Review umfasst nun den vollständigen PR-Diff gegen `main`,
+einschließlich der 42 Vorgängercommits. Sein einziges Should-Finding S1 zu entfernten
+Testaufrufen und veralteter App-Integration in der Anleitung ist korrigiert und
+gegen die tatsächlichen Targets, Features und Links validiert; keine zusätzlichen
+Produktintegrations-Blocker oder Should-Findings wurden gemeldet.
+[Gesamt-Review und Finding-Abschluss](../target/test-runs/pr-16-ready-9vqdl88p/review-ledger.json)
+sowie die [früheren Laufgrenzen](../target/test-runs/steps-6-7-ab8235by/completion.json)
 bleiben Teil des Nachweises. Historische Qualitätsnoten werden nicht automatisch
 aufgewertet; die Mutationsstichprobe beweist keine universelle Fehlersensitivität.
 
