@@ -1,0 +1,50 @@
+name: Acceptance build and windowless checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  acceptance:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Rust toolchain
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["package"]["rust-version"])')
+          rustup toolchain install "$version" --profile minimal --component rustfmt --component clippy
+          rustup override set "$version"
+      - name: Offline acceptance runner checks
+        run: python3 -m unittest discover -s tests/runner_checks -t . -p '*.py'
+      - name: Workspace build check
+        run: cargo check --locked --workspace --all-features --all-targets
+      - name: Common acceptance entry (no games or real GitHub)
+        # Request the feature matrix explicitly; otherwise only selected dependencies build.
+        # Runs 9 module tests, R0 integration and 15 Python cases, not full local acceptance.
+        # Exit 2 is expected only with a fully passing selection and missing graphics/GitHub.
+        run: |
+          mkdir -p target/test-runs
+          set +e
+          python3 -m tests.acceptance --non-graphical --feature-matrix | tee target/test-runs/ci-output.log
+          status=${PIPESTATUS[0]}
+          set -e
+          test "$status" -eq 2
+          grep -Fxq 'Auswahl non-graphical: Bestanden; lokale Gesamtabnahme: Unvollständig; GitHub: Unvollständig' target/test-runs/ci-output.log
+      - name: Format
+        if: always()
+        run: |
+          cargo fmt --all --check
+          cargo fmt --manifest-path tests/providers/live_driver/Cargo.toml --check
+      - name: Clippy
+        if: always()
+        run: cargo clippy --locked --workspace --all-features --all-targets -- -D warnings
+      - name: Evidence (including failures and incomplete verdicts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-evidence
+          path: target/test-runs/
+          if-no-files-found: warn

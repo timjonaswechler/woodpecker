@@ -428,9 +428,13 @@ Textfokus bezeichnet ausschließlich den Fokus innerhalb des jeweiligen Bevy Wor
 
 Keyboard verwendet eigene stabile, layoutunabhängige Key-Tokens mit fester interner Abbildung
 auf physisches `KeyCode` und logisches Bevy-`Key`.
-Pointer verwendet das Spielfenster. `MoveTo` benutzt logische Pixel vom linken oberen Rand,
-`MoveBy` ein Delta zur bekannten Position. Das Ziel muss `0 <= x < width` und
-`0 <= y < height` erfüllen; Ablehnung verändert die Position nicht.
+Pointer verwendet das Spielfenster. `MoveTo` benutzt logische Pixel vom linken oberen Rand;
+sein Ziel muss `0 <= x < width` und `0 <= y < height` erfüllen. Eine Ablehnung verändert
+die Position nicht. `MoveBy` verwendet ein relatives Delta; ohne bekannte Position beginnt
+er am Fenstermittelpunkt. Seine virtuelle Position wird auf die Fenstergrenzen geklemmt,
+mit weiterhin exklusiver Obergrenze. Das vollständige endliche Delta erreicht Bevy als
+`MouseMotion`, unabhängig von der geklemmten Picking-Bewegung. `MoveTo` erzeugt keine
+relative `MouseMotion`.
 Buttons sind `left`, `right`, `middle` und wirken an der aktuellen Position.
 Scroll übergibt horizontales und vertikales Delta samt Vorzeichen in Bevy-Zeileneinheiten;
 `[0,0]` ist erlaubt. Text geht an den eindeutigen lebenden, editierbaren Bevy-Fokus
@@ -615,6 +619,18 @@ Eine Datei enthält genau einen Abschnitt in eigenständig versioniertem JSONL:
 {"type":"command","command":"input.keyboard.press","arguments":{"key":"space"},"outcome":{"status":"completed","output":null}}
 {"type":"recording_ended","outcome":"stopped","recorded_commands":1}
 ```
+
+Das Beispiel verwendet Formatversion 1 für die Anwendungszeitpolitik, ohne
+`clock`-Feld im Header. Bei einer Fixed-Clock schreibt der Recorder Version 2:
+
+```json
+{"type":"recording_started","format_version":2,"clock":{"kind":"fixed","seconds_per_tick":0.016666667}}
+```
+
+Version 2 verlangt eine gültige Clock-Angabe; Version 1 erlaubt keine solche Angabe.
+Der Loader vergleicht die effektive Tickdauer mit der aktuellen Session und lehnt
+eine Abweichung vor Plan-Ausführung mit `replay_clock_mismatch` ab. Eine Datei mit
+Version 1 setzt Anwendungszeit voraus.
 
 Header zuerst, null oder mehr Command-Objekte, genau ein Footer zuletzt.
 Jede Zeile ist ein JSON-Objekt; Leerzeilen, zusätzliche Daten, unbekannte oder doppelte Felder

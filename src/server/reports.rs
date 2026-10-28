@@ -7,20 +7,30 @@ pub(super) struct Reports {
     entry: Arc<Entry>,
     sender: Option<mpsc::Sender<Report>>,
     worker: Option<std::thread::JoinHandle<()>>,
+    #[cfg(test)]
+    pub(super) finishing: Option<mpsc::Sender<()>>,
 }
 
 impl Reports {
     pub fn new(entry: Arc<Entry>, destination: Arc<report::Destination>) -> Self {
+        let cancel = entry.report_cancel.clone();
+        Self::with_worker(entry, move |report| destination.run(report, &cancel))
+    }
+
+    pub(super) fn with_worker(
+        entry: Arc<Entry>,
+        mut submit: impl FnMut(&Report) -> report::work::Result + Send + 'static,
+    ) -> Self {
         let (sender, jobs) = mpsc::channel::<Report>();
         let owner = entry.clone();
         let worker = std::thread::spawn(move || {
             for report in jobs {
-                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    destination.run(&report, &owner.report_cancel)
-                }))
-                .unwrap_or_else(|_| report::work::Result::Interrupted {
-                    message: "report worker panicked; external outcome may be unknown".into(),
-                });
+                let result =
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| submit(&report)))
+                        .unwrap_or_else(|_| report::work::Result::Interrupted {
+                            message: "report worker panicked; external outcome may be unknown"
+                                .into(),
+                        });
                 if matches!(result, report::work::Result::Interrupted { .. }) {
                     owner.report_incomplete.store(true, Ordering::Release);
                 }
@@ -31,6 +41,8 @@ impl Reports {
             entry,
             sender: Some(sender),
             worker: Some(worker),
+            #[cfg(test)]
+            finishing: None,
         }
     }
 
@@ -46,6 +58,10 @@ impl Reports {
 
     pub fn finish(mut self) {
         self.sender.take();
+        #[cfg(test)]
+        if let Some(finishing) = self.finishing.take() {
+            let _ = finishing.send(());
+        }
         if let Some(worker) = self.worker.take() {
             let _ = worker.join();
         }

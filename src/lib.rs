@@ -11,6 +11,9 @@
 pub mod cli;
 #[cfg(feature = "client")]
 pub mod client;
+#[cfg(test)]
+mod test_support;
+
 pub mod command;
 pub mod handle;
 pub mod report;

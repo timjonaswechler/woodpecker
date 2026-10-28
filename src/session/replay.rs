@@ -12,8 +12,27 @@ use std::{
 };
 
 mod loader;
+
 #[cfg(test)]
-mod tests;
+pub(super) type TestLoader = Arc<
+    dyn Fn(
+            &Dir,
+            &str,
+            &AtomicBool,
+            &crate::command::tick::Clock,
+        ) -> Result<Option<std::collections::VecDeque<Command>>, Error>
+        + Send
+        + Sync,
+>;
+#[cfg(test)]
+pub(super) fn test_parse(
+    reader: impl std::io::BufRead,
+    path: &str,
+    cancel: &AtomicBool,
+    clock: &crate::command::tick::Clock,
+) -> Result<Option<std::collections::VecDeque<Command>>, Error> {
+    loader::parse(reader, path, cancel, clock)
+}
 
 enum Phase {
     Waiting(String),
@@ -37,16 +56,22 @@ struct Run {
 
 pub(super) struct Replay {
     root: Arc<Dir>,
+    clock: crate::command::tick::Clock,
     run: Option<Run>,
     notices: Vec<(u64, Outcome)>,
+    #[cfg(test)]
+    pub(super) loader: Option<TestLoader>,
 }
 
 impl Replay {
-    pub fn new(root: Arc<Dir>) -> Self {
+    pub fn new(root: Arc<Dir>, clock: crate::command::tick::Clock) -> Self {
         Self {
             root,
+            clock,
             run: None,
             notices: Vec::new(),
+            #[cfg(test)]
+            loader: None,
         }
     }
 
@@ -100,12 +125,22 @@ impl Replay {
                     run.phase = Phase::Running(Default::default());
                 } else if !file_barrier {
                     let root = self.root.clone();
+                    let clock = self.clock.clone();
                     let path = path.clone();
                     let cancel = Arc::new(AtomicBool::new(false));
                     let abort = cancel.clone();
                     let (reply, result) = mpsc::channel();
+                    #[cfg(test)]
+                    let controlled_loader = self.loader.clone();
                     std::thread::spawn(move || {
-                        let _ = reply.send(loader::load(&root, &path, &abort));
+                        #[cfg(test)]
+                        let result = match controlled_loader {
+                            Some(load) => load(&root, &path, &abort, &clock),
+                            None => loader::load(&root, &path, &abort, &clock),
+                        };
+                        #[cfg(not(test))]
+                        let result = loader::load(&root, &path, &abort, &clock);
+                        let _ = reply.send(result);
                     });
                     run.phase = Phase::Preparing { cancel, result };
                 }

@@ -1,0 +1,16 @@
+[package]
+name = "test_zoo"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[dependencies]
+test_app = { path = "../test_app" }
+bevy = { version = "=0.20.0", default-features = false, features = [
+    "std", "async_executor", "multi_threaded", "bevy_asset", "bevy_window",
+    "bevy_camera", "bevy_render", "bevy_core_pipeline", "bevy_ui", "bevy_ui_render",
+    "bevy_ui_widgets", "ui_picking", "bevy_input_focus",
+    "bevy_winit", "bevy_log", "mouse", "keyboard", "default_font", "png", "x11",
+    "bevy_pbr", "bevy_light",
+] }

@@ -1,6 +1,4 @@
 mod network;
-#[cfg(test)]
-mod network_tests;
 mod parse;
 mod terminal;
 

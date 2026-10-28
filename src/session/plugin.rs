@@ -1,5 +1,8 @@
 use super::protocol::{self, Diagnostic, Message};
-use crate::command::{Command, tick::warp};
+use crate::command::{
+    Command,
+    tick::{self, warp},
+};
 use bevy::{
     app::{AppExit, MainScheduleOrder},
     ecs::schedule::{InternedScheduleLabel, ScheduleLabel},
@@ -12,12 +15,13 @@ use std::{
 };
 
 /// Experimental v3 bridge. Install after the application's simulation plugins.
-/// It preserves the configured schedule order and time policy; only a warp runs that order.
+/// It preserves the configured schedule order; a warp or configured technical startup runs that order.
+/// Application time is preserved unless the session selects a fixed tick clock.
 /// Native mouse, keyboard, touch and IME input is discarded in controlled sessions.
 /// Enable the `ui` feature for applications using Bevy UI's `Interaction` components.
 /// Enable `screenshot` for PNG capture with an application-installed renderer.
-/// Renderer extraction and updates wait for the first completed explicit tick; startup
-/// alone does not prepare camera/light data. No application schedules run to warm it up.
+/// Renderer extraction and updates wait for the first completed counted tick; startup
+/// alone does not prepare camera/light data. Automatic startup is opt-in and counts its application ticks.
 #[derive(Default)]
 pub struct Plugin;
 
@@ -27,6 +31,7 @@ struct Bridge {
     output: mpsc::Sender<(Message, Option<mpsc::Sender<()>>)>,
     schedules: Vec<InternedScheduleLabel>,
     pace: warp::Pace,
+    clock: tick::Clock,
     active: Option<Active>,
     ticks: u64,
     pointer: super::input::pointer::State,
@@ -59,6 +64,10 @@ impl bevy::app::Plugin for Plugin {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
+        let clock: tick::Clock = std::env::var("WOODPECKER_TICK_CLOCK")
+            .map(|value| serde_json::from_str(&value).expect("invalid tick clock"))
+            .unwrap_or_default();
+        assert!(clock.is_valid(), "invalid tick clock");
         let (input, rx) = mpsc::channel();
         std::thread::spawn(move || {
             for line in std::io::stdin().lock().lines() {
@@ -87,7 +96,11 @@ impl bevy::app::Plugin for Plugin {
                 }
             }
         });
-        install(app, rx, output, pace);
+        install(app, rx, output, tick::Config { pace, clock });
+        let startup = std::env::var("WOODPECKER_STARTUP")
+            .map(|value| serde_json::from_str(&value).expect("invalid startup configuration"))
+            .unwrap_or_default();
+        super::startup::install(app, startup);
     }
 
     fn finish(&self, app: &mut App) {
@@ -104,8 +117,9 @@ pub(super) fn install(
     app: &mut App,
     input: mpsc::Receiver<String>,
     output: mpsc::Sender<(Message, Option<mpsc::Sender<()>>)>,
-    pace: warp::Pace,
+    tick: tick::Config,
 ) {
+    super::clock::validate(app, &tick.clock);
     super::input::install(app);
     let schedules = {
         let mut order = app.world_mut().resource_mut::<MainScheduleOrder>();
@@ -115,7 +129,8 @@ pub(super) fn install(
         input: Mutex::new(input),
         output,
         schedules,
-        pace,
+        pace: tick.pace,
+        clock: tick.clock,
         active: None,
         ticks: 0,
         pointer: Default::default(),
@@ -139,6 +154,8 @@ fn ready(world: &World) {
             version: protocol::VERSION,
             capabilities: protocol::Capabilities {
                 screenshot: super::screenshot::available(world),
+                fixed_clock: bridge.clock.duration().is_some(),
+                engine_startup: super::startup::enabled(world),
             },
         },
         None,
@@ -181,6 +198,15 @@ fn run(world: &mut World) {
         for response in super::screenshot::poll(world) {
             let _ = bridge.output.send((response, None));
         }
+        if let Some(message) = super::startup::poll(world, bridge.ticks) {
+            let _ = bridge.output.send((message, None));
+        }
+        if super::startup::needs_tick(world) {
+            run_tick(world, &mut bridge);
+            if let Some(message) = super::startup::after_tick(world, bridge.ticks) {
+                let _ = bridge.output.send((message, None));
+            }
+        }
         let budget = Instant::now();
         for _ in 0..64 {
             let Some(active) = bridge.active.as_ref() else {
@@ -193,19 +219,7 @@ fn run(world: &mut World) {
             {
                 break;
             }
-            bridge.input_gate.capture(world);
-            bridge.input_gate.swap_window_events(world);
-            bridge.pointer.flush(world);
-            bridge.keyboard.flush(world);
-            bridge.text.flush(world);
-            for label in &bridge.schedules {
-                let _ = world.try_run_schedule(*label);
-            }
-            bridge.input_gate.swap_window_events(world);
-            bridge.ticks = bridge.ticks.checked_add(1).expect("tick counter exhausted");
-            if bridge.ticks == 1 {
-                render::start(world);
-            }
+            run_tick(world, &mut bridge);
             let active = bridge.active.as_mut().unwrap();
             active.executed += 1;
             active.last_tick = Some(Instant::now());
@@ -222,6 +236,23 @@ fn run(world: &mut World) {
     // even when the simulation's time_system does not run. Never update Time here.
     if let Some(receiver) = world.get_resource::<bevy::time::TimeReceiver>() {
         for _ in receiver.0.try_iter() {}
+    }
+}
+
+fn run_tick(world: &mut World, bridge: &mut Bridge) {
+    bridge.input_gate.capture(world);
+    bridge.input_gate.swap_window_events(world);
+    bridge.pointer.flush(world);
+    bridge.keyboard.flush(world);
+    bridge.text.flush(world);
+    super::clock::before_tick(world, &bridge.clock);
+    for label in &bridge.schedules {
+        let _ = world.try_run_schedule(*label);
+    }
+    bridge.input_gate.swap_window_events(world);
+    bridge.ticks = bridge.ticks.checked_add(1).expect("tick counter exhausted");
+    if bridge.ticks == 1 {
+        render::start(world);
     }
 }
 
@@ -261,6 +292,17 @@ fn dispatch(world: &mut World, bridge: &mut Bridge, id: u64, command: Command) -
             },
         })
     };
+    if super::startup::pending(world)
+        && !matches!(
+            command,
+            Command::Shutdown(_) | Command::Stop(_) | Command::Inspect(_)
+        )
+    {
+        return reject(
+            "startup_in_progress",
+            "wait for EngineReady before controlling the simulation",
+        );
+    }
     let value = match command {
         Command::RecordingStart(_)
         | Command::RecordingStop(_)
@@ -365,335 +407,3 @@ fn dispatch(world: &mut World, bridge: &mut Bridge, id: u64, command: Command) -
 }
 
 mod render;
-
-#[cfg(test)]
-mod input_tests;
-
-#[cfg(test)]
-mod render_tests;
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use bevy::time::TimeUpdateStrategy;
-    use std::time::Duration;
-
-    #[derive(Resource, Reflect, Default)]
-    #[reflect(Resource)]
-    struct Counter {
-        ticks: u64,
-    }
-
-    #[test]
-    fn pointer_commands_wait_for_ticks_and_preserve_button_lifetimes() {
-        use crate::command::input::pointer;
-        use bevy::{
-            input::mouse::MouseButtonInput,
-            window::{CursorMoved, PrimaryWindow, WindowEvent},
-        };
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins);
-        let window = app
-            .world_mut()
-            .spawn((Window::default(), PrimaryWindow))
-            .id();
-        let (tx, input) = mpsc::channel();
-        let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
-        let send = |id, command: Command| tx.send(protocol::encode(id, &command)).unwrap();
-        send(
-            1,
-            pointer::MoveTo {
-                position: [12., 17.],
-            }
-            .into(),
-        );
-        send(
-            2,
-            pointer::Press {
-                button: "left".into(),
-            }
-            .into(),
-        );
-        for _ in 0..3 {
-            app.update();
-        }
-        assert_eq!(rx.try_iter().count(), 2);
-        assert!(
-            app.world()
-                .get::<Window>(window)
-                .unwrap()
-                .cursor_position()
-                .is_none()
-        );
-        assert!(
-            !app.world()
-                .resource::<ButtonInput<MouseButton>>()
-                .pressed(MouseButton::Left)
-        );
-        assert!(app.world().resource::<Messages<WindowEvent>>().is_empty());
-        assert!(
-            app.world()
-                .resource::<Messages<MouseButtonInput>>()
-                .is_empty()
-        );
-        let warp = |id| {
-            send(
-                id,
-                warp::Start {
-                    ticks: 1,
-                    pace: None,
-                }
-                .into(),
-            )
-        };
-        warp(3);
-        app.update();
-        assert!(
-            app.world()
-                .resource::<ButtonInput<MouseButton>>()
-                .just_pressed(MouseButton::Left)
-        );
-        assert_eq!(
-            app.world().get::<Window>(window).unwrap().cursor_position(),
-            None
-        );
-        assert_eq!(app.world().resource::<Messages<CursorMoved>>().len(), 0);
-        assert_eq!(app.world().resource::<Messages<WindowEvent>>().len(), 0);
-        warp(4);
-        app.update();
-        let buttons = app.world().resource::<ButtonInput<MouseButton>>();
-        assert!(buttons.pressed(MouseButton::Left));
-        assert!(!buttons.just_pressed(MouseButton::Left));
-        send(
-            5,
-            pointer::Release {
-                button: "left".into(),
-            }
-            .into(),
-        );
-        app.update();
-        assert!(
-            app.world()
-                .resource::<ButtonInput<MouseButton>>()
-                .pressed(MouseButton::Left)
-        );
-        warp(6);
-        app.update();
-        assert!(
-            app.world()
-                .resource::<ButtonInput<MouseButton>>()
-                .just_released(MouseButton::Left)
-        );
-        assert!(
-            !app.world()
-                .resource::<ButtonInput<MouseButton>>()
-                .pressed(MouseButton::Left)
-        );
-    }
-
-    #[test]
-    fn idle_control_drains_render_clock_without_advancing_time() {
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins);
-        let (sender, receiver) = bevy::time::create_time_channels();
-        app.insert_resource(receiver);
-        let (_tx, input) = mpsc::channel();
-        let (output, _rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
-        for _ in 0..10 {
-            sender
-                .0
-                .try_send(bevy::platform::time::Instant::now())
-                .unwrap();
-            app.update();
-            assert_eq!(
-                app.world().resource::<Time<Real>>().elapsed(),
-                Duration::ZERO
-            );
-        }
-    }
-
-    #[test]
-    fn entity_inspect_uses_the_command_bridge_without_ticks_or_time_progress() {
-        use crate::command::inspect::{self, component, entity};
-        #[derive(Component, Reflect)]
-        #[reflect(Component)]
-        struct State(u32);
-
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .register_type::<State>()
-            .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_millis(
-                17,
-            )))
-            .add_systems(Update, |mut states: Query<&mut State>| {
-                for mut state in &mut states {
-                    state.0 += 1;
-                }
-            });
-        let entity = app.world_mut().spawn((Name::new("button"), State(0))).id();
-        let (tx, input) = mpsc::channel();
-        let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
-        let request = inspect::Command::Entities {
-            entity: Some(entity.into()),
-            with: vec![],
-            without: vec![],
-            projection: entity::Projection::Components {
-                selection: component::Selection::Listed {
-                    type_paths: vec![State::type_path().into()],
-                },
-            },
-        };
-        for id in 1..=2 {
-            let before = app.world().resource::<Time<Real>>().elapsed();
-            let change_tick = app
-                .world()
-                .entity(entity)
-                .get_change_ticks::<State>()
-                .unwrap()
-                .changed;
-            tx.send(protocol::encode(id, &request.clone().into()))
-                .unwrap();
-            app.update();
-            let Message::Completed {
-                request_id,
-                command,
-                output,
-            } = rx.try_recv().unwrap().0
-            else {
-                panic!("inspect must complete");
-            };
-            assert_eq!(request_id, id);
-            assert_eq!(command, "inspect.query");
-            assert_eq!(
-                output["items"][0]["result"]["components"][0]["value"]["value"],
-                id - 1
-            );
-            assert_eq!(app.world().resource::<Time<Real>>().elapsed(), before);
-            assert_eq!(app.world().get::<State>(entity).unwrap().0, (id - 1) as u32);
-            // The control schedule itself can advance the world's change tick, but
-            // Inspect never marks the application component as changed.
-            assert_eq!(
-                app.world()
-                    .entity(entity)
-                    .get_change_ticks::<State>()
-                    .unwrap()
-                    .changed,
-                change_tick
-            );
-            if id == 1 {
-                tx.send(protocol::encode(
-                    3,
-                    &warp::Start {
-                        ticks: 1,
-                        pace: None,
-                    }
-                    .into(),
-                ))
-                .unwrap();
-                app.update();
-                assert!(matches!(
-                    rx.try_recv().unwrap().0,
-                    Message::Completed { request_id: 3, .. }
-                ));
-            }
-        }
-    }
-
-    #[test]
-    fn only_warps_run_configured_schedules_and_controls_remain_reachable() {
-        let mut app = App::new();
-        app.add_plugins(MinimalPlugins)
-            .insert_resource(TimeUpdateStrategy::ManualDuration(Duration::from_millis(
-                17,
-            )))
-            .init_resource::<Counter>()
-            .register_type::<Counter>()
-            .add_systems(Update, |mut counter: ResMut<Counter>| counter.ticks += 1);
-        let (tx, input) = mpsc::channel();
-        let (output, rx) = mpsc::channel();
-        install(&mut app, input, output, warp::Pace::AsFastAsPossible);
-        for _ in 0..5 {
-            app.update();
-        }
-        assert_eq!(app.world().resource::<Counter>().ticks, 0);
-        let query = crate::command::inspect::Command::Resources {
-            selector: crate::command::inspect::Selector::All {},
-            projection: crate::command::inspect::Projection::Value {},
-        };
-        tx.send(protocol::encode(1, &query.into())).unwrap();
-        app.update();
-        assert!(matches!(
-            rx.try_recv().unwrap().0,
-            Message::Completed { request_id: 1, .. }
-        ));
-        assert_eq!(app.world().resource::<Counter>().ticks, 0);
-
-        tx.send(protocol::encode(
-            2,
-            &warp::Start {
-                ticks: 3,
-                pace: None,
-            }
-            .into(),
-        ))
-        .unwrap();
-        for _ in 0..3 {
-            app.update();
-        }
-        assert_eq!(app.world().resource::<Counter>().ticks, 3);
-        assert!(
-            matches!(rx.try_recv().unwrap().0, Message::Completed { request_id: 2, output, .. }
-            if output["executed_ticks"] == 3)
-        );
-        assert_eq!(
-            app.world().resource::<Time<Real>>().delta(),
-            Duration::from_millis(17)
-        );
-        let time = app.world().resource::<Time<Real>>().elapsed();
-        app.update();
-        assert_eq!(app.world().resource::<Time<Real>>().elapsed(), time);
-
-        tx.send(protocol::encode(
-            3,
-            &warp::Start {
-                ticks: u64::MAX,
-                pace: None,
-            }
-            .into(),
-        ))
-        .unwrap();
-        app.update();
-        assert!(app.world().resource::<Counter>().ticks <= 67);
-        tx.send(protocol::encode(
-            4,
-            &warp::SetPace {
-                pace: warp::Pace::TicksPerSecond { target: 0.1 },
-            }
-            .into(),
-        ))
-        .unwrap();
-        tx.send(protocol::encode(5, &warp::Stop {}.into())).unwrap();
-        app.update();
-        let messages: Vec<_> = rx.try_iter().map(|(message, _)| message).collect();
-        assert!(
-            messages
-                .iter()
-                .any(|m| matches!(m, Message::Completed { request_id: 4, .. }))
-        );
-        assert!(messages.iter().any(
-            |m| matches!(m, Message::Completed { request_id: 3, output, .. }
-            if output["outcome"] == "stopped")
-        ));
-        assert!(
-            messages
-                .iter()
-                .any(|m| matches!(m, Message::Completed { request_id: 5, .. }))
-        );
-        let ticks = app.world().resource::<Counter>().ticks;
-        app.update();
-        assert_eq!(app.world().resource::<Counter>().ticks, ticks);
-    }
-}

@@ -6,6 +6,10 @@ use bevy::{
     text::{EditableText, TextEdit},
 };
 
+#[cfg(all(test, feature = "ui"))]
+#[path = "text/tests/test_target_binding.rs"]
+mod test_target_binding;
+
 const MAX_BYTES: usize = 16_384;
 
 #[derive(Default)]
@@ -56,13 +60,15 @@ impl State {
         #[cfg(feature = "ui")]
         for (entity, text) in self.pending.drain(..) {
             if let Some(mut editable) = _world.get_mut::<EditableText>(entity) {
-                // Queue the same edit as Bevy's IME commit handler, without touching
-                // the OS IME or bypassing Bevy's text filtering and selection logic.
-                editable.queue_edit(TextEdit::ImeCommit { value: text.into() });
+                // Bevy 0.20's ImeCommit counts selected text against max_characters.
+                // Clear composition, then use its selection-aware insertion path.
+                // Both edits still run through Bevy's normal filter and edit system.
+                editable.queue_edit(TextEdit::ImeSetCompose {
+                    value: "".into(),
+                    cursor: None,
+                });
+                editable.queue_edit(TextEdit::Insert(text.into()));
             }
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

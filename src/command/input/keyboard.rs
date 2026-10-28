@@ -55,23 +55,6 @@ macro_rules! keys {
             }
         }
 
-        #[cfg(test)]
-        #[test]
-        fn all_tokens_roundtrip_with_distinct_physical_codes() {
-            let keys = [$(Key::$variant,)+];
-            let mut codes = std::collections::HashSet::new();
-            for key in keys {
-                let json = serde_json::to_string(&key).unwrap();
-                assert_eq!(serde_json::from_str::<Key>(&json).unwrap(), key);
-                assert!(codes.insert(key.resolve().unwrap().0));
-            }
-            assert_eq!(Key::A.resolve(), Some((KeyCode::KeyA, LogicalKey::Character("a".into()))));
-            assert_eq!(Key::ShiftLeft.resolve().unwrap().1, LogicalKey::Shift);
-            assert_eq!(Key::ShiftRight.resolve().unwrap().1, LogicalKey::Shift);
-            let invalid: Key = serde_json::from_str("\"KeyA\"").unwrap();
-            assert!(invalid.resolve().is_none());
-            assert_eq!(serde_json::to_string(&invalid).unwrap(), "\"KeyA\"");
-        }
     };
 }
 

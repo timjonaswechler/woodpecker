@@ -13,6 +13,10 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(test)]
+#[path = "tests/test_report_completion.rs"]
+mod test_report_completion;
+
 pub(super) struct Entry {
     data: Mutex<Data>,
     admission: Mutex<()>,
@@ -69,7 +73,9 @@ impl Entry {
     }
     fn transition(&self, state: Lifecycle, error: Option<Error>) {
         let mut data = self.data.lock().unwrap();
-        if data.detail.state.terminal() {
+        if data.detail.state.terminal()
+            || (state == Lifecycle::EngineReady && data.detail.state != Lifecycle::SessionReady)
+        {
             return;
         }
         data.detail.state = state;
@@ -138,8 +144,11 @@ impl Entry {
         }
     }
     pub async fn submit(&self, command: Command) -> Result {
-        if self.detail().state != Lifecycle::Ready {
-            return Error::new("session_not_ready", "commands require Ready").into();
+        if !matches!(
+            self.detail().state,
+            Lifecycle::SessionReady | Lifecycle::EngineReady
+        ) {
+            return Error::new("session_not_ready", "commands require SessionReady").into();
         }
         let (answer, result) = tokio::sync::oneshot::channel();
         if self.commands.send(Submission { command, answer }).is_err() {
@@ -179,20 +188,21 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 session::Config {
                     launch: create.launch,
                     tick: create.tick,
+                    startup: create.startup,
                     report: create.report,
                     artifact_dir: root,
                 },
                 entry.cancel.clone(),
             )
         });
-        match result {
+        let reports = match result {
             Ok(mut session) => {
                 {
                     let mut data = entry.data.lock().unwrap();
                     if data.detail.state == Lifecycle::Starting {
-                        data.detail.state = Lifecycle::Ready;
+                        data.detail.state = Lifecycle::SessionReady;
                         data.activity
-                            .push(json!({"kind":"lifecycle","state":"Ready","error":null}));
+                            .push(json!({"kind":"lifecycle","state":Lifecycle::SessionReady,"error":null}));
                         entry.changed.notify_waiters();
                     }
                 }
@@ -200,9 +210,7 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                     super::reports::Reports::new(entry.clone(), session.report_destination());
                 run(&entry, &mut session, input, &reports);
                 drop(session);
-                // Session lifecycle may already be terminal. `done` includes report IO
-                // and process-group cleanup, so the server deadline still reaches it.
-                reports.finish();
+                Some(reports)
             }
             Err(e) => {
                 if entry.detail().state == Lifecycle::Stopping
@@ -213,40 +221,25 @@ pub(super) fn start(entry: Arc<Entry>, create: Create) {
                 } else {
                     entry.transition(Lifecycle::Failed, Some(e));
                 }
+                None
             }
-        }
-        entry.done.store(true, Ordering::Release);
-        entry.changed.notify_waiters();
+        };
+        complete(&entry, reports);
     });
+}
+
+fn complete(entry: &Entry, reports: Option<super::reports::Reports>) {
+    // Lifecycle is not a report barrier. Completion includes all provider IO
+    // and (already dropped) session/process-group ownership.
+    if let Some(reports) = reports {
+        reports.finish();
+    }
+    entry.done.store(true, Ordering::Release);
+    entry.changed.notify_waiters();
 }
 
 fn prepare(root: &std::path::Path) -> std::result::Result<(), Error> {
     std::fs::create_dir(root).map_err(Error::io)
-}
-
-#[cfg(test)]
-mod snapshot_tests {
-    use super::*;
-
-    #[test]
-    fn current_pending_survives_eviction_and_settles_atomically_with_activity() {
-        let entry = Entry::new("a".repeat(32), "unused".into(), 1);
-        entry.transition(Lifecycle::Ready, None);
-        entry.accepted(1, "tick.warp.start");
-        entry.accepted(2, "replay.start");
-        let snapshot = entry.snapshot();
-        assert_eq!(snapshot.state, Lifecycle::Ready);
-        assert_eq!(snapshot.pending.len(), 2);
-        assert_eq!(snapshot.pending[0].request_id, 1);
-        assert_eq!(snapshot.pending[1].command, "replay.start");
-        assert!(matches!(entry.poll(None), Result::Gap { .. }));
-        assert!(matches!(entry.poll(Some(&snapshot.cursor)),
-            Result::Activity { entries, .. } if entries.is_empty()));
-        entry.settled(1, json!({"kind":"completed","request_id":1}));
-        assert_eq!(entry.snapshot().pending.len(), 1);
-        entry.transition(Lifecycle::Failed, Some(Error::ended()));
-        assert!(entry.snapshot().pending.is_empty());
-    }
 }
 
 fn accept(
@@ -301,8 +294,11 @@ fn run(
                 break;
             };
             let _admission = entry.admission.lock().unwrap();
-            let result = if entry.detail().state != Lifecycle::Ready {
-                Error::new("session_not_ready", "commands require Ready").into()
+            let result = if !matches!(
+                entry.detail().state,
+                Lifecycle::SessionReady | Lifecycle::EngineReady
+            ) {
+                Error::new("session_not_ready", "commands require SessionReady").into()
             } else {
                 accept(entry, session, submission.command, &mut pending)
             };
@@ -353,6 +349,17 @@ fn run(
             }
             match session.try_receive_event() {
                 Ok(Some(event)) => {
+                    match &event {
+                        session::Event::EngineReady { .. }
+                            if entry.detail().state == Lifecycle::SessionReady =>
+                        {
+                            entry.transition(Lifecycle::EngineReady, None);
+                        }
+                        session::Event::StartupFailed { error, .. } => {
+                            terminal_error = Some(Error::from(error.clone()));
+                        }
+                        _ => {}
+                    }
                     // Capture before provider queuing and before observing later session events.
                     let report = match &event {
                         session::Event::Failure { failure } => {
@@ -435,31 +442,5 @@ fn run(
         // A client-issued shutdown already went through the same session acceptance checks.
         shutdown_sent |= pending.iter().any(|p| p.request_id().as_u64() == u64::MAX);
         std::thread::sleep(Duration::from_millis(2));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn exclusive_creation_does_not_adopt_an_external_directory_or_symlink() {
-        let parent = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("target/server-tests")
-            .join(super::super::random_id().unwrap());
-        std::fs::create_dir_all(&parent).unwrap();
-        let root = parent.join("assigned");
-        prepare(&root).unwrap();
-        std::fs::write(root.join("external"), "preserve").unwrap();
-        assert!(prepare(&root).is_err());
-        assert_eq!(
-            std::fs::read_to_string(root.join("external")).unwrap(),
-            "preserve"
-        );
-        #[cfg(unix)]
-        {
-            let link = parent.join("link");
-            std::os::unix::fs::symlink(&root, &link).unwrap();
-            assert!(prepare(&link).is_err());
-        }
     }
 }

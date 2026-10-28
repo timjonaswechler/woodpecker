@@ -1,0 +1,10 @@
+{
+  "sensitivity": 1.0,
+  "speed": 4.5,
+  "fov": 75.0,
+  "show_path": true,
+  "shadows": true,
+  "invert_y": false,
+  "player_name": "Woodpecker-Abnahme",
+  "notes": ""
+}
