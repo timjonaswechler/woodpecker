@@ -248,6 +248,7 @@ class BuildSelectionTest(unittest.TestCase):
                         patch.object(acceptance.tempfile, "mkdtemp", return_value=directory), \
                         patch.object(acceptance.shutil, "which", side_effect=lambda name: name), \
                         patch.object(acceptance.subprocess, "run", return_value=Mock(stdout="version")), \
+                        patch.object(acceptance.importlib, "import_module", return_value=Mock()), \
                         patch.object(acceptance, "logged", return_value=0), contextlib.redirect_stdout(io.StringIO()):
                     code = acceptance.main(["--rendered"])
                 report = json.loads((Path(directory) / "summary.json").read_text())
