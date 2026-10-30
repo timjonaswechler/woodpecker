@@ -1,5 +1,9 @@
 # Bedienung und Tests
 
+Neu bei Woodpecker? Die [Anwenderanleitung](../user-guide.md) erklärt den Einbau
+ins eigene Spiel, den ersten Session-Start und die verfügbaren Funktionen.
+Diese Seite beschreibt die Bedienung und Einzelverträge im Detail.
+
 Woodpecker unterstützt Sessionverwaltung, explizite Warps, Resource-/Entity-Inspect,
 virtuelle Eingaben, Screenshots, Recording/Replay, Reports, REPL, Scripts und Shutdown.
 Der [Zielvertrag](target.md) ist maßgeblich; aktueller Prüfstand und verbleibende

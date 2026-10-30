@@ -1,5 +1,8 @@
 # Game-control examples
 
+For your own game, first follow the [integration and user guide](../docs/user-guide.md).
+It covers game-side setup, a first session and the available features.
+
 Start with [one small task, six ways to control it](game_tests/control.md): move
 right, then release. Simple control comes before comprehensive game checks.
 
