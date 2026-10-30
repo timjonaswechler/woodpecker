@@ -19,6 +19,10 @@ jobs:
           rustup override set "$version"
       - name: Offline acceptance runner checks
         run: python3 -m unittest discover -s tests/runner_checks -t . -p '*.py'
+      - name: Signalstation placement pilot (windowless)
+        run: |
+          python3 -m unittest discover -s planning/groundplate -p 'test_*.py'
+          cargo test --locked -p test_app --all-features --lib
       - name: Workspace build check
         run: cargo check --locked --workspace --all-features --all-targets
       - name: Common acceptance entry (no games or real GitHub)

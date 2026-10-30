@@ -28,7 +28,7 @@ impl Mission {
             };
         }
         if self.cells[0] == CellState::Locked {
-            return map::BENCH;
+            return *map::BENCH;
         }
         if self.cells[0] == CellState::Available {
             return map::REWARDS[0];

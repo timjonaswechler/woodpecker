@@ -7,6 +7,8 @@ pub(crate) mod interactions;
 pub mod mission;
 pub(crate) mod navigation;
 pub mod objects;
+#[cfg(test)]
+mod placement_tests;
 pub mod scene;
 
 use crate::{app::settings::Settings, ui::UiState};

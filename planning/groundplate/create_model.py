@@ -9,6 +9,9 @@ import layout as plan
 from scene_collections import organize_scene
 
 ROOT = Path(__file__).resolve().parents[2] / 'test_app'
+sys.path.insert(0, str(ROOT / 'asset/blender'))
+from level_modules import build_stair
+
 OUT = ROOT/'artifacts/groundplate-plan'
 OUT.mkdir(parents=True,exist_ok=True)
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -141,7 +144,10 @@ for axis,coord,lo,hi in [('v',3,38,43),('v',10,38,43),('h',43,3,5),('h',43,8,10)
     wall_segment(axis,coord,lo,hi,name='G3 store wall')
 for name,bounds,kind in plan.DECKS:
     floor(name,bounds,3,gold if kind=='secret' else teal,.28)
-for x,y0,y1 in plan.STAIRS: stairs('Stair',x,y0,y1,teal)
+pilot_stair = build_stair(plan.WORKSHOP_STAIR, teal, dark)
+pilot_stair.location = plan.WORKSHOP_STAIR.placement.origin
+pilot_stair.rotation_euler.z = plan.WORKSHOP_STAIR.placement.quarter_turns * pi / 2
+for x,y0,y1 in plan.STAIRS[1:]: stairs('Stair',x,y0,y1,teal)
 
 # Rails leave stair heads, bridge junctions and the parkour landing clear.
 for axis,coord,lo,hi in [
@@ -174,9 +180,11 @@ box('Start bench',4,8,.05,4,.8,.55,boxmat)
 for x,y in [(16,2.3),(16.3,7.1)]: crate(x,y)
 
 # B: large work tables, a two-part assembly task and a hidden rear door.
-box('Cell assembly workbench',4,33,0,4,2,1,boxmat)
-console('Workbench controls',6.6,33)
-for x,y in [(5,26),(5,30)]: box('Machine base',x,y,0,2.6,2,1.1,dark)
+output_x, output_y, _ = plan.WORKSHOP.point(4.5)
+craft_x, craft_y, _ = plan.WORKSHOP.point(2)
+box('Cell assembly workbench',output_x,output_y,0,2,1.5,1,boxmat)
+console('Workbench controls',craft_x,craft_y)
+for x,y in [(1.75,24),(1.75,27)]: box('Machine base',x,y,0,2.6,2,1.1,dark)
 for x,y in [(3.5,36),(9.7,36),(15.5,24)]: crate(x,y)
 
 # C: a broad central hall with an optional jump route and stairs beside it.
@@ -268,12 +276,14 @@ scene.view_settings.view_transform='AgX'
 scene.render.filepath=str(OUT/'raeumlicher_entwurf.png')
 organize_scene(scene)
 bpy.ops.wm.save_as_mainfile(filepath=str(Path(__file__).with_name('groundplate_concept.blend')))
-bpy.ops.render.render(write_still=True)
+if '--no-render' not in sys.argv:
+    bpy.ops.render.render(write_still=True)
 # Second view makes passing below the elevated route easier to understand.
 camera.location=(78,-18,43)
 camera.rotation_euler=(Vector((35,28,1))-camera.location).to_track_quat('-Z','Y').to_euler()
 camera.data.ortho_scale=57
 scene.render.resolution_x=1600;scene.render.resolution_y=1100
 scene.render.filepath=str(OUT/'zentrale_halle.png')
-bpy.ops.render.render(write_still=True)
-print('PLANNING MODEL RENDERED',OUT)
+if '--no-render' not in sys.argv:
+    bpy.ops.render.render(write_still=True)
+print('PLANNING MODEL SAVED',OUT)

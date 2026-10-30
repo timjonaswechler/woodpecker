@@ -85,10 +85,10 @@ pub fn spawn_objects(
         materials: &mut materials,
         parent: None,
     };
-    for t in INTERACTIVE_OBJECTS {
+    for t in *INTERACTIVE_OBJECTS {
         spawn_instance(&mut s, t);
     }
-    for t in PICKUP_TABLES {
+    for t in *PICKUP_TABLES {
         spawn_instance(&mut s, t);
     }
 }

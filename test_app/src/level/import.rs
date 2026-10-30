@@ -1,6 +1,6 @@
 //! Convert the exported file representation into one checked level definition.
 use super::{
-    definition::{LevelDefinition, Room},
+    definition::{LevelDefinition, Room, StaticModule, Workshop},
     navigation::{Obstacle, Surface},
 };
 use serde::Deserialize;
@@ -14,6 +14,8 @@ struct RawLevel {
     coins: [[f32; 3]; 24],
     blueprints: [[f32; 3]; 6],
     gears: [[f32; 3]; 2],
+    modules: Vec<StaticModule>,
+    workshop: Workshop,
 }
 
 pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
@@ -65,6 +67,41 @@ pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
             }
         }
     }
+    let mut module_names = HashSet::new();
+    for module in &raw.modules {
+        if module.name.trim().is_empty()
+            || module.asset.trim().is_empty()
+            || !module_names.insert(&module.name)
+            || module.quarter_turns > 3
+            || !module
+                .origin
+                .iter()
+                .chain(&module.exit)
+                .all(|v| v.is_finite())
+            || module.origin == module.exit
+        {
+            return Err(format!("invalid module {}", module.name));
+        }
+    }
+    for station in [
+        &raw.workshop.part,
+        &raw.workshop.craft,
+        &raw.workshop.output,
+    ] {
+        if !station
+            .base
+            .iter()
+            .chain(&station.size)
+            .chain(&station.approach)
+            .all(|v| v.is_finite())
+            || station.size.iter().any(|v| *v <= 0.)
+        {
+            return Err("invalid workshop station".into());
+        }
+    }
+    if raw.gears[0] != raw.workshop.part.base {
+        return Err("workshop part and table positions differ".into());
+    }
     Ok(LevelDefinition {
         rooms: raw.rooms,
         surfaces: raw.surfaces,
@@ -72,5 +109,7 @@ pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
         coins: raw.coins,
         blueprints: raw.blueprints,
         gears: raw.gears,
+        modules: raw.modules,
+        workshop: raw.workshop,
     })
 }

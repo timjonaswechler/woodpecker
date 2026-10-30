@@ -1,5 +1,7 @@
 """Shared geometry for the expanded planning model and PDF. Units are metres."""
 
+from kit import WORKSHOP, WORKSHOP_STAIR
+
 PLATE = (-2, -2, 80, 56)
 UPPER = 3.0
 ROOMS = [
@@ -34,7 +36,9 @@ DECKS = [
     ("H signal balcony", (64,10,76,15), "main"),
 ]
 # x centre, y at ground, y at upper landing.
-STAIRS = [(12,23,31),(42,23,31),(71,23,31),
+STAIRS = [(WORKSHOP_STAIR.placement.origin[0], WORKSHOP_STAIR.placement.origin[1],
+           WORKSHOP_STAIR.placement.origin[1] + WORKSHOP_STAIR.run),
+          (42,23,31),(71,23,31),
           (59,53.5,47.5),(8,51,44),(69,3,10)]
 PARKOUR = [(26,16,.6),(27,19,1.2),(29,22,1.8),(31,25,2.4),(32,28,3.0)]
 COINS = [(5,5,0),(11,9,0),(14,15,0),
@@ -47,8 +51,8 @@ COINS = [(5,5,0),(11,9,0),(14,15,0),
          (57,5,0),(74,5,0),(66,12,3)]
 BLUEPRINTS = [(34,5,0),(21,47,3),(6.5,41,0),
               (34,34,3),(74,21,0),(46,51,0)]
-GEARS = [(5,28,0),(66,26,0)]
-CELLS = [(4,33,1.1),(71,42,1.1),(17,48,1.1)]
+GEARS = [WORKSHOP.point(0),(66,26,0)]
+CELLS = [(*WORKSHOP.point(4.5)[:2], 1.1),(71,42,1.1),(17,48,1.1)]
 LABELS = [("A",8,8),("B",7,20.5),("C",35,15),("D",63,25),
           ("E",75,43),("F",13,49.5),("G",38,41),("H",59,13)]
 SECRETS = [("G1",34,5,0),("G2",21,47,3),("G3",6.5,41,0)]

@@ -7,7 +7,7 @@ The saved planning scene is never modified.
 import sys
 from pathlib import Path
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from gltf_export import export_model
@@ -50,7 +50,8 @@ def surface(bounds,height,bottom):
                 half=[(x1-x0)/2,(y1-y0)/2],height=height,bottom=bottom)
 
 surfaces=[surface(bounds,3,2.7) for _,bounds,_ in plan.DECKS]
-for x,y0,y1 in plan.STAIRS:
+surfaces.extend(plan.WORKSHOP_STAIR.surfaces())
+for x,y0,y1 in plan.STAIRS[1:]:
     for i in range(12):
         a=y0+i*(y1-y0)/12
         b=y0+(i+1)*(y1-y0)/12
@@ -68,7 +69,7 @@ collidable_prefixes=('Room wall','G3 store wall','G2 upper room wall',
  'Movable storage rack','Generator machine','Generator controls','Signal mast',
  'Archive reward terminal','Archive scan tablet','G2 concealing shelf',
  'Greenhouse reward stand')
-obstacles=[]
+obstacles=list(plan.WORKSHOP_STAIR.rails())
 for obj in list(bpy.data.objects):
     if obj.name.startswith(dynamic_prefixes) or obj.name=='Sphere':
         bpy.data.objects.remove(obj,do_unlink=True)
@@ -91,12 +92,24 @@ data=dict(
     surfaces=surfaces,obstacles=obstacles,
     coins=[point(*p) for p in plan.COINS],blueprints=[point(*p) for p in plan.BLUEPRINTS],
     gears=[point(x,y) for x,y,_ in plan.GEARS],
+    modules=[plan.WORKSHOP_STAIR.metadata()], workshop=plan.WORKSHOP.metadata(),
 )
+# Export the reusable stair at its lower entrance, not in world coordinates.
+module = bpy.data.objects.get(plan.WORKSHOP_STAIR.name)
+if module is None or module.get('signalstation_module') != 'workshop_stair':
+    raise ValueError('Regenerate groundplate_concept.blend with create_model.py first')
+pose = module.matrix_world.copy()
+module.matrix_world = Matrix.Identity(4)
+bpy.ops.object.select_all(action='DESELECT')
+module.select_set(True)
+export_model(ROOT / 'asset' / plan.WORKSHOP_STAIR.asset, use_selection=True,
+             export_cameras=False, export_lights=False, export_apply=True)
+module.matrix_world = pose
 # Geometry and gameplay metadata share one level export. Cameras and lighting
 # are controlled by the game; mesh buffers remain in the external BIN file.
 bpy.ops.object.select_all(action='DESELECT')
 for obj in bpy.data.objects:
-    if obj.type=='MESH': obj.select_set(True)
+    if obj.type=='MESH' and not obj.get('signalstation_module'): obj.select_set(True)
 export_model(OUT/'courtyard.gltf',use_selection=True,
     export_cameras=False,export_lights=False,export_apply=True,
     extras={"signalstation": {"layout": data}})
