@@ -1,5 +1,8 @@
 # API-Dokumentation
 
+Für den Einstieg: [Anwenderanleitung — eigenes Spiel einbinden und nutzen](../user-guide.md).
+Die folgenden Dokumente sind die weiterführende Bedien- und Vertragsreferenz.
+
 - [target.md](target.md): maßgeblicher öffentlicher Vertrag und Modulverantwortlichkeiten.
 - [goal.rs](goal.rs): Rust-ähnliche Interface-Skizze; muss nicht kompilieren.
 - [usage.md](usage.md): aktuelle CLI-Bedienung und Start mit der Referenz-App.

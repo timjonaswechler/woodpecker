@@ -23,6 +23,7 @@ do not move the OS cursor or require window focus. Applications using Bevy UI mu
 enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0.20
 text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
+- **[User guide: integrate your own game and use Woodpecker](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
 - [CLI usage](docs/api/usage.md)
 - [Historical implementation notes](docs/api/implementation-plan.md)
@@ -41,8 +42,9 @@ target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-Provide a launch TOML for your application; its fields are defined in
-[`src/cli/config.rs`](src/cli/config.rs) and the referenced public configuration types. In another terminal:
+For your own game, follow the [integration and first-session guide](docs/user-guide.md).
+It includes the game-side plugin setup and a complete launch TOML. Once configured,
+in another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
@@ -88,8 +90,9 @@ records their exact source state, evidence and remaining work; this is not a
 claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible
 windows. No headless replacement or automatic retry is used. The
-[game-testing examples](examples/README.md) demonstrate movement, text and replay
-over the public CLI; they are separate from acceptance. The bounded
+[game-control examples](examples/README.md) start with REPL, CLI and fixed scripts,
+then add Python feedback, agent handoff and replay. Advanced recipes cover
+movement and Unicode text checks; all examples are separate from acceptance. The bounded
 [mutation campaign](tests/mutations.md) checks four existing windowless contracts
 in isolated source copies, without claiming universal fault detection.
 

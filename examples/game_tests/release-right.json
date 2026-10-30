@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "commands": [
+    {
+      "command": "input.keyboard.release",
+      "arguments": {
+        "key": "arrow_right"
+      }
+    },
+    {
+      "command": "tick.warp.start",
+      "arguments": {
+        "ticks": 1
+      }
+    }
+  ]
+}
