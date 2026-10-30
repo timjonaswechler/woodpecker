@@ -18,6 +18,14 @@ struct RawLevel {
     workshop: Workshop,
 }
 
+// The one-metre construction grid applies to layout anchors, not mesh extents
+// or decoration colliders. Those retain their original continuous coordinates.
+fn build_anchor(point: &[f32; 3]) -> bool {
+    point
+        .iter()
+        .all(|v| v.is_finite() && (v - v.round()).abs() < 0.00001)
+}
+
 pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
     let mut gltf: serde_json::Value =
         serde_json::from_str(document).map_err(|e| format!("glTF: {e}"))?;
@@ -73,11 +81,8 @@ pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
             || module.asset.trim().is_empty()
             || !module_names.insert(&module.name)
             || module.quarter_turns > 3
-            || !module
-                .origin
-                .iter()
-                .chain(&module.exit)
-                .all(|v| v.is_finite())
+            || !build_anchor(&module.origin)
+            || !build_anchor(&module.exit)
             || module.origin == module.exit
         {
             return Err(format!("invalid module {}", module.name));
@@ -88,13 +93,9 @@ pub(super) fn from_gltf(document: &str) -> Result<LevelDefinition, String> {
         &raw.workshop.craft,
         &raw.workshop.output,
     ] {
-        if !station
-            .base
-            .iter()
-            .chain(&station.size)
-            .chain(&station.approach)
-            .all(|v| v.is_finite())
-            || station.size.iter().any(|v| *v <= 0.)
+        if !build_anchor(&station.base)
+            || !build_anchor(&station.approach)
+            || station.size.iter().any(|v| !v.is_finite() || *v <= 0.)
         {
             return Err("invalid workshop station".into());
         }

@@ -89,6 +89,29 @@ fn workshop_guidance_reaches_the_actual_interaction_for_each_stage() {
 }
 
 #[test]
+fn decoration_colliders_can_keep_submetre_positions() {
+    let mut doc: serde_json::Value = serde_json::from_str(include_str!(
+        "../../asset/meshes/environment/courtyard.gltf"
+    ))
+    .unwrap();
+    let obstacles = doc
+        .pointer_mut("/extras/signalstation/layout/obstacles")
+        .unwrap()
+        .as_array_mut()
+        .unwrap();
+    let decoration = obstacles
+        .iter_mut()
+        .find(|o| {
+            o["name"]
+                .as_str()
+                .is_some_and(|name| name.starts_with("Machine base"))
+        })
+        .unwrap();
+    decoration["center"] = serde_json::json!([-37.137, 0.551, 3.123]);
+    assert!(super::import::from_gltf(&doc.to_string()).is_ok());
+}
+
+#[test]
 fn malformed_pilot_metadata_is_rejected() {
     let source: serde_json::Value = serde_json::from_str(include_str!(
         "../../asset/meshes/environment/courtyard.gltf"
@@ -97,6 +120,10 @@ fn malformed_pilot_metadata_is_rejected() {
     for (field, value) in [
         ("modules/0/quarter_turns", serde_json::json!(4)),
         ("modules/0/origin/0", serde_json::json!(1e100)),
+        ("modules/0/origin/0", serde_json::json!(-26.75)),
+        ("modules/0/exit/2", serde_json::json!(-4.5)),
+        ("workshop/craft/base/0", serde_json::json!(-33.75)),
+        ("workshop/craft/approach/2", serde_json::json!(-2.5)),
         ("workshop/output/size/0", serde_json::json!(-1)),
         ("workshop/part/base/0", serde_json::json!(0)),
     ] {

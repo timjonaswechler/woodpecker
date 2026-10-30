@@ -1,12 +1,13 @@
 """Pilot module geometry and placement, shared by Blender and the game export.
 
 Plan coordinates: X right, Y down the plan, Z up; distances are metres.
-The construction grid never quantizes player movement or navigation.
+Only architecture and task-object layout anchors use the construction grid.
+Decoration, model-local details, player movement and navigation are independent.
 """
 from dataclasses import dataclass
 from math import isfinite
 
-FINE_GRID = 0.25
+BUILD_GRID = 1.0
 
 
 def game_point(point):
@@ -16,22 +17,27 @@ def game_point(point):
 
 @dataclass(frozen=True)
 class Placement:
+    """Construction/task anchor, not a placement constraint for decoration."""
     origin: tuple[float, float, float]
     quarter_turns: int = 0
 
     def __post_init__(self):
         if (len(self.origin) != 3
-                or not all(isfinite(v) and abs(v / FINE_GRID - round(v / FINE_GRID)) < 1e-6
+                or not all(isfinite(v) and abs(v / BUILD_GRID - round(v / BUILD_GRID)) < 1e-6
                            for v in self.origin)
                 or type(self.quarter_turns) is not int
                 or not 0 <= self.quarter_turns < 4):
-            raise ValueError("placement needs quarter-metre coordinates and 0..3 quarter turns")
+            raise ValueError("construction anchors need whole-metre coordinates and 0..3 quarter turns")
 
     def point(self, local):
         x, y, z = local
         for _ in range(self.quarter_turns):
             x, y = -y, x
         return (self.origin[0] + x, self.origin[1] + y, self.origin[2] + z)
+
+    def anchor(self, local):
+        """Validate layout sockets separately from unconstrained mesh details."""
+        return Placement(self.point(local)).origin
 
     def box(self, name, center, half):
         hx, hy, hz = half
@@ -80,7 +86,7 @@ class StairModule:
         return dict(name=self.name, asset=self.asset,
                     origin=game_point(self.placement.origin),
                     quarter_turns=self.placement.quarter_turns,
-                    exit=game_point(self.placement.point((0, self.run, self.rise))))
+                    exit=game_point(self.placement.anchor((0, self.run, self.rise))))
 
 
 @dataclass(frozen=True)
@@ -92,17 +98,20 @@ class WorkshopIsland:
         if self.placement.quarter_turns:
             raise ValueError("the pilot island uses the unrotated workshop frontage")
 
-    def station(self, x, size):
-        return dict(base=game_point(self.placement.point((x, 0, 0))), size=list(size),
-                    approach=game_point(self.placement.point((x, -1.5, 0))))
+    STATIONS = {
+        "part": (0, (1.1, 1.6, 1.1)),
+        "craft": (2, (1.3, 1.5, .9)),
+        "output": (5, (2, 1.75, 1.5)),
+    }
 
     def metadata(self):
-        return dict(part=self.station(0, (1.1, 1.6, 1.1)),
-                    craft=self.station(2, (1.3, 1.5, .9)),
-                    output=self.station(4.5, (2, 1.75, 1.5)))
+        return {name: dict(base=game_point(self.point(name)), size=list(size),
+                           approach=game_point(self.placement.anchor((x, -2, 0))))
+                for name, (x, size) in self.STATIONS.items()}
 
-    def point(self, x):
-        return self.placement.point((x, 0, 0))
+    def point(self, station):
+        x, _ = self.STATIONS[station]
+        return self.placement.anchor((x, 0, 0))
 
 
 WORKSHOP_STAIR = StairModule(Placement((12, 23, 0)))

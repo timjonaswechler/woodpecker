@@ -123,9 +123,17 @@ Die spielbaren Bedienobjekte aus `src/level/objects/` ersetzen die einfachen Kon
 ### Modularer Platzierungspilot in Werkhalle B
 
 [kit.py](../planning/groundplate/kit.py) definiert die Treppe und die Arbeitsinsel.
-Platzierungen verwenden ein 0,25-m-Feinraster; die Treppe lässt sich in
-90°-Schritten drehen. Das ist ein Bauraster, keine Einschränkung der freien
-Bewegung und kein Ersatz für das 0,5-m-Navigationsraster.
+Bau- und Aufgabenplatzierungen verwenden ein **1-m-Grundraster**; größere
+Module wie die 3 m breite und 3 m hohe Treppe bauen darauf auf. Das Raster ist
+für Räume, Wände, Treppen, Übergänge und aufgabenrelevante Objekte vorgesehen.
+Deko wird anschließend ohne Rasterzwang gesetzt; Wandstärken, Stufen und andere
+Details innerhalb eines Modells bleiben ebenfalls frei. Die Treppe lässt sich
+in 90°-Schritten drehen. Freie Bewegung und das 0,5-m-Navigationsraster bleiben
+unabhängig davon.
+
+Im Piloten sind die Treppenanschlüsse sowie die Arbeitsinsel und ihre
+Anlaufpunkte auf ganze Meter ausgerichtet. Die übrigen bestehenden Räume und
+Aufgabenobjekte sind noch nicht auf dieses Bauraster migriert.
 
 Die Treppe ist ein vollständiges Blender-Modell mit integrierten Geländern:
 `asset/meshes/environment/workshop_stair.gltf` plus BIN. Ihr lokaler Einfügepunkt

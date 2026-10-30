@@ -9,13 +9,26 @@ ASSETS = Path(__file__).resolve().parents[2] / "test_app/asset"
 
 
 class PlacementTests(unittest.TestCase):
-    def test_fine_grid_and_quarter_turn_validation(self):
-        for origin, turn in [((.125, 0, 0), 0), ((float("nan"), 0, 0), 0),
+    def test_build_grid_rejects_submetre_anchors_and_invalid_turns(self):
+        for origin, turn in [((.125, 0, 0), 0), ((.25, 0, 0), 0),
+                             ((.5, 0, 0), 0), ((float("nan"), 0, 0), 0),
                              ((0, float("inf"), 0), 0), ((0, 0, 0), 4),
                              ((0, 0, 0), True)]:
             with self.subTest(origin=origin, turn=turn), self.assertRaises(ValueError):
                 Placement(origin, turn)
-        self.assertEqual(Placement((.25, .5, 3)).point((0, 0, 0)), (.25, .5, 3))
+        self.assertEqual(Placement((1, 3, 3)).point((0, 0, 0)), (1, 3, 3))
+
+    def test_task_anchors_and_approaches_use_the_build_grid(self):
+        for station in WORKSHOP.metadata().values():
+            for key in ("base", "approach"):
+                for coordinate in station[key]:
+                    self.assertEqual(coordinate, round(coordinate), (key, station))
+
+    def test_model_details_are_not_snapped_to_the_build_grid(self):
+        placement = Placement((1, 3, 0))
+        self.assertEqual(placement.point((.125, .5, .25)), (1.125, 3.5, .25))
+        first_tread, _ = next(WORKSHOP_STAIR.treads())
+        self.assertEqual(first_tread[2] * 2, .25)
 
     def test_rotated_stair_keeps_model_socket_surfaces_and_rail_proxies_together(self):
         expected_exits = [(4, 13, 3), (-4, 5, 3), (4, -3, 3), (12, 5, 3)]

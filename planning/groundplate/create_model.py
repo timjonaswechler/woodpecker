@@ -180,8 +180,8 @@ box('Start bench',4,8,.05,4,.8,.55,boxmat)
 for x,y in [(16,2.3),(16.3,7.1)]: crate(x,y)
 
 # B: large work tables, a two-part assembly task and a hidden rear door.
-output_x, output_y, _ = plan.WORKSHOP.point(4.5)
-craft_x, craft_y, _ = plan.WORKSHOP.point(2)
+output_x, output_y, _ = plan.WORKSHOP.point("output")
+craft_x, craft_y, _ = plan.WORKSHOP.point("craft")
 box('Cell assembly workbench',output_x,output_y,0,2,1.5,1,boxmat)
 console('Workbench controls',craft_x,craft_y)
 for x,y in [(1.75,24),(1.75,27)]: box('Machine base',x,y,0,2.6,2,1.1,dark)
