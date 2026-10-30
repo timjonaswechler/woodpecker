@@ -1,4 +1,9 @@
-# Small game-testing examples
+# Advanced game-testing recipes
+
+**New to controlling a game?** Start with the [step-by-step control guide](control.md):
+REPL → individual CLI calls → fixed scripts → Python feedback → agent handoff →
+replay. Each adds one idea to the same small movement task; this page covers the
+more detailed checks and their shared build/server setup.
 
 Three standalone Python **3.11+** recipes for game developers, using only the
 [public CLI](../../docs/api/usage.md) and standard library. These are not another

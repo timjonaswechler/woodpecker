@@ -88,8 +88,9 @@ records their exact source state, evidence and remaining work; this is not a
 claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible
 windows. No headless replacement or automatic retry is used. The
-[game-testing examples](examples/README.md) demonstrate movement, text and replay
-over the public CLI; they are separate from acceptance. The bounded
+[game-control examples](examples/README.md) start with REPL, CLI and fixed scripts,
+then add Python feedback, agent handoff and replay. Advanced recipes cover
+movement and Unicode text checks; all examples are separate from acceptance. The bounded
 [mutation campaign](tests/mutations.md) checks four existing windowless contracts
 in isolated source copies, without claiming universal fault detection.
 
