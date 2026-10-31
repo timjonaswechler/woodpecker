@@ -2,8 +2,13 @@
 
 Move Signalstation's player right, then release the key. Start with the REPL;
 only add automation when you need it. These examples use the public CLI, not
-native keyboard input. A successful input command queues input; only an explicit
-simulation tick applies it. A key stays held until released.
+native keyboard input. They exercise Signalstation's existing gameplay, not a
+special movement implementation. For the real game-side integration, read the
+[Signalstation user guide](../../docs/user-guide.md).
+
+A successful input command queues input; only an explicit simulation tick applies
+it. A key stays held until released. The simple paths below use ordinary Player
+state and warp completions, not a game-side tick counter.
 
 ## Setup, once
 
@@ -78,32 +83,28 @@ the matching `completed` event after each command. `pending` is not completion.
 
 ```text
 inspect resource test_app::player::Player
-inspect resource test_app::woodpecker::SimulationTicks
 command {"command":"input.keyboard.press","arguments":{"key":"arrow_right"}}
 tick warp 4
 inspect resource test_app::player::Player
 command {"command":"input.keyboard.release","arguments":{"key":"arrow_right"}}
 tick warp 1
 inspect resource test_app::player::Player
-inspect resource test_app::woodpecker::SimulationTicks
 quit
 ```
 
 **Check:** `Player.position[0]` increased after four ticks; `position[1]` stayed
 unchanged. The position after the release tick is identical to the previous
-position. `SimulationTicks.ticks` increased by five. Stop the session as above.
+position. The two warp completions report four and one executed ticks. Stop the
+session as above.
 The REPL observes results for you; it does not decide what to do next.
 
 ## 2. You decide: individual CLI calls
 
 Use a fresh, prepared session and leave its REPL with `quit`. First read initial
-position and ticks. Submit each query separately and poll it to completion:
+position. Submit the query and poll it to completion:
 
 ```sh
 wp session submit "$ID" --command '{"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"test_app::player::Player"},"projection":{"kind":"value"}}}'
-wp session poll "$ID" --wait-ms 1000
-# After the position query completes:
-wp session submit "$ID" --command '{"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"test_app::woodpecker::SimulationTicks"},"projection":{"kind":"value"}}}'
 wp session poll "$ID" --wait-ms 1000
 ```
 
@@ -126,7 +127,8 @@ next submission:
 wp session submit "$ID" --command '{"command":"input.keyboard.press","arguments":{"key":"arrow_right"}}'
 # Poll to completion.
 wp session submit "$ID" --command '{"command":"tick.warp.start","arguments":{"ticks":4}}'
-# Poll to completion before releasing: the key must stay held for all four ticks.
+# Poll to completion, then repeat the position query before releasing.
+# The key must stay held for all four ticks.
 wp session submit "$ID" --command '{"command":"input.keyboard.release","arguments":{"key":"arrow_right"}}'
 # Poll to completion.
 wp session submit "$ID" --command '{"command":"tick.warp.start","arguments":{"ticks":1}}'
@@ -134,23 +136,22 @@ wp session submit "$ID" --command '{"command":"tick.warp.start","arguments":{"ti
 ```
 
 Repeat the position query after the four-tick warp **before** releasing, and
-again after the release tick. Repeat the tick query at the end. Queries do not
-advance the simulation.
+again after the release tick. Queries do not advance the simulation.
 
 **Check:** the same increased x, unchanged second coordinate, still release tick
-and five-tick delta as example 1. Stop the session. Choose individual CLI calls
+and reported four-plus-one executed ticks as example 1. Stop the session. Choose individual CLI calls
 when another tool needs explicit control of submission and observation.
 
 ## 3. A file decides the sequence: native scripts
 
-Use a fresh, prepared session. Read initial position and ticks as above. Then:
+Use a fresh, prepared session. Read the initial position as above. Then:
 
 ```sh
 wp session script "$ID" --file examples/game_tests/hold-right.json
 # Continue only after exit 0 and kind "passed".
 # Read position here: x must have increased, the other coordinate must not change.
 wp session script "$ID" --file examples/game_tests/release-right.json
-# Continue only after exit 0 and kind "passed". Read position and ticks again.
+# Continue only after exit 0 and kind "passed". Read position again.
 ```
 
 [hold-right.json](hold-right.json) presses right and advances four ticks.
@@ -163,7 +164,8 @@ could release while the warp is still running. The boundary between these two
 successful invocations keeps the key held for the entire first warp. Do not
 run the second script if the first fails.
 
-**Check:** five total ticks and no movement during the second script. Stop the
+**Check:** completed warps report four plus one ticks; no movement during the
+second script. Stop the
 session. Scripts have no implicit session shutdown. A fixed sequence is useful
 when you already know every action; it cannot branch on a query result.
 
@@ -180,7 +182,8 @@ python3 examples/game_tests/feedback.py --address "$ADDRESS" --rendered
 
 **Check:** `PASS` includes initial/final x and the number of moving ticks, and is
 printed only after owned-session cleanup. Unlike a fixed script, the next action
-depends on current state. The small existing [_cli.py](_cli.py) adapter handles
+depends on current state. No `SimulationTicks` query or new game instrumentation
+is needed. The existing [_cli.py](_cli.py) adapter handles
 transport and result correlation; every input and tick stays visible in the
 example. It is not a public Python SDK.
 

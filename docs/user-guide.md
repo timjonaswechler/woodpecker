@@ -1,397 +1,309 @@
-# Anwenderanleitung: ein eigenes Spiel mit Woodpecker steuern
+# Anwenderanleitung: Woodpecker am Beispiel von Signalstation
 
-Diese Anleitung führt von einem eigenen Bevy-Spiel bis zur ersten überprüfbaren
-Eingabe. Danach kannst du Spielzustände auslesen, Screenshots aufnehmen,
-Steuerfolgen automatisieren und Fehlerberichte sammeln.
+[Signalstation in `test_app/`](../test_app/README.md) ist ein normales, spielbares
+Bevy-Spiel: mit Bewegung, Kollisionen, Aufgaben, Einstellungen und eigener UI.
+Es ist zugleich unser Beispiel dafür, wie Woodpecker in ein bestehendes Spiel
+integriert wird. Wir verwenden hier dieses Spiel — kein separates Testspiel und
+keine eigens für Woodpecker geschriebene Bewegungslogik.
 
-Woodpecker wird **in dein Spiel eingebaut**. Ein lokaler Server startet anschließend
-einen eigenen Spielprozess pro Session. Es hängt sich nicht nachträglich an ein
-beliebiges laufendes Spiel an und simuliert keine Betriebssystem-Tastatur.
+Der Ablauf: **Spiel normal starten → seine Integration verstehen → dasselbe
+Spiel mit Woodpecker starten → steuern und beobachten → weitere Funktionen nutzen.**
 
-## 1. Voraussetzungen prüfen
+## 1. Das Spiel zuerst normal kennenlernen
 
-- Dein Spiel verwendet **Bevy 0.20.0**, die Toolchain **Rust 1.97.1 oder neuer**.
-- Server und CLI benötigen Unix-Prozessgruppen, etwa unter macOS oder Linux.
-- Du hast dieses Woodpecker-Repository lokal ausgecheckt. Die Beispiele unten
-  verwenden eine lokale Cargo-Pfadabhängigkeit auf diesen Checkout.
-- Für die gezeigte grafische Anwendung stehen Renderer und Display bereit.
-  Als Agent vor einem Lauf die Erlaubnis für echte Spielfenster einholen.
-  Display wach und Fenster teilweise sichtbar halten; während der Session
-  Fenstergröße, Skalierung und Bildschirm nicht wechseln.
+Alle Befehle dieser Anleitung gelten vom Repository-Root. Voraussetzungen sind
+Bevy 0.20.0, Rust 1.97.1 oder neuer und für Server/CLI Unix-Prozessgruppen
+(macOS oder Linux). Grafische Läufe benötigen einen Renderer und ein Display.
 
-Der Server ist nur über Loopback erreichbar. Lokale Clients sind vertrauenswürdig;
-es gibt weder Zugangsschlüssel noch einen unterstützten Remote-Betrieb.
+```sh
+cargo run --locked --manifest-path test_app/Cargo.toml --bin test_app
+```
 
-## 2. Die Bibliothek ins Spiel aufnehmen
+Ohne Feature `automation` ist Woodpecker keine Abhängigkeit des Spiels. Du kannst
+dich mit den Pfeiltasten bewegen, auf begehbaren Boden klicken und mit M die
+Einstellungen öffnen. Aufgaben, weitere Steuerung und Levelbeschreibung stehen
+in der [Spielanleitung](../test_app/README.md#spielen). Beende diesen normalen
+Spielstart, bevor du unten eine kontrollierte Session öffnest.
 
-Ergänze die bestehenden Abschnitte deiner **Spiel-`Cargo.toml`**, statt sie zu
-ersetzen. Tausche den Platzhalter gegen deinen absoluten Woodpecker-Pfad aus:
+## 2. So ist Woodpecker in dieses Spiel eingebunden
+
+### Optionale Abhängigkeit statt eines zweiten Spiels
+
+Die [Spiel-`Cargo.toml`](../test_app/Cargo.toml) enthält:
 
 ```toml
 [features]
 automation = ["dep:woodpecker"]
 
 [dependencies]
-woodpecker = { path = "/ABSOLUTER/PFAD/woodpecker", optional = true, features = ["screenshot"] }
+woodpecker = { path = "..", optional = true, features = ["ui", "screenshot"] }
 ```
 
-Die vorhandene Bevy-Abhängigkeit, deine Spiel-Features und `Cargo.lock` bleiben
-bestehen. `automation` ist hier ein selbst gewähltes Feature des Spiels, kein reservierter
-Woodpecker-Name. `screenshot` erlaubt später PNG-Aufnahmen; den Renderer stellt
-weiterhin dein Spiel bereit. Für Bevy UI ergänze bei Woodpecker zusätzlich `ui`.
-Die Features `cli`, `server` und `client` brauchst du **nicht** im Spiel.
+Das ist ein Auszug, kein Ersatz für die Datei. `automation` ist ein Feature
+**dieses Spiels**. Die relative Pfadabhängigkeit zeigt auf Woodpecker im
+übergeordneten Repository-Ordner. `ui` und `screenshot` schalten die hier
+verwendeten Zusatzfunktionen frei; Server und CLI werden nicht ins Spiel eingebaut.
 
-## 3. Das Session-Plugin installieren und Spielzustand sichtbar machen
-
-Installiere `woodpecker::session::Plugin` **nach den Spiel-Plugins**, und nur im
-kontrollierten Prozess. Das folgende vollständige `main.rs` zeigt das Muster in
-einem kleinen Bevy-Projekt mit `DefaultPlugins`, Winit und 2D-Renderer. Es zeichnet
-noch keine Spielfigur: `Spielstand` macht Bewegung und Tickzahl überprüfbar.
-Übertrage das Einbaumuster in dein Spiel, nicht dessen gesamte Spiellogik.
+In [main.rs](../test_app/src/main.rs) bleibt der normale Spielaufbau bestehen.
+Danach wird optional die Anbindung installiert (Auszug):
 
 ```rust
-use bevy::prelude::*;
-
-#[derive(Resource, Reflect, Default)]
-#[reflect(Resource)]
-struct Spielstand {
-    x: f32,
-    ticks: u64,
-}
-
-fn bewegen(tasten: Res<ButtonInput<KeyCode>>, mut stand: ResMut<Spielstand>) {
-    stand.ticks += 1;
-    if tasten.pressed(KeyCode::ArrowRight) {
-        stand.x += 1.0;
-    }
-}
-
-fn kamera(mut commands: Commands) {
-    commands.spawn(Camera2d);
-}
-
-fn main() {
-    let mut app = App::new();
-    app.add_plugins(DefaultPlugins)
-        .init_resource::<Spielstand>()
-        .register_type::<Spielstand>()
-        .add_systems(Startup, kamera)
-        .add_systems(Update, bewegen);
-
-    #[cfg(feature = "automation")]
-    if std::env::var_os("WOODPECKER_ARTIFACT_DIR").is_some() {
-        app.insert_resource(bevy::winit::WinitSettings::continuous())
-            .add_plugins(woodpecker::session::Plugin);
-    }
-
-    app.run();
-}
+app::install(&mut app, &options, log_plugin);
+#[cfg(feature = "automation")]
+woodpecker::install(&mut app);
+app.run();
 ```
 
-**Was davon ist nötig?**
+[woodpecker::install](../test_app/src/woodpecker.rs) prüft zusätzlich, ob der
+Server diesen Prozess gestartet hat. Ohne dessen `WOODPECKER_ARTIFACT_DIR`
+kehrt die Funktion zurück. Auch ein Build mit `automation` lässt sich deshalb
+normal starten. Diese interne Umgebung nicht selbst setzen: Der Server richtet
+Protokoll, Artefaktordner und Session-Workspace ein.
 
-- Der Server setzt `WOODPECKER_ARTIFACT_DIR` für seinen Kindprozess. Die Abfrage
-  verhindert, dass ein normaler Spielstart auf Session-Steuerung wartet.
-  Diese interne Umgebung nicht von Hand setzen; der Server richtet sie ein.
-- `WinitSettings::continuous()` hält den Kontrolllauf auch ohne Fensterfokus
-  ansprechbar. Es gibt dadurch keine zusätzlichen Simulationsticks.
-- Für Inspect müssen eigene Typen `Reflect` unterstützen und mit
-  `register_type` registriert sein. Resources benötigen `#[reflect(Resource)]`,
-  Components entsprechend `#[reflect(Component)]`. Registrierung allein erzeugt
-  weder eine Resource noch eine Entity; das erledigt weiterhin dein Spiel.
-- Normale Bevy-Eingabe über `ButtonInput<KeyCode>` kann bestehen bleiben.
-  Eigene Eingabesysteme müssen die virtuellen Bevy-Ereignisse verarbeiten,
-  statt den OS-Tastenzustand direkt abzufragen. Im kontrollierten Prozess werden
-  native Maus-, Tastatur-, Touch- und IME-Eingaben verworfen.
-- Das Plugin kontrolliert die vorhandene Reihenfolge der Haupt-Schedules. Ein
-  Woodpecker-Tick ist nicht automatisch genau ein `FixedUpdate`-Durchlauf.
-  Eigene Threads, Netzwerk und externe Zeitquellen pausiert es nicht mit.
+### Normale Eingaben und Spiellogik bleiben bestehen
 
-**Erfolgskontrolle:** Dein Spiel baut sowohl normal als auch mit `--features
-automation`. Ein normaler Start ohne Server bleibt normal bedienbar. Diagnoseausgaben
-im kontrollierten Spiel gehören auf stderr bzw. ins Logging; stdin/stdout werden
-für das Session-Protokoll benötigt.
+Die Integration setzt den kontrollierten Eingabemodus und hält den Winit-Lauf
+auch ohne Fensterfokus ansprechbar. Sie installiert das Session-Plugin nach den
+Spiel-Plugins. Dieses übernimmt die explizite Ausführung der Haupt-Schedules.
 
-## 4. Die Startkonfiguration anlegen
+Die vorhandene Eingabeverarbeitung in [input/](../test_app/src/input/mod.rs)
+verarbeitet Bevy-Tastaturzustände und Mausbewegungen. Der
+[Geräteadapter](../test_app/src/input/devices.rs) unterscheidet bei Fokus und
+Cursor zwischen nativem Fenster und virtuellem Pointer. Beide Wege liefern
+Spielabsichten an dieselbe Bewegungsfunktion:
 
-Speichere im Spielprojekt `woodpecker.toml`. Ersetze den absoluten Manifestpfad,
-den Package-Namen und den Binary-Namen durch die Werte deines Spiels. Das
-Beispiel nennt Package und Binary beide `mein_spiel`:
-
-```toml
-version = 1
-
-[launch]
-manifest_path = "/ABSOLUTER/PFAD/mein_spiel/Cargo.toml"
-package = "mein_spiel"
-features = ["automation"]
-arguments = []
-
-[launch.target]
-kind = "binary"
-name = "mein_spiel"
-
-[tick.pace]
-kind = "as_fast_as_possible"
-
-[tick.clock]
-kind = "fixed"
-seconds_per_tick = 0.016666667
-
-[startup]
-kind = "manual"
-
-[report]
-tracing_errors = false
-output = "reports"
-
-[report.provider]
-kind = "local"
+```text
+native Eingaben oder virtuelle Bevy-Eingaben
+  → vorhandene Eingabeverarbeitung / FrameInput
+  → move_player mit Bevy-Time, Geschwindigkeit und Navigation
+  → normale Bewegung, Kollision und Darstellung
 ```
 
-`features` sind die Features **deines Spiels**. `arguments` sind dessen eigene
-Kommandozeilenargumente; Woodpecker erfindet dafür keine Flags.
+[move_player](../test_app/src/player/movement.rs) berechnet Bewegung aus Richtung,
+Geschwindigkeit und `Time::delta_secs()`. Für Woodpecker wird dort weder ein Tick
+hochgezählt noch eine Position durch eine Testantwort ersetzt. Aufgaben, Portale
+und Kollisionen gelten auch bei externer Steuerung unverändert.
 
-Ein relativer `manifest_path` gilt vom Arbeitsverzeichnis des **Servers**, nicht
-vom Speicherort der TOML-Datei. Das gestartete `cargo run` arbeitet im Ordner des
-konfigurierten Manifests. Beachte das für relative Asset- und Argumentpfade;
-ein absoluter Manifestpfad vermeidet die erste Verwechslung.
+Ein Woodpecker-Tick führt die konfigurierte Haupt-Schedule-Reihenfolge aus; er
+ist nicht automatisch genau ein `FixedUpdate`. Die gewählte feste Uhr liefert
+Bevys Simulationszeit. Eigene Threads, Netzwerk oder externe Zeitquellen werden
+dadurch nicht automatisch pausiert.
 
-`manual` führt keine automatischen Vorbereitungsticks aus: Steuerungsbereitschaft
-heißt `SessionReady`. Ein fester Tick trägt ab dem ersten gezählten Tick die
-konfigurierte Simulationsdauer bei. Die Pace bestimmt, wie schnell der Rechner
-diese Ticks abarbeitet, nicht deren simulierte Dauer.
+### Spielzustand beobachten, Laden und Speichern anbinden
 
-### Einstellungen nicht versehentlich ins persönliche Profil schreiben
+Die Anbindung erledigt außerdem drei Dinge am Rand des Spiels:
 
-Jede Session erhält unter ihrem Artefaktordner einen frischen
-`workspace/config`, `workspace/data` und `workspace/tmp`. Dein Spiel muss seine
-kontrollierten Einstellungen/Spielstände ausdrücklich unter
-`WOODPECKER_SESSION_DIR/config` bzw. `WOODPECKER_SESSION_DIR/data` ablegen und
-bei Bedarf einen bekannten Startstand laden. Gemeint sind Unterordner des
-Verzeichnisses aus dieser Umgebungsvariable, keine wörtlichen Dateinamen.
-Ohne diese Anpassung schreibt ein bestehender absoluter Speicherpfad weiterhin
-an seine bisherige Stelle.
-Die temporären Umgebungsvariablen werden vom Launcher gesetzt. Das ist eine
-Pfadkonvention, **keine Betriebssystem-Sandbox** für beliebige Datei-/Netzwerkzugriffe.
+- **Inspect:** Sie registriert vorhandene reflektierte Typen wie `Player`,
+  `LevelLoad`, `Mission` und `Settings`. Damit lesen Clients echte Spielwerte.
+  Neue beobachtbare Resources brauchen `Reflect`, `#[reflect(Resource)]` und
+  Typregistrierung; Components entsprechend `#[reflect(Component)]`.
+  Registrierung allein erzeugt keinen Spielzustand.
+- **Ladephase:** `startup::Assets` liest die tatsächlichen Handles aus
+  `LevelAssets`. Technisches Engine-Startup kann sie beobachten. Ob das Level
+  spielbereit ist, entscheidet weiterhin das vorhandene `LevelLoad` des Spiels.
+- **Einstellungen:** [settings/storage.rs](../test_app/src/app/settings/storage.rs)
+  verwendet in einer Session `workspace/config/settings.json` statt des normalen
+  `test_app/settings.json`. Der bekannte Seed wird einmal in den frischen
+  Workspace übernommen. Das verhindert hier gemeinsame Schreibzugriffe;
+  Woodpecker ist aber keine Betriebssystem-Sandbox für beliebige Dateien.
 
-## 5. Server starten und die erste Session öffnen
+**Nicht mitkopieren müssen:** `SimulationTicks` und die explizit zuschaltbaren
+Fehler-/Prozessproben in `src/woodpecker.rs` sind Messinstrumente für die
+Abnahmetests. Der separate `Last`-Zähler beobachtet Durchläufe; er erzeugt keine
+Ticks und steuert keine Bewegung. Er ist keine Voraussetzung für die Integration
+oder die einfachen Steuerungsbeispiele.
 
-Ersetze die Großbuchstaben-Platzhalter. Baue zuerst das Spiel mit denselben
-Features wie in der TOML, damit ein Compilerfehler nicht erst beim Start auffällt.
-Die erste Zeile verwendet den Cargo-Pfad des Spiels:
+## 3. Dasselbe Spiel kontrolliert starten
+
+**Diese Befehle öffnen ein echtes Signalstation-Fenster.** Als Agent vorher die
+Erlaubnis für den Lauf einholen. Display wach und Fenster teilweise sichtbar
+halten; während der Session nicht skalieren, verschieben zwischen Bildschirmen
+oder die Größe ändern. Native Gameplay-Eingaben werden in kontrollierten
+Sessions verworfen; steuere dann über Woodpecker. Ein unfokussierter Start kann
+hinter anderen Fenstern oder einer Vollbildanwendung liegen. Mache das Spielfenster
+für den Rendernachweis sichtbar; Eingaben sendest du weiterhin über Woodpecker.
+
+Baue CLI und Spiel mit den Features der Startkonfiguration:
 
 ```sh
-cargo build --manifest-path /ABSOLUTER/PFAD/mein_spiel/Cargo.toml --features automation --bin mein_spiel
+cargo build --locked --features cli --bin woodpecker
+cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 ```
 
-Terminal 1 — Woodpecker bauen, dann den Server im Vordergrund starten:
+Terminal 1, weiterhin vom Repository-Root:
 
 ```sh
-WOODPECKER=/ABSOLUTER/PFAD/woodpecker
-cargo build --locked --manifest-path "$WOODPECKER/Cargo.toml" --features cli --bin woodpecker
-"$WOODPECKER/target/debug/woodpecker" --address 127.0.0.1:4100 \
-  server start --artifact-dir /ABSOLUTER/PFAD/mein_spiel/target/woodpecker-sessions
+target/debug/woodpecker --address 127.0.0.1:4100 \
+  server start --artifact-dir target/game-example-sessions
 ```
 
-Warte auf die `Ready`-Zeile. Terminal 2 — Variablen werden nicht zwischen
-Terminals übernommen, daher den Woodpecker-Pfad hier erneut setzen:
+Warte auf `Ready`. Terminal 2:
 
 ```sh
-WOODPECKER=/ABSOLUTER/PFAD/woodpecker
-wp() { "$WOODPECKER/target/debug/woodpecker" --address 127.0.0.1:4100 "$@"; }
-wp session create --config /ABSOLUTER/PFAD/mein_spiel/woodpecker.toml
+wp() { target/debug/woodpecker --address 127.0.0.1:4100 "$@"; }
+wp session create --config examples/game_tests/app.toml
 ```
 
-Übernimm die **vollständige zurückgegebene** ID, nicht eine fremde aus einer Liste:
+Nutze eine freie lokale Adresse, deren Server du selbst verwaltest. Ersetze den
+folgenden Platzhalter durch die **vollständige ID aus diesem Create**:
 
 ```sh
 ID=VOLLSTAENDIGE_ID_AUS_CREATE
 wp session inspect "$ID"
 ```
 
-Beobachte bei `Starting` weiter bis `SessionReady`, brich bei `Failed` oder einem
-Fehler ab. Bleibt die Bereitschaft nach 90 Sekunden unbestätigt, fahre nicht mit
-Eingaben fort; prüfe die Startdiagnose und stoppe die eigene Session. Ein
-fehlgeschlagener/unbestätigter Create darf nicht blind wiederholt werden.
+Beobachte bei `Starting`/`SessionReady` weiter bis `EngineReady`. Bei Fehler,
+`Failed` oder nach 90 Sekunden ohne Bestätigung abbrechen und die eigene Session
+aufräumen; einen unbestätigten Create nicht blind wiederholen.
 
-**Erfolgskontrolle:** Das Spiel öffnet ein Fenster, `session inspect` zeigt
-`SessionReady` und einen absoluten `artifact_dir`. Es tickt noch nicht von selbst.
+### Was die verwendete Konfiguration bedeutet
 
-## 6. Eine Eingabe senden und die Wirkung prüfen
+[app.toml](../examples/game_tests/app.toml) ist die vollständige, ausführbare
+Startkonfiguration für dieses Spiel. Sie wählt `test_app` als Package und Binary,
+aktiviert `automation` und übergibt ausschließlich vorhandene Spielargumente:
+Settings-Seed, unfokussiertes Fenster, feste Größe und Skalierung 1. Diese
+Argumente sind keine universellen Woodpecker-Flags.
+
+Der relative Manifestpfad gilt vom **Server-Arbeitsverzeichnis**, nicht neben der
+TOML. Das gestartete Spiel arbeitet im Ordner des konfigurierten Manifests;
+`../examples/game_tests/settings.json` ist deshalb vom Ordner `test_app/` aus
+richtig. Im eigenen Projekt kannst du zunächst einen absoluten Manifestpfad nutzen.
+
+Die feste Simulationsdauer beträgt ungefähr 1/60 Sekunde pro Tick. Die Pace
+`as_fast_as_possible` bestimmt nur, wie schnell der Rechner sie abarbeitet.
+Engine-Startup darf höchstens 3600 normale Vorbereitungsticks/60 Sekunden
+verwenden. Diese Vorbereitung zählt zum Startzustand; `EngineReady` ist noch
+keine Zusage, dass der Spielzustand `LevelLoad` bereits `Ready` ist.
+
+## 4. Die vorhandene Figur bewegen und ihre Position lesen
 
 ```sh
 wp session repl "$ID"
 ```
 
-Gib **eine Zeile nach der anderen** ein. Warte nach jedem Command auf das
-`completed`-Ergebnis mit derselben Request-ID und demselben Command-Namen.
-`pending` bestätigt nur Annahme, nicht Ausführung. Bei `rejected`, `failed` oder
-ungewissem Ausgang abbrechen, nicht die Eingabe erneut senden.
+Gib Zeilen **einzeln** ein und warte jeweils auf `completed` mit passender
+Request-ID und passendem Command-Namen. `pending` bestätigt nur Annahme.
+Bei `rejected`, `failed` oder ungeklärtem Ausgang abbrechen, nicht neu einreichen.
 
-Für das oben gezeigte Binary `mein_spiel`:
+Prüfe zuerst den echten Ladezustand:
 
 ```text
-inspect resources
-inspect resource mein_spiel::Spielstand
+inspect resource test_app::level::LevelLoad
+```
+
+Bei `Loading` fordere ausdrücklich `tick warp 1` an, warte auf Abschluss und
+prüfe erneut. Bei anderem Fehlerzustand oder nach 120 zusätzlichen
+Vorbereitungsticks ohne `Ready` abbrechen. Diese Vorbereitung ist getrennt von
+der folgenden Bewegung.
+
+Sobald `Ready`, beginne mit einer Positionsbeobachtung:
+
+```text
+inspect resource test_app::player::Player
 command {"command":"input.keyboard.press","arguments":{"key":"arrow_right"}}
 tick warp 4
-inspect resource mein_spiel::Spielstand
+inspect resource test_app::player::Player
 command {"command":"input.keyboard.release","arguments":{"key":"arrow_right"}}
 tick warp 1
-inspect resource mein_spiel::Spielstand
+inspect resource test_app::player::Player
+```
+
+**Erwartung am frischen, mit dem Seed gestarteten Spiel:** `position[0]` nimmt
+während der vier Bewegungsticks zu; `position[1]` bleibt gleich. Nach dem
+Loslassen bleibt die Position beim nächsten Tick unverändert. Der Warp-Abschluss
+meldet die tatsächlich ausgeführten Ticks. Keine Annahme „ein Tick = ein Meter“:
+Die Strecke ergibt sich aus Signalstations normaler Geschwindigkeit und Zeit.
+
+Die Taste bleibt bis zum Release gehalten. Inspect liest nur; es schiebt weder
+einen Tick noch eine Spielaktion ein. `inspect resources`, `inspect entities`
+und `help inspect` erschließen weitere vorhandene Typen und Komponenten.
+
+Nach der Bewegung kannst du ein Bild derselben Szene anfordern:
+
+```text
+command {"command":"screenshot.capture","arguments":{"path":"screenshots/signalstation.png"}}
 quit
 ```
 
-**Erwartung für dieses Minimalspiel:** anfangs `x = 0`, `ticks = 0`; nach dem
-Vier-Tick-Warp `x = 4`, `ticks = 4`; nach dem Release-Tick weiterhin `x = 4`,
-aber `ticks = 5`. Der Eingabecommand selbst ändert diese Werte nicht.
+Warte auch hier auf `completed`, bevor du `quit` eingibst. Das PNG liegt relativ
+zum absoluten `artifact_dir` aus `session inspect`. Capture tickt nicht. Der
+Renderer braucht mindestens einen ausgeführten Tick; eine fehlende Surface kann
+zur Ablehnung führen. Ein tatsächlich schwarzes Bild ist kein technischer Fehler.
+Automatische Bildvergleiche sind keine Woodpecker-Funktion.
 
-Im eigenen Spiel hängen Typ-Pfad und Erwartung von deiner Implementierung ab.
-`inspect resources` hilft, den tatsächlich registrierten Pfad zu finden. Für
-Components beginne mit `inspect entities`; `help inspect` erklärt die Abfragen.
-Inspect ist lesend: Es ersetzt weder Eingaben noch beliebige World-Mutationen.
+### Die eigene Session beenden
 
-**Wichtig:** Die Taste bleibt zwischen Ticks gehalten. Ein angenommenes Press
-ist keine einmalige Bewegung und kein Textzeichen. Text benötigt ein bestehendes,
-fokussiertes editierbares Widget; es wird nicht durch Tastaturlayouts erzeugt.
-
-### Aufräumen gehört zum Ablauf
-
-`quit` beendet nur den Client. Zurück im Terminal:
+`quit` trennt nur die REPL. Zurück im Terminal:
 
 ```sh
 wp session stop "$ID"
 wp session inspect "$ID"
 ```
 
-Beobachte bis `Ended`, höchstens 40 Sekunden; `Failed` oder unbestätigtes Cleanup
-ist kein Erfolg. Stoppe nur die eigene bestätigte Session und wiederhole einen
-ungewissen Stop nicht blind. Zum Schluss kannst du **deinen eigenen** Server mit
-`wp server stop` beenden; das betrifft auch dessen andere Sessions. Der
-Serverprozess in Terminal 1 bestätigt durch sein Ende den Abschluss.
-Artefakte bleiben erhalten und werden nicht automatisch gelöscht.
+Beobachte bis `Ended`, höchstens 40 Sekunden; `Failed` oder ein unbekanntes
+Cleanup-Ergebnis ist kein Erfolg. Stoppe nur die bestätigte eigene Session und
+wiederhole keinen ungewissen Stop blind. Den eigenen Server kannst du zuletzt
+mit `wp server stop` beenden; das betrifft auch dessen andere Sessions.
+Der Vordergrundprozess in Terminal 1 bestätigt durch sein Ende den Abschluss.
+Artefakte bleiben erhalten. Der Server ist Loopback-only, lokale Clients sind
+vertrauenswürdig; Remote-Betrieb wird nicht unterstützt.
 
-## 7. Was du außerdem machen kannst
+## 5. Was du als Nächstes mit diesem Spiel machen kannst
 
-### Mehrere Sessions verwalten
+- **Anders steuern:** Die [sechs einfachen Wege](../examples/README.md) zeigen
+  dieselbe Bewegung über REPL, einzelne CLI-Aufrufe, feste Scripts, Python mit
+  Zustandsentscheidung, eine externe Agent-Werkzeugschleife und Replay. Keine
+  zusätzliche Spiellogik und kein eingebauter Modellservice sind nötig.
+- **UI und Text:** [text.py](../examples/game_tests/text.py) findet Signalstations
+  vorhandene Einstellungen und das Notizfeld, fokussiert es und gibt Unicode ein.
+  Die Anwendung besitzt UI, Fokusregeln und `TextInputPlugin`; `woodpecker/ui`
+  leitet die kontrollierten Eingaben hinein. Pointer bewegen keinen OS-Cursor.
+- **Recording/Replay:** [replay.py](../examples/game_tests/replay.py) zeichnet
+  normale Eingaben auf und wiederholt sie in einer frischen Session desselben
+  Spiels. Replay setzt den Spielstand nicht automatisch zurück und prüft keine
+  alten Sollwerte. Währenddessen ist nur `replay stop` als externer Spielbefehl
+  erlaubt. Siehe [Recording und Replay](api/usage.md#recording).
+- **Zeit und mehrere Sessions:** `tick warp 10 pace 20` taktet die Bearbeitung
+  von zehn angeforderten Ticks, ohne deren simulierte Dauer zu ändern.
+  `tick warp stop` beendet einen aktiven Warp; prüfe dessen tatsächliches Ergebnis.
+  Ein Server kann mehrere getrennte Spielprozesse mit eigenen IDs, Eingaben und
+  Artefakten verwalten. `session ls` überträgt dir keine fremden Sessions.
+- **Fehlerberichte:** Das Spiel bindet vor dem Session-Plugin den
+  `tracing_error_layer` in sein `LogPlugin` ein. Die Beispielkonfiguration nutzt
+  lokale Reports und lässt Tracing-Errors aus; aktiviere dafür zusätzlich
+  `report.tracing_errors = true`. Panics werden vom Session-Plugin beobachtet;
+  gewöhnlicher stderr-Text allein ist kein Fehlerauslöser. Die
+  [Report-Anleitung](api/usage.md#fehlerbeobachtung-und-snapshots) erklärt lokale
+  Dateien, optionalen GitHub-Provider und echten Veröffentlichungseffekt. Logs,
+  Argumente und Aufnahmen können vertrauliche Daten enthalten.
 
-Ein Server kann mehrere getrennte Spielprozesse verwalten, auch mit verschiedenen
-Startkonfigurationen. Jede Session hat eigene Eingaben, Zeitsteuerung und
-Artefakte. `session ls` zeigt den Überblick; es überträgt dir nicht die
-Verantwortung für fremde Sessions. Verwende zur Steuerung und zum Stoppen immer
-die bestätigten IDs deiner eigenen Creates. Jeder grafische Start kann ein
-weiteres Fenster öffnen.
+Die [ausführlicheren Prüfrezepte](../examples/game_tests/README.md) behandeln
+zusätzliche Assertions und Messinstrumentierung. Sie sind keine Voraussetzung,
+um dein Spiel zu integrieren. Die [Bedienreferenz](api/usage.md) beschreibt
+Command-Formate; die [Abnahmesuite](../tests/README.md) prüft Produktverträge,
+nicht die Korrektheit deines gesamten Spiels.
 
-### Zeit und Steuerungsarten
+## 6. Diesen Integrationsweg auf dein eigenes Spiel übertragen
 
-Mit `tick warp 10` genau zehn weitere Haupt-Schedule-Durchläufe anfordern,
-mit `tick warp 10 pace 20` deren Bearbeitung takten und einen laufenden Warp mit
-`tick warp stop` beenden. Ein gestoppter Warp kann weniger Ticks ausgeführt haben;
-prüfe das Ergebnis statt die angeforderte Zahl als Erfolg anzunehmen.
-
-Danach führen die [sechs einfachen Steuerungswege](../examples/README.md) von
-REPL und einzelnen CLI-Aufrufen über feste Scripts bis zu Python-Feedback und
-einer eigenen Agent-Werkzeugschleife. Ein Agent ist ein externer Entscheider,
-keine eingebaute Woodpecker-Funktion. Eigene Rust-Werkzeuge können stattdessen
-`session::Session` direkt oder mit Feature `client` den lokalen Server verwenden;
-der [API-Vertrag](api/target.md) beschreibt diese Schnittstellen.
-
-### Maus, UI und Text
-
-Virtuelle Pointer können positioniert oder relativ bewegt werden; Buttons und
-Scrollen sind eigene Commands. Sie bewegen keinen OS-Cursor und brauchen keinen
-nativen Fensterfokus. Bei eigenen Pointer-Filtern verwende die kontrollierte
-Pointer-ID `woodpecker::session::VIRTUAL_POINTER_ID`, nicht fest die OS-Maus.
-
-Für Bevy UI benötigt die Spielabhängigkeit `woodpecker/ui`. Für vollständige
-Bevy-0.20-Textwidgets kommen in der Anwendung `bevy_ui_widgets` und
-`TextInputPlugin` hinzu. Das [Textbeispiel](../examples/game_tests/text.py) zeigt
-Widget-Suche, Fokus, Unicode-Eingabe und explizite Edit-/Sync-Ticks an Signalstation;
-die [Eingabereferenz](api/usage.md) beschreibt die Voraussetzungen und Grenzen.
-
-### Screenshots und Spielzustand zusammen beobachten
-
-Nach mindestens einem ausgeführten Tick kannst du in der REPL anfordern:
-
-```text
-command {"command":"screenshot.capture","arguments":{"path":"screenshots/erster-blick.png"}}
-```
-
-Warte auf `completed`: Das PNG liegt relativ zum `artifact_dir` der Session und
-die Aufnahme erzeugt keinen Simulationstick. Dein Spiel braucht einen Renderer,
-eine Kamera und `woodpecker/screenshot`. Vor dem ersten Tick bzw. bei fehlender
-Renderoberfläche kann der Command abgelehnt werden; ein tatsächlich schwarzes
-Bild ist dagegen gültig. Automatische Bildvergleiche liefert Woodpecker nicht.
-Details stehen in der [Screenshot-Anleitung](api/usage.md#screenshot).
-
-### Aufzeichnen und wiedergeben
-
-`recording start recordings/weg.jsonl` zeichnet die folgenden Spiel-Commands und
-Outcomes auf; `recording stop` schließt die Datei. Vor Start und Stop müssen die
-vorherigen Commands abgeschlossen sein. Replay führt Commands erneut aus,
-setzt aber weder dein Spiel zurück noch prüft es automatisch alle alten Werte.
-
-Nutze das [Fresh-Session-Rezept](../examples/game_tests/replay.py) für denselben
-Startzustand, eine geschlossene Aufnahme und die Gegenprüfung in einer neuen
-Session. Während Replay sind keine konkurrierenden Spielbefehle erlaubt außer
-`replay stop`. Der [Datei-/Replay-Vertrag](api/usage.md#replay) erklärt Details.
-
-### Fehlerberichte sammeln
-
-Der gezeigte lokale Provider speichert beobachtete Fehlerberichte unter
-`artifact_dir/reports`. Das Session-Plugin beobachtet Panics; ein beobachteter
-Fehler bedeutet nicht zwangsläufig, dass der Spielprozess bereits beendet ist.
-Gewöhnlicher stderr-Text allein ist kein Fehlerauslöser.
-
-Für Tracing-Errors brauchst du **beides**: `report.tracing_errors = true` in der
-TOML und den Callback `woodpecker::session::tracing_error_layer` in deinem
-`LogPlugin`, bevor das Session-Plugin installiert wird. Die
-[Report-Anleitung](api/usage.md#fehlerbeobachtung-und-snapshots) zeigt den Einbau.
-
-Optional kann der GitHub-Provider Issues veröffentlichen. Das hat echte externe
-Wirkung: eigenes Zielrepository, Anmeldung von `gh` und Inhalte zuerst prüfen.
-Logs, Argumente, Inspect-Werte und Recordings können vertrauliche Daten enthalten.
-Bleibe für den Einstieg beim lokalen Provider. Details zu Veröffentlichung,
-Deduplizierung und lokalem Fallback: [Provider](api/usage.md#automatische-reports-im-server).
-
-## 8. Wenn dein Spiel Assets oder eigene Ladephasen hat
-
-Das Minimalspiel verwendet `manual`, um den Einbau ab dem ersten Tick zu zeigen.
-Ein echtes Spiel ist bei `SessionReady` möglicherweise noch nicht spielbereit.
-Dein Ladezustand bleibt Eigentum des Spiels: registriere ihn für Inspect und
-prüfe ihn zwischen ausdrücklich begrenzten Vorbereitungsticks.
-
-Für automatisches **technisches** Startup ist `startup.kind = "engine"` mit
-`timeout_seconds` und `max_ticks` verfügbar. Dafür muss das Spiel zusätzlich
-`woodpecker::session::startup::Assets` mit seinen tatsächlichen Startup-Handles
-registrieren. Die [Signalstation-Integration](../test_app/src/woodpecker.rs) zeigt
-diesen Adapter. Nur für eine wirklich prozedurale Szene ohne geladene Assets
-ist `Assets(|_| Some(vec![]))` passend; eine unbekannte Assetliste ist `None`,
-nicht absichtlich leer.
-
-Engine-Startup führt normale, gezählte Anwendungsticks aus und meldet anschließend
-`EngineReady`. Diese Ticks gehören zum Startzustand deiner späteren Prüfung.
-`EngineReady` ist keine Aussage darüber, ob Mission, Level oder Menü spielbereit
-sind. Eigene Spiellogik nicht durch erfundene Testzustände oder endloses
-„weiter ticken, bis der Sollwert erscheint“ ersetzen.
-
-## Häufige Stolperstellen
-
-- **Normaler Start panikt wegen fehlendem Artefaktordner:** Session-Plugin nur im
-  servergestarteten Prozess installieren, nicht die interne Umgebung nachbauen.
-- **Session hängt oder reagiert nur bei Fensterfokus:** Plugin-Reihenfolge,
-  Winit-Laufmodus, Builddiagnose und den tatsächlichen `automation`-Build prüfen.
-- **`unknown_type_path` oder Resource nicht lesbar:** Typ registrieren,
-  `ReflectResource`/`ReflectComponent` ableiten und Existenz/Typ-Pfad prüfen.
-- **Input erfolgreich, Spiel unverändert:** Erst nach einem expliziten Tick
-  erwarten; eigenes Input-Mapping, UI-Fokus und Ladezustand kontrollieren.
-- **Persönliche Einstellungen verändert:** Der Spielcode verwendet noch seinen
-  normalen Speicherort statt des Session-Workspaces.
-- **CLI beendet, Fenster noch offen:** Clientende ist kein Sessionende. Die
-  bestätigte eigene Session ausdrücklich stoppen und `Ended` beobachten.
-
-Für genaue Command-Formate und Fehlercodes verwende die
-[Bedienreferenz](api/usage.md); für die vollständige Produktabnahme die
-[Testanleitung](../tests/README.md). Diese Anleitung zeigt die Integration und
-Nutzung, nicht einen Nachweis, dass dein gesamtes Spiel korrekt ist.
+1. **Normales Spiel behalten.** Bevy-Version und Toolchain abgleichen;
+   Spiellogik, Bewegung, Kollisionen und vorhandene Bevy-Eingaben nicht durch
+   Woodpecker-Testlogik ersetzen.
+2. **Abhängigkeit und Einstieg ergänzen.** Die optionale Cargo-Abhängigkeit mit
+   passendem Pfad und benötigten Features aufnehmen; bestehende Features und
+   Lockdatei behalten. Eigenen Integrationsadapter wie `src/woodpecker.rs` nach
+   den Spiel-Plugins aufrufen, nur für kontrollierte Prozesse aktivieren.
+3. **Gerätegrenze prüfen.** Eigene Fokus-/Cursorfilter müssen virtuelle Eingaben
+   zulassen. Bei Picking den virtuellen Pointer statt fest die OS-Maus verwenden.
+   Normalen und kontrollierten Betrieb in dieselben Spielabsichten überführen.
+4. **Beobachtbarkeit wählen.** Vorhandene Ressourcen/Komponenten registrieren,
+   die dein Steuerprogramm braucht. Das ist keine Aufforderung, Tickzähler in
+   Gameplay-Systeme einzubauen. Eigene Geschäftsregeln definieren den Erfolg.
+5. **Start und Dateien anbinden.** Für Engine-Startup tatsächliche Asset-Handles
+   liefern und eigene Ladezustände prüfen; alternativ `startup.kind = "manual"`
+   mit expliziter Vorbereitung wählen. Persönliche Speicherorte im kontrollierten
+   Prozess auf das Verzeichnis aus `WOODPECKER_SESSION_DIR` umstellen.
+6. **Startkonfiguration anpassen und prüfen.** Manifest, Package, Target,
+   Spiel-Features und Spielargumente aus `app.toml` ersetzen. Normal bauen und
+   spielen, kontrolliert starten und eine echte Eingabe samt Zustandsänderung
+   und Session-Ende prüfen. UI, Screenshot oder Tracing-Reports benötigen jeweils
+   die genannten zusätzlichen Voraussetzungen — nicht jede Anwendung alles.

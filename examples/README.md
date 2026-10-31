@@ -1,7 +1,9 @@
 # Game-control examples
 
-For your own game, first follow the [integration and user guide](../docs/user-guide.md).
-It covers game-side setup, a first session and the available features.
+First follow the [Signalstation integration and user guide](../docs/user-guide.md).
+It uses the existing game in `test_app/` to explain normal play, its optional
+Woodpecker adapter and a first controlled session. Transfer that boundary to your
+own game; do not replace gameplay with a counter demo.
 
 Start with [one small task, six ways to control it](game_tests/control.md): move
 right, then release. Simple control comes before comprehensive game checks.

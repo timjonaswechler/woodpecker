@@ -1,7 +1,7 @@
 """Observe x, move one tick at a time to x + 0.2, release and check stillness."""
 import time
 
-from _cli import CONFIG, LEVEL, PLAYER, TICKS, Run, arguments
+from _cli import CONFIG, LEVEL, PLAYER, Run, arguments
 
 
 def main():
@@ -9,7 +9,6 @@ def main():
     with Run(args, "feedback") as game:
         session = game.own(game.cli("session", "create", "--config", str(CONFIG))["id"])
         game.wait_engine(session)
-        startup_ticks = game.resource(session, TICKS)["ticks"]
 
         # Preparation is explicit, separate from the movement budget.
         deadline = time.monotonic() + 10
@@ -23,10 +22,9 @@ def main():
             assert game.call(session, "tick.warp.start", {"ticks": 1}) == {
                 "requested_ticks": 1, "executed_ticks": 1, "outcome": "completed",
             }
-        game.note(preparation={"engine_ticks": startup_ticks, "level_ticks": extra_ticks})
+        game.note(preparation={"level_ticks": extra_ticks})
 
         initial = game.resource(session, PLAYER)["position"]
-        before = game.resource(session, TICKS)["ticks"]
         target_x = initial[0] + 0.2
         position = initial
         assert game.call(session, "input.keyboard.press", {"key": "arrow_right"}) is None
@@ -54,7 +52,6 @@ def main():
             "requested_ticks": 1, "executed_ticks": 1, "outcome": "completed",
         }
         assert game.resource(session, PLAYER)["position"] == position, "Release must stop movement"
-        assert game.resource(session, TICKS)["ticks"] - before == moving_ticks + 1
         game.note(observation={"initial": initial, "final": position,
                                "target_x": target_x, "moving_ticks": moving_ticks,
                                "action_ticks": moving_ticks + 1})

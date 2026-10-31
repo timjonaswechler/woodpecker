@@ -23,7 +23,7 @@ do not move the OS cursor or require window focus. Applications using Bevy UI mu
 enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0.20
 text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
-- **[User guide: integrate your own game and use Woodpecker](docs/user-guide.md)**
+- **[User guide: learn integration on the real Signalstation game](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
 - [CLI usage](docs/api/usage.md)
 - [Historical implementation notes](docs/api/implementation-plan.md)
@@ -37,18 +37,19 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 From this repository's root:
 
 ```sh
-cargo build --features cli --bin woodpecker
+cargo build --locked --features cli --bin woodpecker
+cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-For your own game, follow the [integration and first-session guide](docs/user-guide.md).
-It includes the game-side plugin setup and a complete launch TOML. Once configured,
-in another terminal:
+The [user guide](docs/user-guide.md) first introduces Signalstation as a normal game,
+then explains its actual optional Woodpecker integration and how to transfer that
+boundary to your own game. Start the same game in another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session create --config path/to/application.toml
+  session create --config examples/game_tests/app.toml
 target/debug/woodpecker --address 127.0.0.1:4100 session ls
 ```
 

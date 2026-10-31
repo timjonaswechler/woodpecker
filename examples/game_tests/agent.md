@@ -12,7 +12,7 @@ use. No model credentials belong in game commands, recordings or journals.
 2. Wait for `EngineReady`, explicitly prepare until `LevelLoad` is `Ready`,
    then leave the REPL with `quit`. Do not keep another controlling client active.
 3. Record the full confirmed ID, absolute repository root, loopback address and
-   current `Player.position` and `SimulationTicks.ticks`. Give those to the agent.
+   current `Player.position`. Give those to the agent.
    Only that ID is in scope; do not ask it to discover sessions by listing.
 4. Replace all angle-bracket placeholders in the prompt below. It authorizes
    only the remaining movement and cleanup of this already-created session.
@@ -25,7 +25,7 @@ target/debug/woodpecker --address <loopback address>
 
 You control only session <full confirmed session ID>, already EngineReady with
 LevelLoad Ready, no held keys and no other controller. Initial Player.position:
-<initial position>; initial SimulationTicks.ticks: <initial tick count>.
+<initial position>.
 
 Goal: move right until position[0] >= initial position[0] + 0.2 world units,
 then release and demonstrate one still tick. Allow at most four moving ticks
@@ -40,7 +40,8 @@ rejection, failure, timeout, or an unreadable/unexpected resource.
 
 Observe Player with inspect.query:
 {"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"test_app::player::Player"},"projection":{"kind":"value"}}}
-Read SimulationTicks the same way using test_app::woodpecker::SimulationTicks.
+Count only executed_ticks from successfully completed warps. Do not add or
+require a game-side tick counter.
 
 At every decision, report: current x, target x, ticks used, next action and why.
 First verify the supplied initial state with fresh read-only queries. Press
@@ -51,7 +52,7 @@ other position coordinate changes; do not keep ticking into a blocked path.
 If four moving ticks are exhausted without reaching the goal, report failure.
 
 Release arrow_right with input.keyboard.release and explicitly tick once;
-verify unchanged position and total tick delta = moving ticks + 1.
+verify unchanged position and total reported executed ticks = moving ticks + 1.
 On failure do not invent success or blindly repeat inputs. In all cases stop
 only this owned session with session stop, once, and observe session inspect
 for Ended for at most 40 seconds. Failed or unknown cleanup remains an error.

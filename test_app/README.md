@@ -2,6 +2,12 @@
 
 Eigenständige Bevy-Demo auf der Grundplatte aus dem [Levelplan](../planning/grundplatte_levelplan.pdf). Acht Räume, Galerien auf drei Metern Höhe, sechs Treppen und Brücken verbinden die Aufgaben. Unter den Galerien bleibt der Boden begehbar. Drei versteckte Bereiche bieten zusätzliche Verbindungen und Fundstücke. Der Sprungparcours in der zentralen Halle ist freiwillig.
 
+Signalstation ist zugleich das reale Beispiel für die Integration von Woodpecker
+in ein bestehendes Spiel. Die [Anwenderanleitung](../docs/user-guide.md) erklärt
+normalen und kontrollierten Start, die Anbindung und erste Steuerungsaktionen.
+Beide Betriebsarten verwenden dieselbe Spiellogik; Test-Messinstrumente sind
+keine Voraussetzung, um das Spiel zu integrieren.
+
 ## Spielen
 
 ```sh
