@@ -8,25 +8,7 @@ use crate::{
 };
 use bevy::prelude::*;
 
-/// Distance to a box along a ray, including rays parallel to a face.
-fn box_hit(origin: Vec3, direction: Vec3, center: Vec3, half: Vec3) -> Option<f32> {
-    let mut entry: f32 = 0.;
-    let mut exit = f32::INFINITY;
-    for i in 0..3 {
-        let relative = origin[i] - center[i];
-        if direction[i].abs() < 0.00001 {
-            if relative.abs() > half[i] {
-                return None;
-            }
-        } else {
-            let a = (-half[i] - relative) / direction[i];
-            let b = (half[i] - relative) / direction[i];
-            entry = entry.max(a.min(b));
-            exit = exit.min(a.max(b));
-        }
-    }
-    (exit >= entry).then_some(entry)
-}
+use crate::level::navigation::box_hit;
 
 fn unobstructed(nav: &Navigation, eye: Vec3, point: Vec3, owner: &str) -> bool {
     let delta = point - eye;
@@ -65,7 +47,12 @@ pub fn select(
         (player.feet() + Vec3::Y * 1.5, Vec3::NEG_Z)
     };
     definitions::all()
+        .chain(super::passages::targets())
         .filter(|t| mission.available(t.action))
+        .filter(|t| match t.action {
+            Interaction::Portal(id) => super::passages::accessible(id, player.feet()),
+            _ => true,
+        })
         .filter_map(|target| {
             if (player.height() - target.floor).abs() > 0.4 {
                 return None;

@@ -26,7 +26,11 @@ Der Auftrag ist, drei Energiezellen zu beschaffen und das Signal in H zu starten
 
 24 Münzen und sechs Baupläne sind zusätzliche Sammelziele. Ein Bauplan liegt in der Truhe im Übungsraum G. Um sie zu entriegeln, jede Scheibe aus mindestens sechs Metern Entfernung treffen. Die übrigen Baupläne liegen in den Nebenbereichen und auf den Galerien. Eine Münze erfordert den Sprungparcours. Nach dem Signal bleiben alle Räume begehbar.
 
-Der Wartungsgang G1 verbindet A mit H. G3 führt hinter der Werkhalle ins Archiv. Oben verbindet der goldene Weg durch G2 das Archiv mit dem Gewächshaus. Der Checkpoint in C lässt sich mit E aktivieren.
+Der Checkpoint in C lässt sich mit E aktivieren. Drei optionale Verbindungen beginnen geschlossen: G1 führt hinter Schränken von A nach H, G2 hinter einem Regal von der Archivgalerie zum Gewächshaus und G3 hinter einer Wandplatte von B nach F. G1 lässt sich von beiden Seiten öffnen; der zweite Ausgang von G2 und G3 zunächst nur von innen.
+
+E verschiebt das jeweilige Hindernis. Die Bewegung wartet, wenn ihr Bewegungsraum durch die Figur belegt ist. Öffnen, tatsächliches Betreten und Bauplanbesitz sind getrennt: Die Baupläne liegen von Anfang an in verdeckten Nischen und werden mit den normalen Nähe-, Höhen- und Wegregeln eingesammelt. Sie erscheinen nicht erst bei der Entdeckung. Auch der Ausgang lässt sich ohne Bauplan öffnen.
+
+Vor der Entdeckung ist nur der sichtbare Antritt als Klickziel zugänglich. Eine globale Route nutzt den Durchgang erst nach dem Betreten und mit zwei passierbaren Portalen. Übersicht und Gesamtkarte schneiden den bekannten Innenraum nur in der Nähe der Figur auf; unbekannte Nachbarbereiche bleiben geschlossen. In FPV bleiben Wände und Decken sichtbar. Der Schnitt verändert weder Körper-, Interaktions- noch Schussblocker. Backspace erhält den Fortschritt; R setzt Figur, Portale, Erkundung, Funde und Navigation gemeinsam zurück.
 
 ## Steuerung
 
@@ -44,7 +48,7 @@ Der Wartungsgang G1 verbindet A mit H. G3 führt hinter der Werkhalle ins Archiv
 | Linksklick in FPV | Blaster abfeuern |
 | Esc in FPV | Maus freigeben; Klick ins Level bindet sie wieder |
 | M | Einstellungen öffnen und Spiel pausieren |
-| R | Aufgaben, Sammelobjekte und Figur zurücksetzen |
+| R | Aufgaben, Sammelobjekte, Geheimwege und Figur zurücksetzen |
 | Tab / Umschalt+Tab | UI-Fokus wechseln |
 
 Manuelle Bewegung bricht eine Klickroute ab. Treppen werden automatisch bestiegen. Die Figur besitzt eine Kollisionsbox von 1,2 × 1,2 × 1,82 Metern. Auch ihre Arme und der Kopf bleiben innerhalb dieser Box. Wände, Ecken, Möbel, Zielständer und Galeriekanten halten sie auf. Klickwege verwenden dieselbe Körpergröße und berücksichtigen das Stockwerk; Sprünge steuert man selbst. Der Button „Zum nächsten Auftrag“ führt zum nächsten noch offenen Aufgabenziel. „Zum Schießstand“ führt nach G.
@@ -55,7 +59,7 @@ Die Laufbewegung hebt und senkt `Dummy_Body` relativ zu seiner importierten Ruhe
 
 ## Bedienobjekte verwenden
 
-Interaktionen funktionieren von allen zugänglichen Seiten des Objekts. In FPV muss es in Reichweite und im Fadenkreuz liegen. Der konkrete E-Hinweis erscheint direkt darunter, sobald die Aktion möglich ist. In der Übersicht erscheint die Aktion des nächsten erreichbaren Objekts unten in der Mitte. Wände, andere Stockwerke, freie Maus, Texteingabe und das Menü verhindern die Bedienung. Interaktionsflächen haben keine sichtbaren Bodenringe.
+Interaktionen funktionieren von allen zugänglichen Seiten des Objekts; die inneren Verriegelungen der beiden Geheimweg-Ausgänge bleiben eine ausdrückliche Ausnahme. In FPV muss es in Reichweite und im Fadenkreuz liegen. Der konkrete E-Hinweis erscheint direkt darunter, sobald die Aktion möglich ist. In der Übersicht erscheint die Aktion des nächsten erreichbaren Objekts unten in der Mitte. Wände, andere Stockwerke, freie Maus, Texteingabe und das Menü verhindern die Bedienung. Interaktionsflächen haben keine sichtbaren Bodenringe.
 
 Jedes Bedienobjekt hat eine Funktion: Der Lagerhebel verschiebt das Regal, das Handrad öffnet ein Ventil, das Lesepult scannt eine Archivtafel und der Montageschalter baut eine Zelle. Die Abholung erfolgt am separaten Tisch. Bauteile und Zellen liegen auf der Tischplatte und verschwinden beim Einsammeln. Die Archivtafeln sind weiß und unterscheiden sich von den blauen Bauplänen fürs Inventar.
 
@@ -96,7 +100,7 @@ Steuerung, Zustandsvorschau und Bildexport sind in [test_zoo/README.md](../test_
 
 ### Blender und Level-Export
 
-Die [Blender-Datei](../planning/groundplate/groundplate_concept.blend), der [PDF-Plan](../planning/grundplatte_levelplan.pdf) und das [Style-Handoff](../planning/STYLE_HANDOFF.md) beschreiben den Entwurf. Die Planungsdateien liegen im Repository-Root unter `planning/`. Das Spiel lädt `asset/meshes/environment/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
+Die [Blender-Datei](../planning/groundplate/groundplate_concept.blend) enthält den aktuellen Bauzustand. Der [PDF-Plan](../planning/grundplatte_levelplan.pdf) dokumentiert den Ausgangsentwurf; das [Style-Handoff](../planning/STYLE_HANDOFF.md) nennt die Darstellungsregeln. Die Planungsdateien liegen im Repository-Root unter `planning/`. Das Spiel lädt `asset/meshes/environment/courtyard.gltf` samt `courtyard.bin`; Blender muss zum Spielen nicht laufen.
 
 Im Blender-Outliner lassen sich die folgenden Collections über das Augensymbol unabhängig ausblenden. Das Kamerasymbol steuert die Sichtbarkeit im Renderbild.
 
@@ -114,11 +118,52 @@ blender --background planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python test_app/asset/blender/export_level.py
 ```
 
-Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/import.rs` prüft diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei. Danach verwendet das Level die unveränderliche `LevelDefinition` aus `src/level/definition.rs`. Dort liegen auch die spielseitigen Positionen der Bedienobjekte und Ziele; Navigation, Objektverhalten und Aufgaben bleiben eigene Module.
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/import.rs` prüft diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei. Danach verwendet das Level die unveränderliche `LevelDefinition` aus `src/level/definition.rs`. Alle Bedienobjekte und ihre Anlauf-/Auftragsziele kommen aus `layout.stations`; die drei Geheimwege, ihre sechs Portale und die explizit zugeordneten Schnittflächen aus `layout.passages` und `layout.cutaways`. Navigation, Portalbewegung, Objektverhalten und Aufgaben bleiben eigene Module.
 
 Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
 Die spielbaren Bedienobjekte aus `src/level/objects/` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/level/objects/definitions.rs`. `src/level/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
+
+### Gemeinsames Bauraster und Module
+
+[kit.py](../planning/groundplate/kit.py) definiert die sechs Treppeninstanzen,
+Wandmodule von 1–3 m Länge und die Aufgabenstationen. Bau- und Aufgabenanker
+verwenden ein **1-m-Grundraster** mit 90°-Drehungen. Die Grundrisse der acht
+Haupträume bleiben erhalten; ihre Wände werden aus den gemeinsamen Modulen
+aufgebaut. Das gilt auch für die oberen Anschlüsse und Geheimweg-Sockel.
+Deko, Wandstärken, Stufen und andere lokale Modelldetails bleiben frei. Freie
+Bewegung und das 0,5-m-Navigationsraster sind davon unabhängig.
+
+Alle sechs Treppen verwenden dasselbe vollständige Blender-Modell mit
+integrierten Geländern: `asset/meshes/environment/workshop_stair.gltf` plus BIN.
+Der untere Einfügepunkt ist `(0, 0, 0)`, der obere Anschluss `(0, 3, -8)` in
+lokalen Spielkoordinaten. Die Treppe ist 3 m breit, steigt über zwölf Stufen um
+3 m und läuft 8 m weit. Modell, Laufebenen und Geländer-Kollision kommen aus
+derselben Definition; der Level-Export enthält die sechs Instanzplatzierungen
+statt doppelter Treppengeometrie im Hofmodell.
+
+Geländer entstehen aus den freien Rändern der oberen Flächen. Brückenstöße,
+Treppenmündungen und der freiwillige Parcours bleiben offen. Die L-förmige
+Gewächshausgalerie verbindet ihren Treppenantritt mit Haupt- und Geheimweg.
+Alle Aufgabenstationen exportieren Größe, Basis und freien Anlaufpunkt aus
+`kit.py`; Spielmodelle, Kollision, Fundpositionen und Auftragsführung verwenden
+diese Daten. Die Arbeitsinsel in B bleibt eine gemeinsame Reihe.
+
+[passages.py](../planning/groundplate/passages.py) beschreibt die drei
+Geheimwege einschließlich Wänden, Nischen, Abdeckungen und zwei unabhängigen
+Portalen. Statische Architektur kommt aus Blender; die beweglichen Blätter und
+ihr Verhalten erzeugt `src/level/passages.rs`. Planungsbeschriftungen verraten
+im Spiel keine Geheimnisse.
+
+Nach Änderungen an `kit.py` zuerst das Blender-Modell neu erzeugen, dann wie
+oben exportieren. `--no-render` spart nur die zwei Planungsbilder:
+
+```sh
+blender --background --python-exit-code 1 \
+  --python planning/groundplate/create_model.py -- --no-render
+blender --background planning/groundplate/groundplate_concept.blend \
+  --python-exit-code 1 --python test_app/asset/blender/export_level.py
+```
 
 Der bearbeitete Blaster liegt in [asset/blender/training_blaster.blend](asset/blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
@@ -131,13 +176,23 @@ blender --background test_app/asset/blender/training_blaster.blend \
 
 ```sh
 cargo check --manifest-path test_app/Cargo.toml --all-targets --all-features
+python3 -m unittest discover -s planning/groundplate -p 'test_*.py'
+cargo test --locked -p test_app --all-features --lib
 ```
+
+Die fensterlosen Spieltests prüfen den Export, alle sechs Treppen mit echter
+Körperbewegung, alle Aufgabenanläufe und den Hauptauftrag in unterschiedlicher
+Reihenfolge ohne Geheimwege oder Zielübung. Weitere Fälle prüfen Portalbewegung,
+Seitensperren, Entdeckung auf der richtigen Ebene, normale Fundaufnahme,
+Sicht-/Klickfreigabe, logische Schussblocker, Rückkehr und Reset. Sie ersetzen
+keine grafische Spielabnahme und keine Performance-Messung.
 
 Die [Abnahmesuite](../tests/README.md) prüft Woodpeckers Verträge gegen diese
 Referenz-App: Verwaltung, Startup/Ticks, Inspect, virtuelle Eingaben, Screenshots,
-Recording/Replay, Reports und Shutdown. Der vollständige lokale Lauf und der
-separat freigegebene echte GitHub-Nachweis sind bestanden; geprüfter Quellstand
-und Belege stehen ausschließlich im [Arbeitsplan](../docs/testing-plan.md).
+Recording/Replay, Reports und Shutdown. Der historische vollständige lokale Lauf und der
+separat freigegebene echte GitHub-Nachweis gelten nur für die im
+[Arbeitsplan](../docs/testing-plan.md) genannten Quellstände, nicht automatisch
+für spätere Gameplayänderungen.
 Die früheren Smoke-Test-Startoptionen gehören nicht mehr zur aktuellen Suite.
 In kontrollierten Sessions macht `src/woodpecker.rs` die Last-Schedule-Durchläufe
 als reflektierte Resource `SimulationTicks` lesbar. Der Zähler führt keine Ticks
@@ -320,6 +375,7 @@ Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blende
 | `input/` | Native und kontrollierte Eingaben, Mausbindung, gemeinsame Eingaberegeln und Spielabsichten pro Frame |
 | `player/` | Position, Bewegung, Körpermodell, Kameramodus und gemeinsame Augenpose; Blaster mit Rückstoß und Schussabstand |
 | `level/` | Geprüfte Leveldefinition, Import, Umgebung, Navigation und räumliche Interaktionen |
+| `level/passages.rs` | Portalbewegung, Erkundungsschwellen, Sicht- und Routenfreigabe aus dem Auftragszustand |
 | `level/objects/` | Konkrete Bedienobjekte wie Werkbank, Regal, Ventil und Scanner, ihre Modelle und abgeleitete Darstellung |
 | `level/objects/shooting_range/` | Zielscheiben, Treffer und Punkte; meldet den Abschluss an den Auftrag |
 | `level/mission/` | Aufgabenfortschritt, auftragsgebundene Objektzustände, Inventar und atomare Aktionen |

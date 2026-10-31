@@ -127,6 +127,38 @@ impl Obstacle {
             .all()
     }
 }
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct WalkRegion {
+    pub center: Vec3,
+    pub half: Vec2,
+}
+impl WalkRegion {
+    pub fn contains(&self, point: Vec3) -> bool {
+        (point.y - self.center.y).abs() < 0.35
+            && (point.xz() - self.center.xz()).abs().cmple(self.half).all()
+    }
+}
+
+/// Shared logical ray test: rendering a cutaway never removes this blocker.
+pub(crate) fn box_hit(origin: Vec3, direction: Vec3, center: Vec3, half: Vec3) -> Option<f32> {
+    let mut entry: f32 = 0.;
+    let mut exit = f32::INFINITY;
+    for i in 0..3 {
+        let relative = origin[i] - center[i];
+        if direction[i].abs() < 0.00001 {
+            if relative.abs() > half[i] {
+                return None;
+            }
+        } else {
+            let a = (-half[i] - relative) / direction[i];
+            let b = (half[i] - relative) / direction[i];
+            entry = entry.max(a.min(b));
+            exit = exit.min(a.max(b));
+        }
+    }
+    (exit >= entry).then_some(entry)
+}
+
 #[derive(Default)]
 struct Bin {
     surfaces: Vec<usize>,
@@ -149,6 +181,10 @@ pub struct Navigation {
     max: Vec2,
     bins: HashMap<(i32, i32), Bin>,
     graph: OnceLock<Graph>,
+    restricted: Vec<WalkRegion>,
+    entry_landings: Vec<WalkRegion>,
+    cutaway: HashSet<String>,
+    cut_floors: Vec<WalkRegion>,
 }
 impl Default for Navigation {
     fn default() -> Self {
@@ -201,6 +237,10 @@ impl Navigation {
             max,
             bins: HashMap::new(),
             graph: OnceLock::new(),
+            restricted: Vec::new(),
+            entry_landings: Vec::new(),
+            cutaway: HashSet::new(),
+            cut_floors: Vec::new(),
         };
         nav.rebuild();
         nav
@@ -282,7 +322,78 @@ impl Navigation {
     pub fn walkable(&self, p: Vec3) -> bool {
         self.can_occupy(p) && (self.support(p.xz(), p.y + 0.02) - p.y).abs() < 0.025
     }
+    pub(super) fn restrict_routes(
+        &mut self,
+        regions: Vec<WalkRegion>,
+        entries: Vec<WalkRegion>,
+    ) -> bool {
+        if self.restricted == regions && self.entry_landings == entries {
+            return false;
+        }
+        self.restricted = regions;
+        self.entry_landings = entries;
+        self.graph.take();
+        true
+    }
+    pub(super) fn set_cutaway(&mut self, names: HashSet<String>, floors: Vec<WalkRegion>) {
+        self.cutaway = names;
+        self.cut_floors = floors;
+    }
+    fn route_allowed(&self, p: Vec3) -> bool {
+        !self.restricted.iter().any(|r| r.contains(p))
+            || self.entry_landings.iter().any(|r| r.contains(p))
+    }
+    fn route_segment(&self, a: Vec3, b: Vec3) -> bool {
+        let n = (a.distance(b) / 0.12).ceil().max(1.) as usize;
+        self.clear_segment(a, b)
+            && (0..=n).all(|i| self.route_allowed(a.lerp(b, i as f32 / n as f32)))
+    }
+    fn surface_hit(&self, ray: Ray3d, surface: &Surface) -> Option<f32> {
+        box_hit(
+            ray.origin,
+            *ray.direction,
+            Vec3::new(
+                surface.center[0],
+                (surface.height + surface.bottom) / 2.,
+                surface.center[1],
+            ),
+            Vec3::new(
+                surface.half[0],
+                (surface.height - surface.bottom) / 2.,
+                surface.half[1],
+            ),
+        )
+    }
+    pub(crate) fn ray_hit(&self, ray: Ray3d) -> Option<f32> {
+        self.obstacles
+            .iter()
+            .filter_map(|o| box_hit(ray.origin, *ray.direction, o.center.into(), o.half.into()))
+            .chain(
+                self.surfaces
+                    .iter()
+                    .filter_map(|s| self.surface_hit(ray, s)),
+            )
+            .min_by(f32::total_cmp)
+    }
     pub fn pick(&self, ray: Ray3d) -> Option<Vec3> {
+        let blocker = self
+            .obstacles
+            .iter()
+            .filter(|o| !self.cutaway.contains(o.name()))
+            .filter_map(|o| box_hit(ray.origin, *ray.direction, o.center.into(), o.half.into()))
+            .chain(
+                self.surfaces
+                    .iter()
+                    .filter_map(|s| self.surface_hit(ray, s))
+                    .filter(|d| {
+                        !self
+                            .cut_floors
+                            .iter()
+                            .any(|r| r.contains(ray.get_point(*d)))
+                    }),
+            )
+            .min_by(f32::total_cmp)
+            .unwrap_or(f32::INFINITY);
         self.surfaces
             .iter()
             .map(|s| s.height)
@@ -295,11 +406,20 @@ impl Navigation {
                     || self
                         .surfaces_at(p.xz())
                         .any(|s| s.contains(p.xz()) && (s.height - height).abs() < 0.001);
-                (on_floor && p.xz().cmpge(self.min).all() && p.xz().cmple(self.max).all())
-                    .then_some((d, p))
+                (on_floor
+                    && d <= blocker + 0.02
+                    && self.route_allowed(p)
+                    && !self.cut_floors.iter().any(|r| r.contains(p))
+                    && p.xz().cmpge(self.min).all()
+                    && p.xz().cmple(self.max).all())
+                .then_some((d, p))
             })
             .min_by(|a, b| a.0.total_cmp(&b.0))
             .map(|(_, p)| p)
+    }
+    pub(super) fn clear_body_segment(&self, a: Vec3, b: Vec3) -> bool {
+        let n = (a.distance(b) / 0.08).ceil().max(1.) as usize;
+        (0..=n).all(|i| self.can_occupy(a.lerp(b, i as f32 / n as f32)))
     }
     pub fn clear_segment(&self, a: Vec3, b: Vec3) -> bool {
         if !self.walkable(a) || !self.walkable(b) {
@@ -369,7 +489,7 @@ impl Navigation {
                 levels.dedup_by(|a, b| (*a - *b).abs() < 0.01);
                 for y in levels {
                     let node = Vec3::new(p.x, y, p.y);
-                    if self.walkable(node) {
+                    if self.walkable(node) && self.route_allowed(node) {
                         g.cells[z * width + x].push(g.nodes.len());
                         g.nodes.push(node);
                     }
@@ -392,7 +512,7 @@ impl Navigation {
                             }
                             for &b in &g.cells[nz as usize * width + nx as usize] {
                                 if (g.nodes[a].y - g.nodes[b].y).abs() <= STEP_HEIGHT + 0.001
-                                    && self.clear_segment(g.nodes[a], g.nodes[b])
+                                    && self.route_segment(g.nodes[a], g.nodes[b])
                                 {
                                     g.edges[a].push((b, if dx != 0 && dz != 0 { 14 } else { 10 }));
                                 }
@@ -415,7 +535,7 @@ impl Navigation {
                 }
                 for &i in &g.cells[z as usize * g.width + x as usize] {
                     let d = p.distance_squared(g.nodes[i]);
-                    if d < distance && d < 1.5 && self.clear_segment(p, g.nodes[i]) {
+                    if d < distance && d < 1.5 && self.route_segment(p, g.nodes[i]) {
                         best = Some(i);
                         distance = d;
                     }
@@ -425,10 +545,14 @@ impl Navigation {
         best
     }
     pub fn path(&self, start: Vec3, goal: Vec3) -> Option<VecDeque<Vec3>> {
-        if !self.walkable(start) || !self.walkable(goal) {
+        if !self.walkable(start)
+            || !self.walkable(goal)
+            || !self.route_allowed(start)
+            || !self.route_allowed(goal)
+        {
             return None;
         }
-        if self.clear_segment(start, goal) {
+        if self.route_segment(start, goal) {
             return Some(VecDeque::from([goal]));
         }
         let g = self.graph.get_or_init(|| self.build_graph());
@@ -464,7 +588,7 @@ impl Navigation {
                 while i < points.len() {
                     let mut far = i;
                     for (j, &point) in points.iter().enumerate().skip(i + 1) {
-                        if self.clear_segment(from, point) {
+                        if self.route_segment(from, point) {
                             far = j;
                         }
                     }

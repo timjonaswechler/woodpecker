@@ -12,10 +12,10 @@ RENDER = '04 Kamera und Licht'
 # Furniture in Deko can still have collision in the game; this is a viewing aid.
 GROUPS = {
     (ESSENTIAL, 'Baukoerper und Wege'): {
-        'ONE continuous ground plate', 'G1 maintenance passage', 'G3 store floor',
+        'ONE continuous ground plate', 'G1 maintenance passage', 'Store floor', 'F gallery aisle',
         'Room wall', 'G3 store wall', 'G2 upper room wall', 'Gallery support',
         'Gallery rail top rail', 'Gallery rail post', 'Stair top post',
-        'Optional parkour block', 'G2 concealing shelf',
+        'Optional parkour block', 'G2 concealing shelf', 'Workshop stair module',
         *(f'{key} {name}' for key, name, _, _ in plan.ROOMS),
         *(name for name, _, _ in plan.DECKS),
         *(f'Stair {i}' for i in range(1, 13)),
@@ -39,6 +39,7 @@ GROUPS = {
     (DECORATION, 'Einrichtung'): {
         'Start bench', 'Hall bench', 'Crate', 'Crate strap', 'Machine base',
         'Archive bookcase', 'Archive folder', 'Maintenance cabinet',
+        'Maintenance cable', 'Maintenance cable return',
     },
     (DECORATION, 'Pflanzen'): {'Planter', 'Plant stem', 'Icosphere'},
     (PLANNING, 'Platzhalter'): {'Person legs', 'Person body', 'Sphere', 'Practice start'},
@@ -48,6 +49,9 @@ GROUPS = {
 def object_group(obj):
     if obj.type in {'CAMERA', 'LIGHT'}:
         return (RENDER,)
+    if (obj.get('signalstation_module') or obj.get('signalstation_dynamic_portal') or obj.get('signalstation_solid')
+            or 'signalstation_secret_cut' in obj):
+        return (ESSENTIAL, 'Baukoerper und Wege')
     if obj.type == 'FONT':
         return (PLANNING, 'Beschriftungen')
     # Blender appends .001 etc. to repeated names. Console details belong to

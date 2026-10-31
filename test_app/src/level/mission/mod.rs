@@ -2,7 +2,7 @@
 mod ids;
 pub mod inventory;
 mod objectives;
-pub use ids::{CellId, CoinId, PartId, ScanId, TargetId, ValveId};
+pub use ids::{CellId, CoinId, PartId, PortalId, ScanId, TargetId, ValveId};
 pub use objectives::Objective;
 
 use crate::{
@@ -32,6 +32,7 @@ pub struct Mission {
     cells: [CellState; 3],
     blueprints: [bool; 6],
     secrets: [bool; 3],
+    portals: [bool; 6],
     rack_open: bool,
     practice_reward: bool,
     chest_claimed: bool,
@@ -52,6 +53,7 @@ pub enum Interaction {
     Chest,
     Checkpoint,
     Board,
+    Portal(PortalId),
     None,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -69,6 +71,7 @@ pub enum Outcome {
     ChestClaimed,
     CheckpointSet,
     Briefing,
+    PortalOpening,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ActionRejected {
@@ -111,6 +114,14 @@ impl Mission {
 
     pub fn secrets(&self) -> [bool; 3] {
         self.secrets
+    }
+
+    pub fn portals(&self) -> [bool; 6] {
+        self.portals
+    }
+
+    pub(super) fn discover(&mut self, i: usize) {
+        self.secrets[i] = true;
     }
 
     pub fn blueprints(&self) -> [bool; 6] {
@@ -183,6 +194,7 @@ impl Mission {
             Interaction::Chest => self.practice_reward && !self.chest_claimed,
             Interaction::Checkpoint => !self.checkpoint,
             Interaction::Board => true,
+            Interaction::Portal(i) => !self.portals[i.index()],
             Interaction::None => false,
         }
     }
@@ -203,12 +215,27 @@ impl Mission {
             Interaction::Signal => self.finished,
             Interaction::Chest => self.chest_claimed,
             Interaction::Checkpoint => self.checkpoint,
+            Interaction::Portal(i) => self.portals[i.index()],
             Interaction::Board | Interaction::None => false,
         }
     }
     pub fn interaction(&self, player: &Player, nav: &Navigation, view: &ViewState) -> Interaction {
         crate::level::interactions::select(self, player, nav, view)
     }
+    pub(super) fn collect_blueprints(&mut self, player: &Player, nav: &Navigation) -> bool {
+        let mut collected = false;
+        for (i, p) in DATA.blueprints().into_iter().map(Vec3::from).enumerate() {
+            if i == 5 || (i == 4 && !self.rack_open) {
+                continue;
+            }
+            if !self.blueprints[i] && near(player, p, nav) {
+                self.blueprints[i] = true;
+                collected = true;
+            }
+        }
+        collected
+    }
+
     /// State transitions enforce prerequisites even outside the UI dispatcher.
     pub fn try_apply(&mut self, action: Interaction) -> Result<Outcome, ActionRejected> {
         if !self.available(action) {
@@ -271,6 +298,10 @@ impl Mission {
                 Outcome::CheckpointSet
             }
             Interaction::Board => Outcome::Briefing,
+            Interaction::Portal(i) => {
+                self.portals[i.index()] = true;
+                Outcome::PortalOpening
+            }
             _ => return Err(ActionRejected::Unavailable),
         };
         Ok(outcome)
@@ -307,30 +338,12 @@ pub fn update_progress(
     {
         ui.show("Alle drei Ziele getroffen! Die Truhe hinten rechts ist entriegelt.".into());
     }
-    for (i, p) in DATA.blueprints().into_iter().map(Vec3::from).enumerate() {
-        if i == 5 || (i == 4 && !mission.rack_open) {
-            continue;
-        }
-        if !mission.blueprints[i] && near(&player, p, &nav) {
-            mission.blueprints[i] = true;
-            ui.show("Bauplan eingesammelt.".into());
-        }
-    }
-    for (i, p) in [
-        map::point(34., 5., 0.),
-        map::point(21., 47., 3.),
-        map::point(6.5, 41., 0.),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        if near(&player, p, &nav) {
-            mission.secrets[i] = true;
-        }
+    if mission.collect_blueprints(&player, &nav) {
+        ui.show("Bauplan eingesammelt.".into());
     }
     if player.height() < -2. {
         let p = if mission.checkpoint {
-            map::CHECKPOINT
+            *map::CHECKPOINT
         } else {
             map::START
         };

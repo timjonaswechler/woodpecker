@@ -42,6 +42,8 @@ pub fn handle_actions(
     mut view: ResMut<ViewState>,
     mut coins: ResMut<CoinRun>,
     mut mission: ResMut<Mission>,
+    mut passages: ResMut<crate::level::passages::Passages>,
+    mut nav: ResMut<crate::level::navigation::Navigation>,
     mut range: ResMut<ShootingRange>,
     mut blaster: ResMut<crate::player::blaster::Blaster>,
     mut ui: ResMut<UiState>,
@@ -70,6 +72,7 @@ pub fn handle_actions(
                 view.reset();
                 coins.reset();
                 mission.reset();
+                passages.reset(&mission, &mut player, &view, &mut nav);
                 range.reset();
                 blaster.reset();
                 flow.resume();

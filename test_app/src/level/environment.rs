@@ -20,6 +20,14 @@ pub fn spawn_level(
         "meshes/environment/courtyard.gltf".into(),
         Transform::from_xyz(-39., 0., 27.),
     );
+    for module in &definition::DATA.modules {
+        scene.model(
+            module.asset.clone(),
+            Transform::from_translation(module.origin.into()).with_rotation(Quat::from_rotation_y(
+                module.quarter_turns as f32 * std::f32::consts::FRAC_PI_2,
+            )),
+        );
+    }
     commands.insert_resource(GlobalAmbientLight {
         color: Color::srgb(0.94, 0.96, 1.0),
         brightness: 500.,
@@ -51,15 +59,27 @@ pub fn update_lighting(settings: Res<Settings>, mut lights: Query<&mut Direction
 
 pub fn hide_planning_markers(
     ready: On<bevy::world_serialization::WorldInstanceReady>,
+    mut commands: Commands,
     children: Query<&Children>,
     mut nodes: Query<(&Name, &mut Visibility)>,
 ) {
     for entity in children.iter_descendants(ready.entity) {
-        if let Ok((name, mut visibility)) = nodes.get_mut(entity)
-            && (name.as_str().contains("interaction ring")
-                || crate::level::objects::replaces(name.as_str()))
+        let Ok((name, mut visibility)) = nodes.get_mut(entity) else {
+            continue;
+        };
+        if name.as_str().contains("interaction ring")
+            || crate::level::objects::replaces(name.as_str())
         {
             *visibility = Visibility::Hidden;
+        }
+        if let Some(i) = definition::DATA
+            .cutaways
+            .iter()
+            .position(|c| c.name == name.as_str())
+        {
+            commands
+                .entity(entity)
+                .insert(super::passages::PassageCover(i));
         }
     }
 }

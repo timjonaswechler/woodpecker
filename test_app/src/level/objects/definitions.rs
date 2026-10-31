@@ -30,16 +30,16 @@ impl ObjectDefinition {
 pub use crate::level::definition::{CHEST_CENTER, CHEST_SIZE, INTERACTIVE_OBJECTS, PICKUP_TABLES};
 
 pub fn all() -> impl Iterator<Item = ObjectDefinition> {
-    INTERACTIVE_OBJECTS.into_iter().chain(PICKUP_TABLES)
+    (*INTERACTIVE_OBJECTS).into_iter().chain(*PICKUP_TABLES)
 }
 
 pub fn colliders() -> impl Iterator<Item = Obstacle> {
-    INTERACTIVE_OBJECTS
+    (*INTERACTIVE_OBJECTS)
         .into_iter()
-        .chain(PICKUP_TABLES)
+        .chain(*PICKUP_TABLES)
         .map(|target| {
             let (center, half) = if target.action == Interaction::Chest {
-                (CHEST_CENTER, CHEST_SIZE * 0.5)
+                (*CHEST_CENTER, CHEST_SIZE * 0.5)
             } else if matches!(target.action, Interaction::Part(_) | Interaction::Cell(_)) {
                 let height = if matches!(target.action, Interaction::Part(_)) {
                     0.84

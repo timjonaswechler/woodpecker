@@ -85,10 +85,10 @@ pub fn spawn_objects(
         materials: &mut materials,
         parent: None,
     };
-    for t in INTERACTIVE_OBJECTS {
+    for t in *INTERACTIVE_OBJECTS {
         spawn_instance(&mut s, t);
     }
-    for t in PICKUP_TABLES {
+    for t in *PICKUP_TABLES {
         spawn_instance(&mut s, t);
     }
 }
@@ -218,7 +218,7 @@ fn spawn_instance(s: &mut Scenery, target: ObjectDefinition) -> Entity {
         Interaction::Checkpoint => checkpoint::spawn(s, target.action),
         Interaction::Chest => chest::spawn(s, target.action),
         Interaction::Part(_) | Interaction::Cell(_) => pickups::spawn_table(s, target),
-        Interaction::None => {}
+        Interaction::Portal(_) | Interaction::None => {}
     }
     s.parent = previous;
     root

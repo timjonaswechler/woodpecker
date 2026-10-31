@@ -8,13 +8,14 @@ pub(crate) fn mission(result: Result<Outcome, ActionRejected>) -> String {
         Ok(Outcome::ValveOpened) => "Erstes Ventil offen. Folge dem Rohr zum zweiten Ventil.",
         Ok(Outcome::ArchiveCompleted) => "Archiv vollständig. Auf dem Ausgabetisch liegt eine Energiezelle bereit.",
         Ok(Outcome::PageScanned) => "Tafel gescannt. Suche nach weiteren markierten Tafeln.",
-        Ok(Outcome::CellProduced) => "Zelle gebaut. Sie liegt links auf dem Montagetisch bereit.",
+        Ok(Outcome::CellProduced) => "Zelle gebaut. Sie liegt am Ausgabetisch bereit.",
         Ok(Outcome::CellCollected) => "Energiezelle verstaut.",
         Ok(Outcome::CellsInstalled) => "Zellen eingesetzt. Das Signal steht auf dem Balkon in H.",
         Ok(Outcome::SignalEnabled) => "Signal aktiv! Auftrag geschafft. Die übrigen Fundstücke bleiben erreichbar.",
         Ok(Outcome::ChestClaimed) => "Bauplan aus der Truhe genommen.",
         Ok(Outcome::CheckpointSet) => "Checkpoint gesetzt. Backspace bringt dich hierher zurück.",
         Ok(Outcome::Briefing) => "Drei Zellen starten das Signal: Bauteile in B und D, Ventile in E, Archivtafeln in F. Die Reihenfolge ist frei.",
+        Ok(Outcome::PortalOpening) => "Der Mechanismus öffnet sich. Halte seinen Bewegungsraum frei.",
         Err(ActionRejected::Unavailable) => "Hier gibt es gerade nichts zu tun.",
     }.into()
 }
@@ -34,6 +35,11 @@ impl Interaction {
             Self::Chest => "E · Bauplan aus der Truhe nehmen",
             Self::Checkpoint => "E · Checkpoint aktivieren",
             Self::Board => "E · Auftrag lesen",
+            Self::Portal(id) => match id.index() / 2 {
+                0 => "E · Schrank verschieben",
+                1 => "E · Regal verschieben",
+                _ => "E · Wandplatte verschieben",
+            },
             Self::None => "",
         }
     }
