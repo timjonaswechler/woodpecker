@@ -23,6 +23,7 @@ do not move the OS cursor or require window focus. Applications using Bevy UI mu
 enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0.20
 text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
+- **[User guide: learn integration on the real Signalstation game](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
 - [CLI usage](docs/api/usage.md)
 - [Historical implementation notes](docs/api/implementation-plan.md)
@@ -36,17 +37,19 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 From this repository's root:
 
 ```sh
-cargo build --features cli --bin woodpecker
+cargo build --locked --features cli --bin woodpecker
+cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-Provide a launch TOML for your application; its fields are defined in
-[`src/cli/config.rs`](src/cli/config.rs) and the referenced public configuration types. In another terminal:
+The [user guide](docs/user-guide.md) first introduces Signalstation as a normal game,
+then explains its actual optional Woodpecker integration and how to transfer that
+boundary to your own game. Start the same game in another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session create --config path/to/application.toml
+  session create --config examples/game_tests/app.toml
 target/debug/woodpecker --address 127.0.0.1:4100 session ls
 ```
 
@@ -88,8 +91,9 @@ records their exact source state, evidence and remaining work; this is not a
 claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible
 windows. No headless replacement or automatic retry is used. The
-[game-testing examples](examples/README.md) demonstrate movement, text and replay
-over the public CLI; they are separate from acceptance. The bounded
+[game-control examples](examples/README.md) start with REPL, CLI and fixed scripts,
+then add Python feedback, agent handoff and replay. Advanced recipes cover
+movement and Unicode text checks; all examples are separate from acceptance. The bounded
 [mutation campaign](tests/mutations.md) checks four existing windowless contracts
 in isolated source copies, without claiming universal fault detection.
 

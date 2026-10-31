@@ -47,7 +47,7 @@ pub fn spawn(
         );
         s.commands.entity(e).insert(Pickup::Part(i));
     }
-    for (i, p) in map::CELL_ITEMS.into_iter().enumerate() {
+    for (i, p) in (*map::CELL_ITEMS).into_iter().enumerate() {
         let e = s.item(ItemKind::Cell, Transform::from_translation(p));
         s.commands.entity(e).insert(Pickup::Cell(i));
     }
@@ -63,10 +63,12 @@ pub fn spawn(
         );
         s.commands.entity(e).insert(Pickup::Blueprint(i));
     }
-    for (i, x) in [56.85, 58., 59.15].into_iter().enumerate() {
+    let generator = Vec3::from(map::station("generator").base);
+    for (i, x) in [-4.15, -3., -1.85].into_iter().enumerate() {
         let e = s.item(
             ItemKind::Cell,
-            Transform::from_translation(map::point(x, 6.7, 1.72)).with_scale(Vec3::splat(0.9)),
+            Transform::from_translation(generator + Vec3::new(x, 1.72, 0.3))
+                .with_scale(Vec3::splat(0.9)),
         );
         s.commands.entity(e).insert(Pickup::Socket(i));
     }
@@ -80,7 +82,7 @@ pub fn spawn(
         s.commands.entity(e).insert(Feedback::Water);
     }
     let e = s.block(
-        map::point(73., 12.5, 6.6),
+        Vec3::from(map::station("signal").base) + Vec3::new(0., 3.6, 0.5),
         Vec3::new(2., 0.4, 0.15),
         Color::srgb(1., 0.8, 0.2),
     );
@@ -110,7 +112,10 @@ pub fn update(
                 mission.cells()[i] == CellState::Available,
                 map::CELL_ITEMS[i].y,
             ),
-            Pickup::Socket(i) => (mission.cells()[i] == CellState::Installed, 1.72),
+            Pickup::Socket(i) => (
+                mission.cells()[i] == CellState::Installed,
+                map::station("generator").base[1] + 1.72,
+            ),
             Pickup::Blueprint(i) => (
                 !mission.blueprints()[i]
                     && (i != 4 || mission.rack_open())

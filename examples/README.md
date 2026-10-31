@@ -1,17 +1,25 @@
-# Game-testing examples
+# Game-control examples
 
-Start with [the three public-CLI recipes](game_tests/README.md):
+First follow the [Signalstation integration and user guide](../docs/user-guide.md).
+It uses the existing game in `test_app/` to explain normal play, its optional
+Woodpecker adapter and a first controlled session. Transfer that boundary to your
+own game; do not replace gameplay with a counter demo.
 
-- [Movement](game_tests/movement.py): press, held ticks, release and stillness.
-- [Text](game_tests/text.py): find/focus a real widget, enter Unicode, tick, inspect.
-- [Replay](game_tests/replay.py): record a short input sequence and replay it in a fresh session.
+Start with [one small task, six ways to control it](game_tests/control.md): move
+right, then release. Simple control comes before comprehensive game checks.
 
-These examples use Signalstation-specific reflected data and a server you manage.
-They do not import the project's test helpers or certify full product acceptance.
-Build/server commands, exact app/tick budgets, scoped graphical permission and
-owned-session cleanup are described in the linked guide. Keep the desktop awake
-and the game windows partly visible before starting. No automatic retry or
-headless replacement.
+1. [REPL](game_tests/control.md#1-you-decide-the-repl): enter one command at a time.
+2. [CLI](game_tests/control.md#2-you-decide-individual-cli-calls): submit and observe individual commands.
+3. [Scripts](game_tests/control.md#3-a-file-decides-the-sequence-native-scripts): run a fixed sequence from JSON files.
+4. [Python](game_tests/control.md#4-your-program-decides-python-feedback): choose the next action from current position.
+5. [Agent](game_tests/agent.md): hand the same public tools to a bounded agent loop.
+6. [Replay](game_tests/control.md#6-a-recording-decides-replay): repeat recorded inputs in a fresh session.
 
-The [test plan](../docs/testing-plan.md) owns execution evidence and progress;
-the [acceptance suite](../tests/README.md) owns comprehensive feature coverage.
+Then explore the [advanced public-CLI recipes](game_tests/README.md): per-tick
+movement assertions, real Unicode text editing and recording/replay isolation.
+
+All examples use Signalstation-specific reflected data and a server you manage.
+[Build/server setup and graphical constraints](game_tests/README.md#run-from-the-repository-root)
+apply to every path. These are examples, not full product acceptance; the
+[acceptance suite](../tests/README.md) owns that coverage and the
+[test plan](../docs/testing-plan.md) owns its execution evidence.

@@ -1,5 +1,10 @@
 # Bedienung und Tests
 
+Neu bei Woodpecker? Die [Anwenderanleitung](../user-guide.md) erklärt die tatsächliche
+Integration in Signalstation (`test_app`), den ersten kontrollierten Start und
+wie du diesen Weg auf dein eigenes Spiel überträgst.
+Diese Seite beschreibt die Bedienung und Einzelverträge im Detail.
+
 Woodpecker unterstützt Sessionverwaltung, explizite Warps, Resource-/Entity-Inspect,
 virtuelle Eingaben, Screenshots, Recording/Replay, Reports, REPL, Scripts und Shutdown.
 Der [Zielvertrag](target.md) ist maßgeblich; aktueller Prüfstand und verbleibende
