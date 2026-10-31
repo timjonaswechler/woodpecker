@@ -47,7 +47,7 @@ pub fn spawn(
         );
         s.commands.entity(e).insert(Pickup::Part(i));
     }
-    for (i, p) in map::CELL_ITEMS.into_iter().enumerate() {
+    for (i, p) in (*map::CELL_ITEMS).into_iter().enumerate() {
         let e = s.item(ItemKind::Cell, Transform::from_translation(p));
         s.commands.entity(e).insert(Pickup::Cell(i));
     }

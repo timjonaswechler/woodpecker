@@ -15,7 +15,7 @@ GROUPS = {
         'ONE continuous ground plate', 'G1 maintenance passage', 'G3 store floor',
         'Room wall', 'G3 store wall', 'G2 upper room wall', 'Gallery support',
         'Gallery rail top rail', 'Gallery rail post', 'Stair top post',
-        'Optional parkour block', 'G2 concealing shelf',
+        'Optional parkour block', 'G2 concealing shelf', 'Workshop stair module',
         *(f'{key} {name}' for key, name, _, _ in plan.ROOMS),
         *(name for name, _, _ in plan.DECKS),
         *(f'Stair {i}' for i in range(1, 13)),

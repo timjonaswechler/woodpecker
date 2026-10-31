@@ -114,11 +114,48 @@ blender --background planning/groundplate/groundplate_concept.blend \
   --python-exit-code 1 --python test_app/asset/blender/export_level.py
 ```
 
-Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/import.rs` prüft diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei. Danach verwendet das Level die unveränderliche `LevelDefinition` aus `src/level/definition.rs`. Dort liegen auch die spielseitigen Positionen der Bedienobjekte und Ziele; Navigation, Objektverhalten und Aufgaben bleiben eigene Module.
+Unter macOS kann `blender` durch `/Applications/Blender.app/Contents/MacOS/Blender` ersetzt werden. Der Export verändert die gespeicherte Blend-Datei nicht. Er entfernt die statischen Platzhalter für Figur, Sammelobjekte und Zielscheiben, die das Spiel selbst erzeugt. Die Räume, Treppen, Galerien und Fundpositionen kommen aus `planning/groundplate/layout.py`; Hindernisse aus benannten Objekten der Blend-Datei. Geometrieänderungen an den Laufwegen müssen deshalb in beiden Quellen übereinstimmen. Der Exporter schreibt Räume, begehbare Flächen, Hindernisse und Fundpositionen in `courtyard.gltf` unter `extras.signalstation.layout`. `src/level/import.rs` prüft diese Metadaten beim Initialisieren aus der beim Kompilieren eingebundenen glTF-Datei. Danach verwendet das Level die unveränderliche `LevelDefinition` aus `src/level/definition.rs`. Dort liegen auch die spielseitigen Positionen der übrigen Bedienobjekte und Ziele. Der unten beschriebene Pilot importiert seine Positionen bereits aus demselben Export; Navigation, Objektverhalten und Aufgaben bleiben eigene Module.
 
 Der Export enthält auch ausgeblendete Collections. Die Sichtbarkeit in Blender dient nur der Bearbeitung und den Planungsrenders; sie entfernt keine Objekte oder Kollisionen aus der Demo.
 
 Die spielbaren Bedienobjekte aus `src/level/objects/` ersetzen die einfachen Konsolen des Blender-Entwurfs zur Laufzeit. Ihre Kollisionskörper und die unsichtbaren Interaktionsbereiche verwenden die Definitionen aus `src/level/objects/definitions.rs`. `src/level/interactions.rs` prüft Blickrichtung, Reichweite und freie Sicht. Die alten Konsolen und Bodenringe bleiben im Spiel ausgeblendet.
+
+### Modularer Platzierungspilot in Werkhalle B
+
+[kit.py](../planning/groundplate/kit.py) definiert die Treppe und die Arbeitsinsel.
+Bau- und Aufgabenplatzierungen verwenden ein **1-m-Grundraster**; größere
+Module wie die 3 m breite und 3 m hohe Treppe bauen darauf auf. Das Raster ist
+für Räume, Wände, Treppen, Übergänge und aufgabenrelevante Objekte vorgesehen.
+Deko wird anschließend ohne Rasterzwang gesetzt; Wandstärken, Stufen und andere
+Details innerhalb eines Modells bleiben ebenfalls frei. Die Treppe lässt sich
+in 90°-Schritten drehen. Freie Bewegung und das 0,5-m-Navigationsraster bleiben
+unabhängig davon.
+
+Im Piloten sind die Treppenanschlüsse sowie die Arbeitsinsel und ihre
+Anlaufpunkte auf ganze Meter ausgerichtet. Die übrigen bestehenden Räume und
+Aufgabenobjekte sind noch nicht auf dieses Bauraster migriert.
+
+Die Treppe ist ein vollständiges Blender-Modell mit integrierten Geländern:
+`asset/meshes/environment/workshop_stair.gltf` plus BIN. Ihr lokaler Einfügepunkt
+liegt am unteren Antritt `(0, 0, 0)`, der obere Anschluss bei `(0, 3, -8)` in
+Spielkoordinaten. Sie ist 3 m breit und hat zwölf Stufen. Modell, Laufebenen und
+Geländer-Kollisionskörper entstehen aus derselben Definition; der Level-Export
+enthält nur ihre Instanzplatzierung, nicht noch eine zweite Kopie der Geometrie.
+
+Bauteilablage, Montagepresse und Zellenausgabe bilden eine gemeinsame Reihe.
+Ihre Größen, Positionen und freien Anlaufpunkte werden als `layout.workshop`
+exportiert. Spielmodelle, Kollisionskörper, Fundpositionen und Auftragsführung
+verwenden diese Daten. Die übrigen fünf Treppen und Räume bleiben unverändert.
+
+Nach Änderungen an `kit.py` zuerst das Blender-Modell neu erzeugen, dann wie
+oben exportieren. `--no-render` spart nur die zwei Planungsbilder:
+
+```sh
+blender --background --python-exit-code 1 \
+  --python planning/groundplate/create_model.py -- --no-render
+blender --background planning/groundplate/groundplate_concept.blend \
+  --python-exit-code 1 --python test_app/asset/blender/export_level.py
+```
 
 Der bearbeitete Blaster liegt in [asset/blender/training_blaster.blend](asset/blender/training_blaster.blend). Nach Änderungen separat exportieren:
 
@@ -131,7 +168,14 @@ blender --background test_app/asset/blender/training_blaster.blend \
 
 ```sh
 cargo check --manifest-path test_app/Cargo.toml --all-targets --all-features
+python3 -m unittest discover -s planning/groundplate -p 'test_*.py'
+cargo test --locked -p test_app --all-features --lib
 ```
+
+Die fensterlosen Pilottests prüfen Platzierung, Export, Treppenanschlüsse,
+Körperbewegung, freie Anlaufpunkte und die realen Interaktionsregeln der
+Arbeitsinsel. Sie ersetzen keine grafische Spielabnahme und keine
+Performance-Messung.
 
 Die [Abnahmesuite](../tests/README.md) prüft Woodpeckers Verträge gegen diese
 Referenz-App: Verwaltung, Startup/Ticks, Inspect, virtuelle Eingaben, Screenshots,

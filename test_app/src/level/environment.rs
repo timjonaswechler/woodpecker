@@ -20,6 +20,14 @@ pub fn spawn_level(
         "meshes/environment/courtyard.gltf".into(),
         Transform::from_xyz(-39., 0., 27.),
     );
+    for module in &definition::DATA.modules {
+        scene.model(
+            module.asset.clone(),
+            Transform::from_translation(module.origin.into()).with_rotation(Quat::from_rotation_y(
+                module.quarter_turns as f32 * std::f32::consts::FRAC_PI_2,
+            )),
+        );
+    }
     commands.insert_resource(GlobalAmbientLight {
         color: Color::srgb(0.94, 0.96, 1.0),
         brightness: 500.,
