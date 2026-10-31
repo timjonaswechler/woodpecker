@@ -58,6 +58,23 @@ LABELS = [("A",8,8),("B",7,20.5),("C",35,15),("D",63,25),
 SECRETS = [("G1",34,5,0),("G2",21,47,3),("G3",6.5,41,0)]
 
 
+def workshop_gallery_rails():
+    """Protect B's exposed edges, leaving only its stair and bridge sockets open."""
+    x0, y0, x1, y1 = next(bounds for name, bounds, _ in DECKS if name == "B gallery")
+    _, bridge_y0, _, bridge_y1 = next(bounds for name, bounds, _ in DECKS
+                                     if name == "Bridge B C")
+    stair_x = WORKSHOP_STAIR.placement.origin[0]
+    stair_half = WORKSHOP_STAIR.width / 2
+    return [
+        ("h", y0, x0, stair_x - stair_half),
+        ("h", y0, stair_x + stair_half, x1),
+        ("h", y1, x0, x1),
+        ("v", x0, y0, y1),
+        ("v", x1, y0, bridge_y0),
+        ("v", x1, bridge_y1, y1),
+    ]
+
+
 def walls():
     """Merge shared room boundaries and cut real openings for every doorway."""
     axes = {}

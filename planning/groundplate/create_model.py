@@ -150,7 +150,7 @@ pilot_stair.rotation_euler.z = plan.WORKSHOP_STAIR.placement.quarter_turns * pi 
 for x,y0,y1 in plan.STAIRS[1:]: stairs('Stair',x,y0,y1,teal)
 
 # Rails leave stair heads, bridge junctions and the parkour landing clear.
-for axis,coord,lo,hi in [
+for axis,coord,lo,hi in plan.workshop_gallery_rails() + [
     ('h',35,18,29),('h',32,18,29),('h',37,29,47),
     ('h',35,47,55),('h',32,47,55),('h',36,57,75),
     ('h',31,55,69.4),('h',31,72.6,75),

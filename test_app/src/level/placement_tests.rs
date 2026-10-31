@@ -28,6 +28,30 @@ fn stair_connects_both_landings_by_route_and_body_movement() {
 }
 
 #[test]
+fn workshop_gallery_edges_block_walking_but_leave_connections_open() {
+    let nav = navigation_world();
+    for (x, y) in [
+        (9.75, 31.),
+        (15., 31.),
+        (9., 33.5),
+        (14., 36.),
+        (18., 31.5),
+        (18., 35.5),
+    ] {
+        assert!(
+            !nav.can_occupy(map::point(x, y, 3.)),
+            "open gallery edge at {x}, {y}"
+        );
+    }
+    assert!(nav.clear_segment(map::point(12., 32., 3.), map::point(16., 33.5, 3.)));
+    assert!(nav.clear_segment(map::point(16., 33.5, 3.), map::point(21., 33.5, 3.)));
+    assert!(
+        nav.walkable(map::point(15., 34., 0.)),
+        "ground below gallery stays open"
+    );
+}
+
+#[test]
 fn workshop_front_aisle_and_all_three_approaches_are_clear() {
     let nav = navigation_world();
     let workshop = &map::DATA.workshop;

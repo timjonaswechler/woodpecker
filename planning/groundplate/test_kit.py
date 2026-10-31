@@ -66,6 +66,26 @@ class PlacementTests(unittest.TestCase):
             self.assertIn(rail, data["obstacles"])
         self.assertNotIn(WORKSHOP_STAIR.name, [n.get("name") for n in courtyard["nodes"]])
 
+    def test_workshop_gallery_has_visible_rails_except_at_its_connections(self):
+        doc = json.loads((ASSETS / "meshes/environment/courtyard.gltf").read_text())
+        obstacles = doc["extras"]["signalstation"]["layout"]["obstacles"]
+        mesh_names = {n.get("name") for n in doc["nodes"] if "mesh" in n}
+
+        def rails_at(x, y):
+            point = game_point((x, y, 3.75))
+            return [o for o in obstacles if o["name"].startswith("Gallery rail")
+                    and all(abs(p - c) <= h + 1e-5 for p, c, h
+                            in zip(point, o["center"], o["half"]))]
+
+        for x, y in [(9.75, 31), (15, 31), (9, 33.5), (14, 36),
+                     (18, 31.5), (18, 35.5)]:
+            with self.subTest(edge=(x, y)):
+                rails = rails_at(x, y)
+                self.assertTrue(rails, "unprotected workshop gallery edge")
+                self.assertTrue(all(o["name"] in mesh_names for o in rails))
+        self.assertFalse(rails_at(12, 31), "stair landing must stay open")
+        self.assertFalse(rails_at(18, 33.5), "bridge connection must stay open")
+
     def test_complete_stair_asset_has_local_pivot_and_shared_material_mesh(self):
         path = ASSETS / WORKSHOP_STAIR.asset
         doc = json.loads(path.read_text())
