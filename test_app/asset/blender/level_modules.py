@@ -1,4 +1,4 @@
-"""Blender geometry for the pilot stair; dimensions come from groundplate/kit.py."""
+"""Shared Blender stair geometry; dimensions come from groundplate/kit.py."""
 import bpy
 from mathutils import Vector
 

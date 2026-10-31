@@ -40,7 +40,7 @@ pub(crate) fn navigate(
         }
         if matches!(action, Action::Checkpoint) {
             let p = if mission.checkpoint() {
-                map::CHECKPOINT
+                *map::CHECKPOINT
             } else {
                 map::START
             };

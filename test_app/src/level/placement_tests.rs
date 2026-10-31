@@ -54,19 +54,20 @@ fn workshop_gallery_edges_block_walking_but_leave_connections_open() {
 #[test]
 fn workshop_front_aisle_and_all_three_approaches_are_clear() {
     let nav = navigation_world();
-    let workshop = &map::DATA.workshop;
-    for station in [&workshop.part, &workshop.craft, &workshop.output] {
+    let part = map::station("part0");
+    let output = map::station("cell0");
+    for station in [part, map::station("craft"), output] {
         let approach = Vec3::from(station.approach);
         assert!(nav.walkable(approach), "blocked approach: {approach:?}");
         assert!(nav.path(map::START, approach).is_some());
     }
-    let start = Vec3::from(workshop.part.approach);
-    let end = Vec3::from(workshop.output.approach);
+    let start = Vec3::from(part.approach);
+    let end = Vec3::from(output.approach);
     assert!(nav.clear_segment(start, end));
-    assert_eq!(map::DATA.gears()[0], workshop.part.base);
+    assert_eq!(map::DATA.gears()[0], part.base);
     assert_eq!(
         map::PICKUP_TABLES[0].center.xz(),
-        Vec3::from(workshop.part.base).xz()
+        Vec3::from(part.base).xz()
     );
     assert_eq!(map::PICKUP_TABLES[2].center.xz(), map::CELL_ITEMS[0].xz());
 }
@@ -143,6 +144,12 @@ fn malformed_pilot_metadata_is_rejected() {
     .unwrap();
     for (field, value) in [
         ("modules/0/quarter_turns", serde_json::json!(4)),
+        ("stations/scan1/approach/0", serde_json::json!(0.5)),
+        ("passages/0/portals/0/anchor/0", serde_json::json!(0.5)),
+        ("passages/0/portals/0/half/0", serde_json::json!(0)),
+        ("passages/0/portals/0/inward", serde_json::json!([1, 1, 0])),
+        ("passages/1/volumes/0/0", serde_json::json!(17.5)),
+        ("cutaways/0/secret", serde_json::json!(3)),
         ("modules/0/origin/0", serde_json::json!(1e100)),
         ("modules/0/origin/0", serde_json::json!(-26.75)),
         ("modules/0/exit/2", serde_json::json!(-4.5)),

@@ -31,5 +31,6 @@ identity!(ValveId, 2);
 identity!(ScanId, 3);
 identity!(CellId, 3);
 identity!(TargetId, 3);
+identity!(PortalId, 6);
 
 identity!(CoinId, 24);

@@ -6,6 +6,8 @@ from math import pi
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import layout as plan
+from layout import station_point
+import passages
 from scene_collections import organize_scene
 
 ROOT = Path(__file__).resolve().parents[2] / 'test_app'
@@ -52,11 +54,11 @@ def box(name,x,y,z,w,d,h,m,bevel=.04):
 
 
 def wall_x(name,x0,x1,y,z=0,h=2.2):
-    if x1>x0: box(name,(x0+x1)/2,y,z,x1-x0,.45,h,wall)
+    if x1>x0: return box(name,(x0+x1)/2,y,z,x1-x0,.45,h,wall)
 
 
 def wall_y(name,x,y0,y1,z=0,h=2.2):
-    if y1>y0: box(name,x,(y0+y1)/2,z,.45,y1-y0,h,wall)
+    if y1>y0: return box(name,x,(y0+y1)/2,z,.45,y1-y0,h,wall)
 
 
 def deck(name,x0,y0,x1,y1,m):
@@ -64,24 +66,17 @@ def deck(name,x0,y0,x1,y1,m):
 
 
 def rails_y(name,x,y0,y1):
-    box(name+' top rail',x,(y0+y1)/2,3.7,.12,y1-y0,.12,dark)
+    parts = [box(name+' top rail',x,(y0+y1)/2,3.7,.12,y1-y0,.12,dark)]
     n=max(1,int((y1-y0)/2.5))
-    for i in range(n+1): box(name+' post',x,y0+(y1-y0)*i/n,3,.12,.12,.75,dark)
+    parts.extend(box(name+' post',x,y0+(y1-y0)*i/n,3,.12,.12,.75,dark) for i in range(n+1))
+    return parts
 
 
 def rails_x(name,y,x0,x1):
-    box(name+' top rail',(x0+x1)/2,y,3.7,x1-x0,.12,.12,dark)
+    parts = [box(name+' top rail',(x0+x1)/2,y,3.7,x1-x0,.12,.12,dark)]
     n=max(1,int((x1-x0)/2.5))
-    for i in range(n+1): box(name+' post',x0+(x1-x0)*i/n,y,3,.12,.12,.75,dark)
-
-
-def stairs(name,x,y0,y1,m):
-    n=12;step=(y1-y0)/n
-    for i in range(n):
-        box(name+f' {i+1}',x,y0+(i+.5)*step,0,2.7,abs(step),(i+1)*.25,m,.02)
-    for side in [-1,1]:
-        # End posts make the stair head identifiable without hiding the steps.
-        box(name+' top post',x+side*1.35,y1-.15,3,.13,.13,.8,dark)
+    parts.extend(box(name+' post',x0+(x1-x0)*i/n,y,3,.12,.12,.75,dark) for i in range(n+1))
+    return parts
 
 
 def label(txt,x,y,z,size=1.3,m=dark):
@@ -97,6 +92,20 @@ def disk(name,x,y,z,r,m):
     obj=bpy.context.object;obj.name=name;obj.data.materials.append(m)
     return obj
 
+def mark_cut(obj, secret, portal=None, solid=True):
+    obj['signalstation_secret_cut'] = secret
+    obj['signalstation_portal_cut'] = -1 if portal is None else secret * 2 + portal
+    obj['signalstation_solid'] = solid
+    return obj
+
+
+def secret_wall_segment(segment, owner, z=0, name='Secret wall'):
+    # Leave a visible plinth in overview; the full wall stays physical.
+    base = wall_segment(*segment, z=z, h=.5, name=name+' base')
+    base['signalstation_solid'] = True
+    mark_cut(wall_segment(*segment, z=z+.5, h=2.2, name=name+' upper'), owner)
+
+
 # Eight main rooms on a larger continuous slab. Colors identify their uses.
 room_mats={key:mat(name,color) for key,name,_,color in plan.ROOMS}
 green=mat('Plants','477B4D');leaf=mat('Leaves','81AA64')
@@ -109,8 +118,8 @@ def floor(name,bounds,z,material,thickness=.035):
 
 
 def wall_segment(axis,coord,lo,hi,z=0,h=2.5,name='Room wall'):
-    if axis=='h': wall_x(name,lo,hi,coord,z,h)
-    else: wall_y(name,coord,lo,hi,z,h)
+    if axis=='h': return wall_x(name,lo,hi,coord,z,h)
+    return wall_y(name,coord,lo,hi,z,h)
 
 
 def upright_disk(name,x,y,z,r,material):
@@ -135,47 +144,71 @@ for key,name,bounds,_ in plan.ROOMS:
     x0,y0,x1,y1=bounds
     floor(key+' '+name,(x0+.22,y0+.22,x1-.22,y1-.22),.045,room_mats[key])
 floor('G1 maintenance passage',(18.22,.22,49.78,9.78),.05,purple)
-for axis,coord,lo,hi in plan.walls():
-    wall_segment(axis,coord,lo,hi,h=.5 if axis=='h' and coord==0 else 2.5)
+main_walls = plan.walls()
+for segment in main_walls:
+    axis, coord, lo, hi = segment
+    owner = next((i for i, p in enumerate(passages.PASSAGES)
+                  if p['floor'] == 0 and passages.on_boundary(segment, p)), None)
+    if owner is not None:
+        secret_wall_segment(segment, owner, name='Room wall')
+    else:
+        wall_segment(*segment, h=.5 if axis=='h' and coord==0 else 2.5)
 
-# G3 is a store between B and F, below the archive gallery.
-floor('G3 store floor',(3,38,10,43),.08,purple)
-for axis,coord,lo,hi in [('v',3,38,43),('v',10,38,43),('h',43,3,5),('h',43,8,10)]:
-    wall_segment(axis,coord,lo,hi,name='G3 store wall')
 for name,bounds,kind in plan.DECKS:
-    floor(name,bounds,3,gold if kind=='secret' else teal,.28)
-pilot_stair = build_stair(plan.WORKSHOP_STAIR, teal, dark)
-pilot_stair.location = plan.WORKSHOP_STAIR.placement.origin
-pilot_stair.rotation_euler.z = plan.WORKSHOP_STAIR.placement.quarter_turns * pi / 2
-for x,y0,y1 in plan.STAIRS[1:]: stairs('Stair',x,y0,y1,teal)
-
-# Rails leave stair heads, bridge junctions and the parkour landing clear.
-for axis,coord,lo,hi in plan.workshop_gallery_rails() + [
-    ('h',35,18,29),('h',32,18,29),('h',37,29,47),
-    ('h',35,47,55),('h',32,47,55),('h',36,57,75),
-    ('h',31,55,69.4),('h',31,72.6,75),
-    ('v',54,36,40),('v',57,36,40),
-    ('h',47.5,24,51),('h',44.5,24,51),
-    ('h',44,4,6.4),('h',44,9.6,17),('h',40,4,22),
-    ('h',15,64,76),('v',76,10,15),
-    ('h',31,29,30.5),('h',31,33.5,40.4),('h',31,43.6,47),
-]:
-    if axis=='h': rails_x('Gallery rail',coord,lo,hi)
-    else: rails_y('Gallery rail',coord,lo,hi)
+    if name == 'F gallery':
+        obj = mark_cut(floor('F gallery over store',(4,40,10,44),3,teal,.28), 2, solid=False)
+        obj['signalstation_walk_bounds'] = [4,40,10,44]
+        floor('F gallery aisle',(10,40,22,44),3,teal,.28)
+    else:
+        floor(name,bounds,3,gold if kind=='secret' else teal,.28)
+for module in plan.STAIR_MODULES:
+    obj = build_stair(module, teal, dark)
+    obj.location = module.placement.origin
+    obj.rotation_euler.z = module.placement.quarter_turns * pi / 2
+for axis,coord,lo,hi in plan.gallery_rails():
+    parts = (rails_x('Gallery rail',coord,lo,hi) if axis=='h'
+             else rails_y('Gallery rail',coord,lo,hi))
+    if ((axis=='h' and coord in (40,44) and 4<=lo<hi<=10)
+            or (axis=='v' and coord==4 and 40<=lo<hi<=44)):
+        for obj in parts: mark_cut(obj, 2)
 for x,y in [(10,35),(17,35),(25,33),(30,36),(46,36),(51,33),
-            (57,35),(74,35),(55,39),(52,46),(61,46),
+            (57,35),(74,35),(55,39),(52,46),(61,42),
             (5,41),(21,41),(26,46),(38,46),(48,46),(65,14),(75,14)]:
     box('Gallery support',x,y,0,.4,.4,2.72,dark)
 
-# G2 opens from the archive gallery and crosses above the exercise room.
-for axis,coord,lo,hi in [('v',17,44,49),('h',49,17,24),
-                       ('h',44,17,18),('h',44,21,24),('v',24,47.5,49)]:
-    wall_segment(axis,coord,lo,hi,z=3,h=1.5,name='G2 upper room wall')
-box('G2 concealing shelf',22.4,44.3,3,2,.65,1.15,boxmat)
+# Physical roofs and walls stay collidable even when the overview cuts them away.
+for i, secret in enumerate(passages.PASSAGES):
+    if secret['id'] == 'G3': floor('Store floor',(3,38,10,43),.08,purple)
+    for segment in list(passages.shells(secret)) + secret['partitions']:
+        axis, coord, lo, hi = segment
+        shared = secret['floor'] == 0 and all(any(
+            a == axis and c == coord and l <= v+.5 <= h for a,c,l,h in main_walls)
+            for v in range(int(lo), int(hi)))
+        if shared: continue
+        for start in range(int(lo), int(hi), 3):
+            secret_wall_segment((axis,coord,start,min(hi,start+3)), i, z=secret['floor'])
+    for r, (bounds, entry) in enumerate(passages.roofs(secret)):
+        pieces = [bounds]
+        if secret['floor'] == 0:
+            for _, upper_bounds, kind in plan.DECKS:
+                if kind == 'main':
+                    pieces = [part for b in pieces for part in passages.subtract_rect(b, upper_bounds)]
+        for part, bounds in enumerate(pieces):
+            mark_cut(floor(f'Secret cover {i}/{r}/{part}', bounds,
+                           secret['floor']+3,wall,.3), i, entry)
+    for j, portal in enumerate(secret['portals']):
+        axis, coord, lo, hi, _, _, _ = portal
+        obj = wall_segment(axis,coord,lo,hi,z=secret['floor']+2.5,h=.2,name='Secret frame')
+        mark_cut(obj, i)
+        x,y = (coord,(lo+hi)/2) if axis == 'v' else ((lo+hi)/2,coord)
+        obj = box(f'Portal preview {i}/{j}',x,y,secret['floor'],
+                  .7 if axis=='v' else hi-lo, hi-lo if axis=='v' else .7,2.5,
+                  boxmat if i < 2 else wall)
+        obj['signalstation_dynamic_portal'] = True
 
 # A: the visible starting point and the mission board.
 disk('Start',7,5,.06,1.4,teal)
-console('Mission board',4,13)
+console('Mission board',*station_point('board'))
 box('Start bench',4,8,.05,4,.8,.55,boxmat)
 for x,y in [(16,2.3),(16.3,7.1)]: crate(x,y)
 
@@ -189,7 +222,7 @@ for x,y in [(3.5,36),(9.7,36),(15.5,24)]: crate(x,y)
 
 # C: a broad central hall with an optional jump route and stairs beside it.
 for x,y,z in plan.PARKOUR: box('Optional parkour block',x,y,0,2.5,2.5,z,boxmat)
-disk('Hall checkpoint',23,22,.06,.9,teal)
+disk('Hall checkpoint',*station_point('checkpoint','approach')[:2],.06,.9,teal)
 console('Hall map',21,34)
 for x,y in [(23,30),(46,19)]: box('Hall bench',x,y,0,3.5,1,.65,boxmat)
 box('Person legs',37,33,.05,.45,.4,.65,dark)
@@ -199,10 +232,12 @@ bpy.context.object.data.materials.append(white)
 
 # D: movable storage, a switch and an extra reward behind the crates.
 for x,y in [(58,23),(61,23),(74,24),(75,25.5),(68,35),(62,28)]: crate(x,y)
-for x in [64,68]: box('Storage rack rail',x,26,.05,.12,6,.07,dark)
-box('Movable storage rack',66,27,0,3,1.4,1.3,boxmat)
-console('Storage rack lever',59,27)
-box('Lever handle',59,27,1.1,.15,.15,.8,orange)
+px, py, pz = station_point('part1')
+for x in [px-2,px+2]: box('Storage rack rail',x,py,pz+.05,.12,6,.07,dark)
+box('Movable storage rack',px,py+1,pz,3,1.4,1.3,boxmat)
+console('Storage rack lever',*station_point('rack'))
+rx, ry, _ = station_point('rack')
+box('Lever handle',rx,ry,1.1,.15,.15,.8,orange)
 
 # E: two valves feed planted beds; the task reward stands by the manifold.
 for x,y in [(66,46),(72,46),(67,51)]:
@@ -211,19 +246,21 @@ for x,y in [(66,46),(72,46),(67,51)]:
         box('Plant stem',x+dx,y,.65,.12,.12,.8,green)
         bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.65,location=(x+dx,y,1.4))
         bpy.context.object.data.materials.append(leaf)
-for x,y in [(64,43),(73,49)]:
+for x,y,_ in [station_point('valve0'), station_point('valve1')]:
     box('Valve pipe',x,y,0,.25,.25,1.2,dark)
     upright_disk('Valve handwheel',x,y-.18,1.2,.42,orange)
-box('Irrigation main pipe',68.5,43,.15,9,.2,.2,dark)
-box('Irrigation return pipe',73,46,.15,.2,6,.2,dark)
-box('Greenhouse reward stand',71,42,0,1.8,1.3,1,boxmat)
+vx0, vy0, _ = station_point('valve0')
+vx1, vy1, _ = station_point('valve1')
+box('Irrigation main pipe',(vx0+vx1)/2,vy0,.15,abs(vx1-vx0),.2,.2,dark)
+box('Irrigation return pipe',vx1,(vy0+vy1)/2,.15,.2,abs(vy1-vy0),.2,dark)
+box('Greenhouse reward stand',*station_point('cell1'),1.8,1.3,1,boxmat)
 
 # F: short aisles, three scan tablets and a terminal.
 for x,y in [(3,45),(11.5,51),(19,53)]:
     box('Archive bookcase',x,y,0,3,.8,1.7,boxmat)
     for dx in [-1,-.5,0,.5,1]: box('Archive folder',x+dx,y-.43,.7,.28,.2,.7,blue)
-for x,y in [(4,50),(16,51),(20,40)]: console('Archive scan tablet',x,y)
-console('Archive reward terminal',17,48)
+for key in ('scan0','scan1','scan2'): console('Archive scan tablet',*station_point(key))
+console('Archive reward terminal',*station_point('cell2'))
 
 # G: shooting is optional and awards a blueprint instead of a main cell.
 for x in [29,35,41]:
@@ -235,17 +272,21 @@ console('Practice start',28,42)
 box('Practice reward locker',46,51,0,2,1.5,.3,dark)
 
 # H: three sockets power the signal; the other rooms stay accessible.
-box('Generator machine',58,7,0,3.8,2.5,1.4,dark)
-for dx in [-1.15,0,1.15]: box('Empty cell socket',58+dx,6.7,1.4,.65,.9,.12,white)
-console('Generator controls',61,7)
-for x in [72,74]: box('Signal mast',x,13,3,.2,.2,3.6,dark)
-box('Signal head',73,13,6.3,3,.8,.7,teal)
-box('Signal lamp',73,12.55,6.5,1.4,.1,.22,gold)
+gx, gy, gz = station_point('generator')
+box('Generator machine',gx-3,gy,gz,3.8,2.5,1.4,dark)
+for dx in [-1.15,0,1.15]: box('Empty cell socket',gx-3+dx,gy-.3,gz+1.4,.65,.9,.12,white)
+console('Generator controls',gx,gy,gz)
+sx, sy, sz = station_point('signal')
+for x in [sx-1,sx+1]: box('Signal mast',x,sy,sz,.2,.2,3.6,dark)
+box('Signal head',sx,sy,sz+3.3,3,.8,.7,teal)
+box('Signal lamp',sx,sy-.45,sz+3.5,1.4,.1,.22,gold)
 
 # G1 contains a reward alcove and clues at both entrances.
 for x in [24,43]: box('Maintenance cabinet',x,8,0,3,1.4,1.6,dark)
 for x,y in [(21,2),(39,2.2),(47,7.6)]: crate(x,y)
-for x in [19,49]: box('Secret entrance light',x,6.2,.8,.18,.18,.6,gold)
+# Quiet architectural hints rather than floating secret labels or gold beacons.
+box('Maintenance cable',16,4.5,.06,4,.08,.05,dark)
+box('Maintenance cable return',52,4.5,.06,4,.08,.05,dark)
 
 for x,y,z in plan.COINS: upright_disk('Optional coin',x,y,z+.8,.35,gold)
 for x,y,z in plan.BLUEPRINTS:
@@ -256,7 +297,6 @@ for x,y,z in plan.CELLS:
     box('Task reward energy cell',x,y,z,.65,.65,1,teal)
     box('Cell luminous band',x,y-.34,z+.35,.5,.06,.2,gold)
 for value,x,y in plan.LABELS: label(value,x,y,.085,3.2)
-for value,x,y,z in plan.SECRETS: label(value,x,y+1.2,z+.09,.9,white)
 label('START',7,3,.09,.75)
 
 world=bpy.data.worlds.new('Warm background');scene.world=world;world.use_nodes=True

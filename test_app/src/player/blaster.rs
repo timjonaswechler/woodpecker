@@ -113,6 +113,10 @@ pub fn tick(time: Res<Time>, mut blaster: ResMut<Blaster>) {
     }
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Shots combine visible meshes with the physical blockers retained by cutaways."
+)]
 pub fn fire(
     frame: Res<crate::input::intents::FrameInput>,
     player: Res<super::Player>,
@@ -120,6 +124,7 @@ pub fn fire(
     mut blaster: ResMut<Blaster>,
     mut shot: ResMut<FiredShot>,
     mut raycast: MeshRayCast,
+    nav: Res<crate::level::navigation::Navigation>,
     ignored: Query<(), With<ShotIgnore>>,
 ) {
     shot.0 = None;
@@ -141,7 +146,12 @@ pub fn fire(
         )
         .first()
         .map(|(_, hit)| (hit.point, hit.distance));
-    let limit = hit.map_or(80., |(_, distance)| distance.min(80.));
+    let physical = nav
+        .ray_hit(Ray3d::new(origin, eye.forward()))
+        .unwrap_or(80.);
+    let limit = hit
+        .map_or(physical, |(_, distance)| distance.min(physical))
+        .min(80.);
     let impact = origin + direction * limit;
     blaster.cooldown = 0.16;
     blaster.recoil = 1.;

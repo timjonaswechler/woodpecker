@@ -3,7 +3,9 @@ import json
 from pathlib import Path
 import unittest
 
-from kit import Placement, StairModule, WORKSHOP, WORKSHOP_STAIR, game_point
+from kit import Placement, StairModule, WORKSHOP, WORKSHOP_STAIR, STAIR_MODULES, game_point, station_metadata
+import layout
+from passages import PASSAGES, metadata as passage_metadata
 
 ASSETS = Path(__file__).resolve().parents[2] / "test_app/asset"
 
@@ -57,14 +59,48 @@ class PlacementTests(unittest.TestCase):
     def test_exported_pilot_uses_the_authoring_definition(self):
         courtyard = json.loads((ASSETS / "meshes/environment/courtyard.gltf").read_text())
         data = courtyard["extras"]["signalstation"]["layout"]
-        self.assertEqual(data["modules"], [WORKSHOP_STAIR.metadata()])
+        self.assertEqual(data["modules"], [s.metadata() for s in STAIR_MODULES])
         self.assertEqual(data["workshop"], WORKSHOP.metadata())
         self.assertEqual(data["gears"][0], data["workshop"]["part"]["base"])
-        for surface in WORKSHOP_STAIR.surfaces():
-            self.assertIn(surface, data["surfaces"])
-        for rail in WORKSHOP_STAIR.rails():
-            self.assertIn(rail, data["obstacles"])
-        self.assertNotIn(WORKSHOP_STAIR.name, [n.get("name") for n in courtyard["nodes"]])
+        for stair in STAIR_MODULES:
+            for surface in stair.surfaces():
+                self.assertIn(surface, data["surfaces"])
+            for rail in stair.rails():
+                self.assertIn(rail, data["obstacles"])
+            self.assertNotIn(stair.name, [n.get("name") for n in courtyard["nodes"]])
+
+    def test_entire_level_has_grid_aligned_architecture_and_shared_task_stations(self):
+        doc = json.loads((ASSETS / "meshes/environment/courtyard.gltf").read_text())
+        data = doc["extras"]["signalstation"]["layout"]
+        self.assertEqual(len(data["modules"]), 6)
+        self.assertEqual(len({m["asset"] for m in data["modules"]}), 1)
+        self.assertEqual(data["stations"], station_metadata())
+        for station in data["stations"].values():
+            for key in ("base", "approach"):
+                Placement(tuple(station[key]))
+        for _, _, bounds, _ in layout.ROOMS:
+            self.assertTrue(all(v == round(v) for v in bounds))
+        for _, bounds, _ in layout.DECKS:
+            self.assertTrue(all(v == round(v) for v in bounds))
+        for _, coord, lo, hi in layout.walls():
+            self.assertTrue(all(v == round(v) for v in (coord, lo, hi)))
+            self.assertGreaterEqual(hi-lo, 1)
+            self.assertLessEqual(hi-lo, 3)
+
+    def test_secret_architecture_exports_two_portals_covers_and_original_physical_rewards(self):
+        doc = json.loads((ASSETS / "meshes/environment/courtyard.gltf").read_text())
+        data = doc["extras"]["signalstation"]["layout"]
+        self.assertEqual(data["passages"], passage_metadata())
+        self.assertEqual(data["blueprints"][:3], [game_point(p["reward"]) for p in PASSAGES])
+        names = {n.get("name") for n in doc["nodes"]}
+        self.assertTrue(data["cutaways"])
+        self.assertTrue(all(c["name"] in names for c in data["cutaways"]))
+        self.assertTrue({"G1", "G2", "G3"}.isdisjoint(names))
+        for i, passage in enumerate(data["passages"]):
+            self.assertEqual(len(passage["portals"]), 2)
+            for portal in passage["portals"]:
+                self.assertIn({k: portal[k] for k in ("name", "center", "half")}, data["obstacles"])
+            self.assertTrue(any(c["secret"] == i for c in data["cutaways"]))
 
     def test_workshop_gallery_has_visible_rails_except_at_its_connections(self):
         doc = json.loads((ASSETS / "meshes/environment/courtyard.gltf").read_text())

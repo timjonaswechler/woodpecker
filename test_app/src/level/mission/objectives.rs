@@ -24,7 +24,7 @@ impl Mission {
             return if self.rack_open {
                 map::PART_APPROACH[1]
             } else {
-                map::RACK
+                *map::RACK
             };
         }
         if self.cells[0] == CellState::Locked {
@@ -46,9 +46,9 @@ impl Mission {
             return map::REWARDS[2];
         }
         if self.installed_cells() < 3 {
-            return map::GENERATOR;
+            return *map::GENERATOR;
         }
-        map::SIGNAL
+        *map::SIGNAL
     }
     pub fn objective(&self) -> Objective {
         if self.finished {

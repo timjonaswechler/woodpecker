@@ -4,9 +4,14 @@ pub(crate) mod actions;
 pub(crate) mod definition;
 mod import;
 pub(crate) mod interactions;
+#[cfg(test)]
+mod layout_tests;
 pub mod mission;
 pub(crate) mod navigation;
 pub mod objects;
+#[cfg(test)]
+mod passage_tests;
+pub(crate) mod passages;
 #[cfg(test)]
 mod placement_tests;
 pub mod scene;
@@ -73,12 +78,14 @@ pub fn navigation_world() -> Navigation {
             );
         }
     }
-    Navigation::new(
+    let mut nav = Navigation::new(
         definition::DATA.surfaces().to_vec(),
         obstacles,
         Vec2::new(-39., -27.),
         Vec2::new(39., 27.),
-    )
+    );
+    passages::initialize(&mut nav);
+    nav
 }
 
 pub fn check_assets(
@@ -119,6 +126,7 @@ pub(crate) fn install(app: &mut App) {
     app.init_resource::<LevelLoad>()
         .init_resource::<LevelAssets>()
         .init_resource::<mission::Mission>()
+        .init_resource::<passages::Passages>()
         .init_resource::<mission::inventory::CoinRun>()
         .init_resource::<shooting_range::ShootingRange>()
         .insert_resource(navigation_world())
@@ -126,6 +134,7 @@ pub(crate) fn install(app: &mut App) {
             Startup,
             (
                 spawn_level,
+                passages::spawn,
                 objects::spawn_objects,
                 pickups::spawn,
                 coins::spawn_coins,
@@ -136,7 +145,13 @@ pub(crate) fn install(app: &mut App) {
         .add_systems(Update, check_assets.in_set(Phase::Input))
         .add_systems(
             Update,
-            (objects::update_collision, shooting_range::tick_feedback).in_set(Phase::PrepareWorld),
+            (
+                objects::update_collision,
+                passages::prepare,
+                shooting_range::tick_feedback,
+            )
+                .chain()
+                .in_set(Phase::PrepareWorld),
         )
         .add_systems(
             Update,
@@ -157,7 +172,11 @@ pub(crate) fn install(app: &mut App) {
         )
         .add_systems(
             Update,
-            (coins::tick_run, mission::update_progress)
+            (
+                coins::tick_run,
+                mission::update_progress,
+                passages::progress,
+            )
                 .chain()
                 .in_set(Phase::Progress),
         )
@@ -165,6 +184,7 @@ pub(crate) fn install(app: &mut App) {
             Update,
             (
                 pickups::update,
+                passages::present,
                 objects::update_rack_model,
                 objects::update_visuals,
                 coins::update_coins,

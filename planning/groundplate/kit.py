@@ -1,4 +1,4 @@
-"""Pilot module geometry and placement, shared by Blender and the game export.
+"""Construction geometry and task placement, shared by Blender and the game export.
 
 Plan coordinates: X right, Y down the plan, Z up; distances are metres.
 Only architecture and task-object layout anchors use the construction grid.
@@ -114,5 +114,63 @@ class WorkshopIsland:
         return self.placement.anchor((x, 0, 0))
 
 
+@dataclass(frozen=True)
+class WallModule:
+    """One to three metre wall panels; thickness and bevel remain model details."""
+    placement: Placement
+    length: int
+
+    def __post_init__(self):
+        if type(self.length) is not int or not 1 <= self.length <= 3 or self.placement.quarter_turns not in (0, 1):
+            raise ValueError("wall panels need whole-metre lengths of 1..3 and 0/1 quarter turns")
+
+    def segment(self):
+        x, y, _ = self.placement.origin
+        return (("h", y, x, x + self.length) if self.placement.quarter_turns == 0
+                else ("v", x, y, y + self.length))
+
+
+@dataclass(frozen=True)
+class Station:
+    placement: Placement
+    size: tuple[float, float, float]
+    approach: tuple[float, float, float] = (0, -2, 0)
+
+    def metadata(self):
+        return dict(base=game_point(self.placement.origin), size=list(self.size),
+                    approach=game_point(self.placement.anchor(self.approach)))
+
+
 WORKSHOP_STAIR = StairModule(Placement((12, 23, 0)))
+STAIR_MODULES = [
+    WORKSHOP_STAIR,
+    StairModule(Placement((42, 23, 0)), name="Central hall stair"),
+    StairModule(Placement((71, 23, 0)), name="Storage hall stair"),
+    StairModule(Placement((59, 52, 0), 2), name="Greenhouse stair"),
+    StairModule(Placement((8, 52, 0), 2), name="Archive stair"),
+    StairModule(Placement((69, 2, 0)), name="Generator stair"),
+]
 WORKSHOP = WorkshopIsland(Placement((3, 31, 0)))
+STATIONS = {
+    "board": Station(Placement((4, 13, 0)), (1.4, 1.9, .6)),
+    "rack": Station(Placement((59, 27, 0)), (.9, 1.5, .8)),
+    "part1": Station(Placement((66, 26, 0)), (1.1, 1.6, 1.1)),
+    "valve0": Station(Placement((64, 43, 0)), (1, 1.5, .55)),
+    "valve1": Station(Placement((73, 50, 0)), (1, 1.5, .55)),
+    "scan0": Station(Placement((4, 50, 0)), (1.3, 1.75, .9)),
+    "scan1": Station(Placement((16, 52, 0)), (1.3, 1.75, .9)),
+    "scan2": Station(Placement((20, 42, 0)), (1.3, 1.75, .9)),
+    "cell1": Station(Placement((71, 42, 0)), (1.8, 1.75, 1.3)),
+    "cell2": Station(Placement((17, 48, 0)), (1.6, 1.75, 1.1)),
+    "generator": Station(Placement((61, 7, 0)), (1.3, 1.5, .9)),
+    "signal": Station(Placement((73, 13, 3)), (.9, 1.25, .65)),
+    "checkpoint": Station(Placement((24, 22, 0)), (.5, 1.4, .5), (-1, 0, 0)),
+    "chest": Station(Placement((46, 51, 0)), (1.6, 1.2, 1.2)),
+}
+
+
+def station_metadata():
+    data = {name: station.metadata() for name, station in STATIONS.items()}
+    workshop = WORKSHOP.metadata()
+    data.update(part0=workshop["part"], craft=workshop["craft"], cell0=workshop["output"])
+    return data

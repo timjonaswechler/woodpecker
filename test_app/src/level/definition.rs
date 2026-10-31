@@ -1,8 +1,14 @@
-//! Authoritative runtime data exported from the Blender planning model.
+//! Authoritative construction, task placement and passages exported from Blender.
+use super::{
+    mission::{CellId, Interaction, PartId, ScanId, ValveId},
+    objects::definitions::ObjectDefinition,
+    passages::{CutawayDefinition, PassageDefinition},
+};
 use crate::level::navigation::{Obstacle, Surface};
 use bevy::prelude::*;
 use serde::Deserialize;
-use std::sync::LazyLock;
+use std::{collections::BTreeMap, sync::LazyLock};
+
 #[derive(Deserialize)]
 pub struct Room {
     pub id: String,
@@ -17,7 +23,7 @@ pub(super) struct StaticModule {
     pub quarter_turns: u8,
     pub exit: [f32; 3],
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq)]
 pub(super) struct StationPlacement {
     pub base: [f32; 3],
     pub size: [f32; 3],
@@ -42,7 +48,9 @@ pub struct LevelDefinition {
     pub(super) blueprints: [[f32; 3]; 6],
     pub(super) gears: [[f32; 3]; 2],
     pub(super) modules: Vec<StaticModule>,
-    pub(super) workshop: Workshop,
+    pub(super) stations: BTreeMap<String, StationPlacement>,
+    pub(super) passages: [PassageDefinition; 3],
+    pub(super) cutaways: Vec<CutawayDefinition>,
 }
 impl LevelDefinition {
     pub fn rooms(&self) -> &[Room] {
@@ -80,149 +88,71 @@ pub fn room(position: Vec2) -> Option<&'static Room> {
         .iter()
         .find(|r| x >= r.bounds[0] && x <= r.bounds[2] && y >= r.bounds[1] && y <= r.bounds[3])
 }
+pub(super) fn station(name: &str) -> &'static StationPlacement {
+    DATA.stations.get(name).expect("checked task station")
+}
+fn approach(name: &str) -> Vec3 {
+    station(name).approach.into()
+}
 pub const START: Vec3 = point(7., 5., 0.);
-pub const CHECKPOINT: Vec3 = point(23., 22., 0.);
-pub static BENCH: LazyLock<Vec3> = LazyLock::new(|| DATA.workshop.craft.approach.into());
-pub const RACK: Vec3 = point(59., 25.5, 0.);
-pub const VALVES: [Vec3; 2] = [point(64., 41.7, 0.), point(73., 47.7, 0.)];
-pub const TABLETS: [Vec3; 3] = [
-    point(4., 48.5, 0.),
-    point(16., 49.5, 0.),
-    point(18.5, 40., 0.),
-];
+pub static CHECKPOINT: LazyLock<Vec3> = LazyLock::new(|| approach("checkpoint"));
+pub static BENCH: LazyLock<Vec3> = LazyLock::new(|| approach("craft"));
+pub static RACK: LazyLock<Vec3> = LazyLock::new(|| approach("rack"));
+pub static VALVES: LazyLock<[Vec3; 2]> = LazyLock::new(|| [approach("valve0"), approach("valve1")]);
+pub static TABLETS: LazyLock<[Vec3; 3]> =
+    LazyLock::new(|| [approach("scan0"), approach("scan1"), approach("scan2")]);
 pub static PART_APPROACH: LazyLock<[Vec3; 2]> =
-    LazyLock::new(|| [DATA.workshop.part.approach.into(), point(66., 24.4, 0.)]);
+    LazyLock::new(|| [approach("part0"), approach("part1")]);
 pub static CELL_ITEMS: LazyLock<[Vec3; 3]> = LazyLock::new(|| {
-    [
-        Vec3::from(DATA.workshop.output.base) + Vec3::Y * 1.32,
-        point(71., 42., 1.32),
-        point(17., 48., 1.32),
-    ]
+    ["cell0", "cell1", "cell2"].map(|s| Vec3::from(station(s).base) + Vec3::Y * 1.32)
 });
-pub static REWARDS: LazyLock<[Vec3; 3]> = LazyLock::new(|| {
-    [
-        DATA.workshop.output.approach.into(),
-        point(71., 40.5, 0.),
-        point(17., 46.5, 0.),
-    ]
-});
-pub const GENERATOR: Vec3 = point(61., 5.5, 0.);
-pub const SIGNAL: Vec3 = point(73., 11.8, 3.);
+pub static REWARDS: LazyLock<[Vec3; 3]> =
+    LazyLock::new(|| [approach("cell0"), approach("cell1"), approach("cell2")]);
+pub static GENERATOR: LazyLock<Vec3> = LazyLock::new(|| approach("generator"));
+pub static SIGNAL: LazyLock<Vec3> = LazyLock::new(|| approach("signal"));
 pub const RANGE_ENTRY: Vec3 = point(35., 41., 0.);
-
-use crate::level::{mission::Interaction, objects::definitions::ObjectDefinition};
-pub const CHEST_CENTER: Vec3 = point(46., 51., 0.4);
+pub static CHEST_CENTER: LazyLock<Vec3> =
+    LazyLock::new(|| Vec3::from(station("chest").base) + Vec3::Y * 0.4);
 pub const CHEST_SIZE: Vec3 = Vec3::new(1.6, 0.8, 1.2);
 
 pub static INTERACTIVE_OBJECTS: LazyLock<[ObjectDefinition; 12]> = LazyLock::new(|| {
     [
-        ObjectDefinition::new(
-            "Station board",
-            Interaction::Board,
-            point(4., 13., 0.),
-            Vec3::new(1.4, 1.9, 0.6),
-        ),
-        DATA.workshop
-            .craft
-            .object("Station craft", Interaction::Craft),
-        ObjectDefinition::new(
-            "Station rack",
-            Interaction::Rack,
-            point(59., 27., 0.),
-            Vec3::new(0.9, 1.5, 0.8),
-        ),
-        ObjectDefinition::new(
+        ("board", "Station board", Interaction::Board),
+        ("craft", "Station craft", Interaction::Craft),
+        ("rack", "Station rack", Interaction::Rack),
+        (
+            "valve0",
             "Station valve 0",
-            Interaction::Valve(crate::level::mission::ValveId::ALL[0]),
-            point(64., 43., 0.),
-            Vec3::new(1.0, 1.5, 0.55),
+            Interaction::Valve(ValveId::ALL[0]),
         ),
-        ObjectDefinition::new(
+        (
+            "valve1",
             "Station valve 1",
-            Interaction::Valve(crate::level::mission::ValveId::ALL[1]),
-            point(73., 49., 0.),
-            Vec3::new(1.0, 1.5, 0.55),
+            Interaction::Valve(ValveId::ALL[1]),
         ),
-        ObjectDefinition::new(
-            "Station scan 0",
-            Interaction::Scan(crate::level::mission::ScanId::ALL[0]),
-            point(4., 50., 0.),
-            Vec3::new(1.3, 1.75, 0.9),
-        ),
-        ObjectDefinition::new(
-            "Station scan 1",
-            Interaction::Scan(crate::level::mission::ScanId::ALL[1]),
-            point(16., 51., 0.),
-            Vec3::new(1.3, 1.75, 0.9),
-        ),
-        ObjectDefinition::new(
-            "Station scan 2",
-            Interaction::Scan(crate::level::mission::ScanId::ALL[2]),
-            point(20., 40., 0.),
-            Vec3::new(1.3, 1.75, 0.9),
-        ),
-        ObjectDefinition::new(
-            "Station generator",
-            Interaction::Install,
-            point(61., 7., 0.),
-            Vec3::new(1.3, 1.5, 0.9),
-        ),
-        ObjectDefinition::new(
-            "Station sender",
-            Interaction::Signal,
-            point(73., 13., 3.),
-            Vec3::new(0.9, 1.25, 0.65),
-        ),
-        ObjectDefinition::new(
-            "Station checkpoint",
-            Interaction::Checkpoint,
-            point(24.4, 22., 0.),
-            Vec3::new(0.5, 1.4, 0.5),
-        ),
-        ObjectDefinition::new(
-            "Blueprint reward chest",
-            Interaction::Chest,
-            point(46., 51., 0.),
-            Vec3::new(1.6, 1.2, 1.2),
-        ),
+        ("scan0", "Station scan 0", Interaction::Scan(ScanId::ALL[0])),
+        ("scan1", "Station scan 1", Interaction::Scan(ScanId::ALL[1])),
+        ("scan2", "Station scan 2", Interaction::Scan(ScanId::ALL[2])),
+        ("generator", "Station generator", Interaction::Install),
+        ("signal", "Station sender", Interaction::Signal),
+        ("checkpoint", "Station checkpoint", Interaction::Checkpoint),
+        ("chest", "Blueprint reward chest", Interaction::Chest),
     ]
+    .map(|(key, name, action)| station(key).object(name, action))
 });
-// Every table has one purpose: take the visible object. Assembly has its own switch.
 pub static PICKUP_TABLES: LazyLock<[ObjectDefinition; 5]> = LazyLock::new(|| {
     [
-        DATA.workshop.part.object(
-            "Table part 0",
-            Interaction::Part(crate::level::mission::PartId::ALL[0]),
-        ),
-        ObjectDefinition::new(
-            "Table part 1",
-            Interaction::Part(crate::level::mission::PartId::ALL[1]),
-            point(66., 26., 0.),
-            Vec3::new(1.1, 1.6, 1.1),
-        ),
-        DATA.workshop.output.object(
-            "Table cell 0",
-            Interaction::Cell(crate::level::mission::CellId::ALL[0]),
-        ),
-        ObjectDefinition::new(
-            "Table cell 1",
-            Interaction::Cell(crate::level::mission::CellId::ALL[1]),
-            point(71., 42., 0.),
-            Vec3::new(1.8, 1.75, 1.3),
-        ),
-        ObjectDefinition::new(
-            "Table cell 2",
-            Interaction::Cell(crate::level::mission::CellId::ALL[2]),
-            point(17., 48., 0.),
-            Vec3::new(1.6, 1.75, 1.1),
-        ),
+        ("part0", "Table part 0", Interaction::Part(PartId::ALL[0])),
+        ("part1", "Table part 1", Interaction::Part(PartId::ALL[1])),
+        ("cell0", "Table cell 0", Interaction::Cell(CellId::ALL[0])),
+        ("cell1", "Table cell 1", Interaction::Cell(CellId::ALL[1])),
+        ("cell2", "Table cell 2", Interaction::Cell(CellId::ALL[2])),
     ]
+    .map(|(key, name, action)| station(key).object(name, action))
 });
-
 pub const RANGE_TARGETS: [Vec3; 3] = [
     point(29., 51., 1.85),
     point(35., 51., 1.85),
     point(41., 51., 1.85),
 ];
-
 pub(super) const RACK_COLLIDER: &str = "Movable storage rack";

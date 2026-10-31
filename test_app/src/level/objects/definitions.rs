@@ -39,7 +39,7 @@ pub fn colliders() -> impl Iterator<Item = Obstacle> {
         .chain(*PICKUP_TABLES)
         .map(|target| {
             let (center, half) = if target.action == Interaction::Chest {
-                (CHEST_CENTER, CHEST_SIZE * 0.5)
+                (*CHEST_CENTER, CHEST_SIZE * 0.5)
             } else if matches!(target.action, Interaction::Part(_) | Interaction::Cell(_)) {
                 let height = if matches!(target.action, Interaction::Part(_)) {
                     0.84
