@@ -8,22 +8,55 @@ Ausführung und Inventar: [Testanleitung](../tests/README.md).
 Öffentliche Abläufe: [Spieltest-Beispiele](../examples/README.md).
 Fehlersensitivität: [Mutationsanleitung](../tests/mutations.md).
 
-## Full-stop-Abnahme und offene Checkpoints
+## Merge-Abnahme und offene Checkpoints
 
 [PR #16](https://github.com/timjonaswechler/woodpecker/pull/16) ist im bisherigen,
 in `woodpecker` umbenannten Hauptrepository offen; Basis ist `upstream/main`.
 Auto-Merge und Merge Queue sind aus. Der lokale Arbeitsstand bleibt erhalten.
 
-Vor der manuellen Merge-Übergabe müssen CI, Nachweisgrenzen, offene Reviews und
-Threads, tatsächlicher Head, aktuelle Basis und Mergeability am finalen Stand
-geprüft sein. Der PR bleibt offen und ungemergt; weder Auto-Merge noch Merge Queue
-werden aktiviert.
+Vor dem Merge müssen CI, Nachweisgrenzen, offene Reviews und Threads, tatsächlicher
+Head, aktuelle Basis und Mergeability am finalen Stand geprüft sein. Der Nutzer hat
+die Zusammenführung nach `main` beauftragt. Sie bleibt bis zur Klärung des unten
+beschriebenen Grafikfehlers blockiert. Auto-Merge und Merge Queue bleiben aus.
 
 **Umfang:** 94 Produkttests: 75 Python, zehn öffentliche und neun interne Rust-Tests.
 Davon 93 lokal und einer extern. Mit Negativkontrolle 3.18 enthält das Inventar
 95 Einträge; die 49 Harness-Prüfungen zählen separat.
 
-## Abnahmebelege
+## Aktuelle Abschlussprüfung auf `55c4036`
+
+Die drei Abschlusscommits enthalten den Text-Editierbarkeitsfix, die Entfernung
+ungenutzter Laufzeit-Assets und die überarbeiteten Nutzer-How-tos/API-Verträge.
+Der Arbeitsbaum war bei den folgenden Läufen sauber:
+
+- 49 Harness-, zehn Export-/Layout-, 18 Spieltests und 25 fensterlose Produkttests
+  mit Feature-Matrix bestanden. Workspace, Format und Clippy bestanden ebenfalls.
+  Die bestandene Teilauswahl endet weiterhin korrekt mit Exit 2.
+- Das unabhängige Abschlussreview mit GPT-6.1 Sol genehmigt die drei neuen Commits
+  mit Stichproben der konsolidierten Integration ohne offene Blocker oder Shoulds.
+  Es ersetzt keinen vollständigen Laufzeitnachweis.
+- Die grafische Gesamtabnahme **scheiterte** beim Engine-Startup des Bewegungstests:
+  `startup_timeout`, `GPU meshes/images ready=true`, `window surface=false`,
+  `camera=true`. Der Runner stoppte danach. Drei gezielte Diagnoseläufe blieben
+  ebenfalls fehlgeschlagen. Die native Fensteraktivierung wurde im letzten Lauf
+  bestätigt, ohne dass eine Surface verfügbar wurde. Es gab keine Größen- oder
+  Skalierungsänderung und keine nativen Gameplay-Eingaben.
+
+[Laufprotokoll](../target/pr16-final-proof/checks.json),
+[fensterlose Abnahme](../target/test-runs/acceptance-ah32cvp2/summary.json),
+[fehlgeschlagene Gesamtabnahme](../target/test-runs/acceptance-foqr8h5y/summary.json)
+und [gezielte Diagnose](../target/pr16-final-proof/focused-activated-movement-result.json)
+bleiben als getrennte Belege erhalten. Kein erzwungenes Harness-Cleanup wurde
+als Erfolg gewertet. Die persönlichen Settings blieben unverändert.
+
+Die früher in diesem Thread bestandenen grafischen Gesamtläufe auf `8e87b1d`
+und dem danach lokal korrigierten Quellstand liegen vor der Asset-Bereinigung.
+Sie ersetzen den fehlenden grünen Grafiknachweis auf `55c4036` nicht.
+Die Ursache des aktuellen Surface-Problems ist noch nicht abschließend geklärt.
+Tests und Render-Guards wurden nicht abgeschwächt. Ein neuer echter GitHub-Provider-
+Lauf wurde nicht ausgeführt.
+
+## Frühere Abnahmebelege
 
 | Umfang | Geprüftes Ergebnis | Lokaler Beleg |
 | --- | --- | --- |
@@ -39,8 +72,9 @@ lief gegen das inzwischen auf Nutzerauftrag gelöschte dedizierte Testrepository
 nicht gegen das jetzige Hauptrepository. GitHub Actions prüft ausschließlich den
 fensterlosen Umfang, keine Kamera-/GPU-Läufe oder vollständige Headless-Spielversion.
 
-Das unabhängige Gesamt-Review umfasst nun den vollständigen PR-Diff gegen `main`,
-einschließlich der 42 Vorgängercommits. Sein einziges Should-Finding S1 zu entfernten
+Das frühere unabhängige Gesamt-Review umfasste den damaligen PR-Diff gegen `main`,
+einschließlich der 42 Vorgängercommits, nicht automatisch spätere Imports und
+Korrekturen. Sein einziges Should-Finding S1 zu entfernten
 Testaufrufen und veralteter App-Integration in der Anleitung ist korrigiert und
 gegen die tatsächlichen Targets, Features und Links validiert; keine zusätzlichen
 Produktintegrations-Blocker oder Should-Findings wurden gemeldet.
