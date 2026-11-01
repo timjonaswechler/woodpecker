@@ -8,16 +8,19 @@ Ausführung und Inventar: [Testanleitung](../tests/README.md).
 Öffentliche Abläufe: [Spieltest-Beispiele](../examples/README.md).
 Fehlersensitivität: [Mutationsanleitung](../tests/mutations.md).
 
-## Merge-Abnahme und offene Checkpoints
+## Abnahme und Mergeentscheidung
 
-[PR #16](https://github.com/timjonaswechler/woodpecker/pull/16) ist im bisherigen,
-in `woodpecker` umbenannten Hauptrepository offen; Basis ist `upstream/main`.
-Auto-Merge und Merge Queue sind aus. Der lokale Arbeitsstand bleibt erhalten.
+[PR #16](https://github.com/timjonaswechler/woodpecker/pull/16) bündelt die Arbeiten
+im Hauptrepository `woodpecker` gegen `main`. Auto-Merge und Merge Queue werden
+nicht verwendet.
 
-Vor dem Merge müssen CI, Nachweisgrenzen, offene Reviews und Threads, tatsächlicher
-Head, aktuelle Basis und Mergeability am finalen Stand geprüft sein. Der Nutzer hat
-die Zusammenführung nach `main` beauftragt. Sie bleibt bis zur Klärung des unten
-beschriebenen Grafikfehlers blockiert. Auto-Merge und Merge Queue bleiben aus.
+Der Nutzer hat die Zusammenführung nach `main` ausdrücklich beauftragt und auf
+weitere CI- und Grafikläufe verzichtet. Für die beiden bereits gestarteten CI-Läufe
+auf `1014aaa` wurde der Abbruch angefordert. Der dokumentierte Grafikfehler bleibt
+ein fehlgeschlagener Nachweis und wird nicht als bestanden oder behoben gewertet.
+Er wird auf diese Nutzerentscheidung hin nicht als Mergeblocker behandelt.
+PR-Head, Basis, offene Reviews/Threads und Konfliktfreiheit werden vor dem Merge
+geprüft. Branch-Regeln werden nicht umgangen.
 
 **Umfang:** 94 Produkttests: 75 Python, zehn öffentliche und neun interne Rust-Tests.
 Davon 93 lokal und einer extern. Mit Negativkontrolle 3.18 enthält das Inventar
