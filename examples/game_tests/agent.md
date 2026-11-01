@@ -1,67 +1,97 @@
-# Let an agent choose the next action
+# Let your coding agent move the player
 
-Start with [individual CLI control](control.md#2-you-decide-individual-cli-calls).
-The agent uses exactly those tools; Woodpecker supplies neither a model nor an
-agent runtime. You supply the coding agent and decide which local tools it may
-use. No model credentials belong in game commands, recordings or journals.
+Give your existing coding agent a small game task: observe the player's position,
+move right until x has advanced by 0.2 world units, then release and verify that
+the player stops. The agent uses the same public CLI as the
+[individual-command how-to](control.md#2-move-the-player-with-individual-cli-commands).
+Woodpecker supplies the game-control tools, not a model or agent runtime.
 
-## Prepare the handoff
+## 1. Prepare one session
 
-1. Obtain permission for this graphical run. Start your local server and create
-   **one fresh session** using the [shared setup](control.md#setup-once).
-2. Wait for `EngineReady`, explicitly prepare until `LevelLoad` is `Ready`,
-   then leave the REPL with `quit`. Do not keep another controlling client active.
-3. Record the full confirmed ID, absolute repository root, loopback address and
-   current `Player.position`. Give those to the agent.
-   Only that ID is in scope; do not ask it to discover sessions by listing.
-4. Replace all angle-bracket placeholders in the prompt below. It authorizes
-   only the remaining movement and cleanup of this already-created session.
+1. [Build the game and start your local server](README.md#prepare-the-game-and-server).
+   Authorize the graphical run if an agent will execute it.
+2. [Create and prepare one fresh session](control.md#prepare-a-fresh-session-for-manual-control).
+   Wait for `EngineReady` and `LevelLoad: Ready`. Do not send gameplay input yet.
+3. Read `test_app::player::Player` in the REPL and record its `position`, then
+   enter `quit`. Keep the session running, with no other controller active.
+4. Record the absolute repository path, loopback address and full session ID.
+   Use only the ID returned by your own create, not an ID found by listing sessions.
 
-## Copy-ready task
+## 2. Give the task to your agent
+
+Enable the local shell tool your coding agent needs to invoke the CLI.
+Replace **all four angle-bracket placeholders** below with your recorded values,
+then paste the task into that agent. You do not need to add a model dependency
+to the game or put model credentials in a command, recording or journal.
 
 ```text
-Use the local public Woodpecker CLI from <absolute repository root>:
-target/debug/woodpecker --address <loopback address>
+Work from <absolute repository root>.
+Use target/debug/woodpecker --address <loopback address>.
+Control only session <full confirmed session ID>.
+Its initial Player.position is <initial position array>.
+The session is EngineReady, LevelLoad is Ready, no keys are held and no other
+client is controlling it. Do not create a session or stop the server.
 
-You control only session <full confirmed session ID>, already EngineReady with
-LevelLoad Ready, no held keys and no other controller. Initial Player.position:
-<initial position>.
+Goal: increase position[0] by at least 0.2 world units, release arrow_right,
+and demonstrate one tick with unchanged position. Allow at most four moving
+ticks and one released tick. Do not send other inputs, preparation ticks,
+resets or screenshots. Do not change files or add a model-service integration.
 
-Goal: move right until position[0] >= initial position[0] + 0.2 world units,
-then release and demonstrate one still tick. Allow at most four moving ticks
-and one released tick. No other inputs, startup ticks, reset, session creation,
-model-service calls or server shutdown are authorized.
+Use these CLI operations:
+- session inspect SESSION_ID
+- session submit SESSION_ID --command 'COMMAND_JSON'
+- session poll SESSION_ID --wait-ms 1000
+- session poll SESSION_ID --cursor 'CURSOR_JSON' --wait-ms 1000
+- session stop SESSION_ID
 
-Use session submit and session poll. For every submission, remember its
-request_id and command; wait for its matching completed event before acting.
-Continue polls with the returned cursor. Each command has a 10-second deadline.
-Pending is not success. Never resubmit an unknown outcome; stop on a Gap,
-rejection, failure, timeout, or an unreadable/unexpected resource.
+Replace SESSION_ID with the authorized full ID, COMMAND_JSON with the command
+object and CURSOR_JSON with the entire cursor object from the preceding poll.
+For each submit, remember request_id and command. Wait for its matching
+completed event before the next action. Pending is not success. Continue polls
+with the returned cursor and allow at most 10 seconds per command. Never
+resubmit to wait for a result. Stop the task on rejection, failure, a Gap,
+timeout or an unknown outcome.
 
-Observe Player with inspect.query:
+First inspect the lifecycle and verify LevelLoad and the supplied position
+with fresh read-only queries. Use this command form for each resource:
 {"command":"inspect.query","arguments":{"source":"resources","selector":{"kind":"type","type_path":"test_app::player::Player"},"projection":{"kind":"value"}}}
-Count only executed_ticks from successfully completed warps. Do not add or
-require a game-side tick counter.
+For LevelLoad, replace type_path with test_app::level::LevelLoad.
+Require one readable resource value and the expected initial state.
 
-At every decision, report: current x, target x, ticks used, next action and why.
-First verify the supplied initial state with fresh read-only queries. Press
-arrow_right once with input.keyboard.press, then use tick.warp.start {"ticks":1}
-and query position after each completed tick. Keep the key held between ticks.
-Stop moving as soon as the goal is reached. Fail if x does not increase or the
-other position coordinate changes; do not keep ticking into a blocked path.
-If four moving ticks are exhausted without reaching the goal, report failure.
+Press once:
+{"command":"input.keyboard.press","arguments":{"key":"arrow_right"}}
+Then repeatedly submit one tick and read Player.position:
+{"command":"tick.warp.start","arguments":{"ticks":1}}
+Keep the key held between ticks. Fail if x does not increase or position[1]
+changes. Release as soon as x reaches the initial x + 0.2. If four moving
+ticks are exhausted without reaching it, report failure.
 
-Release arrow_right with input.keyboard.release and explicitly tick once;
-verify unchanged position and total reported executed ticks = moving ticks + 1.
-On failure do not invent success or blindly repeat inputs. In all cases stop
-only this owned session with session stop, once, and observe session inspect
-for Ended for at most 40 seconds. Failed or unknown cleanup remains an error.
-Never kill processes or stop the server. Keep artifact_dir and command evidence.
+Release:
+{"command":"input.keyboard.release","arguments":{"key":"arrow_right"}}
+On success, explicitly tick once more and verify unchanged position. Count
+executed_ticks from completed warps, not from a game-side tick counter.
+At each decision, report current x, target x, ticks used, next action and why.
 
-Report success only if the goal, stillness, tick count and Ended were observed.
-State that this proves the small movement task, not general autonomous gameplay.
+On success or failure, stop only this session once and inspect until Ended,
+for at most 40 seconds. Do not retry an uncertain stop or kill processes.
+Failed or unknown cleanup remains an error. Keep artifact_dir and the command
+results for diagnosis. Leave the server running for its owner.
+
+Report success only after observing the goal, one still tick, the expected
+executed-tick count and Ended. Otherwise report the failed step and evidence.
 ```
 
-This uses structured game state so decisions are easy to check. Screenshot-based
-decisions would additionally need screenshot capability, a visual goal and their
-own evaluation; a picture alone cannot prove tick counts or released input.
+## 3. Check the result
+
+The agent should report an increased x coordinate, the number of moving ticks,
+one released tick without movement and the session's `Ended` state.
+A list of submitted commands alone is not evidence that the task completed.
+If the agent stops on an error, use its recorded results and artifact directory
+to diagnose the problem before another attempt.
+
+This task uses structured game state. For image-based decisions, separately
+define the visual goal and enable screenshots. A screenshot alone cannot show
+whether the correct number of ticks ran or whether a held key was released.
+
+When finished, [stop your server](README.md#stop-your-server) if you own it and
+no other sessions need it.

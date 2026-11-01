@@ -1,5 +1,6 @@
 // Rust-ähnliche Interface-Skizze, kein kompilierbarer Quelltext.
-// Verhalten: target.md. Umsetzung: implementation-plan.md.
+// Maßgeblicher Vertrag: target.md. Konkrete API: ../../src/.
+// implementation-plan.md dokumentiert die historische Umsetzung.
 // Fehlende Körper und ausgelassene Enum-Varianten sind Skizzen, keine leeren Implementierungen.
 
 mod handle {
@@ -104,6 +105,14 @@ mod command {
     pub mod tick {
         pub struct Config {
             pub pace: warp::Pace,
+            pub clock: Clock,
+        }
+
+        pub enum Clock {
+            // Standard: Die Anwendung bestimmt ihre Zeitstrategie.
+            Application {},
+            // Dauer für Time<Real> je Tick. Virtuelle Pause und Geschwindigkeit bleiben wirksam.
+            Fixed { seconds_per_tick: f64 },
         }
 
         pub enum Command {
@@ -583,13 +592,31 @@ mod session {
 
     pub struct Capabilities {
         pub screenshot: bool,
+        pub fixed_clock: bool,
+        pub engine_startup: bool,
     }
 
     pub struct Config {
         pub launch: launch::Config,
         pub artifact_dir: std::path::PathBuf,
         pub tick: crate::command::tick::Config,
+        pub startup: startup::Config,
         pub report: crate::report::Config,
+    }
+
+    pub mod startup {
+        pub enum Config {
+            // Standard: Keine vorbereitenden Anwendungsticks.
+            Manual {},
+            Engine {
+                timeout_seconds: u32,
+                max_ticks: u64,
+            },
+        }
+
+        // Vor session::Plugin als Bevy-Resource einfügen.
+        // Callback-Ergebnisse und Voraussetzungen: target.md, „Technischer Startup“.
+        pub struct Assets(pub fn(&bevy::prelude::World) -> Option<Vec<bevy::asset::UntypedHandle>>);
     }
 
     // Wird ausschließlich von Session vergeben und niemals vom Controller gewählt.
@@ -658,6 +685,8 @@ mod session {
 
         pub enum Message {
             Ready(Ready),
+            EngineReady { ticks: u64 },
+            StartupFailed { ticks: u64, error: Diagnostic },
             Response(Response),
 
             ProtocolError(ProtocolError),
@@ -695,6 +724,13 @@ mod session {
     }
 
     pub enum Event {
+        EngineReady { ticks: u64 },
+
+        StartupFailed {
+            ticks: Option<u64>,
+            error: protocol::Diagnostic,
+        },
+
         ProtocolError { code: String, message: String },
 
         RecordingFailed {
@@ -742,6 +778,8 @@ mod session {
         Stdin,
         Stdout,
         Stderr,
+        // Nur bei TransportFailed: technischer Startup, keine Pipe.
+        Startup,
     }
 
     // Synchroner, nicht klonbarer Handle. Der private Koordinator arbeitet ohne Empfangsaufrufe weiter.
@@ -785,7 +823,7 @@ mod session {
     }
 }
 
-// Modulverantwortungen; Paketierung und genaue äußere Signaturen folgen dem Umsetzungsplan.
+// Modulverantwortungen: target.md. Konkrete äußere Signaturen stehen unter ../../src/.
 mod server {
     // Verzeichnis, Session-Handles, Activity und clientunabhängige Report-Orchestrierung.
     // Verwaltung: Erstellen, Liste, Detail und Serverende. Erstellen bestätigt nur die Annahme.
@@ -793,6 +831,7 @@ mod server {
     struct CreateSession {
         launch: crate::session::launch::Config,
         tick: crate::command::tick::Config,
+        startup: crate::session::startup::Config,
         report: crate::report::Config,
     }
 
@@ -802,7 +841,8 @@ mod server {
     // Lebenszyklus des Verzeichniseintrags, nicht Recording-/Replay-Zustand.
     enum SessionState {
         Starting,
-        Ready,
+        SessionReady,
+        EngineReady,
         Stopping,
         Ended,
         Failed,

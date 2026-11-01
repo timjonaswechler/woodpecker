@@ -1,25 +1,27 @@
-# Game-control examples
+# Control your game with Woodpecker
 
-First follow the [Signalstation integration and user guide](../docs/user-guide.md).
-It uses the existing game in `test_app/` to explain normal play, its optional
-Woodpecker adapter and a first controlled session. Transfer that boundary to your
-own game; do not replace gameplay with a counter demo.
+Use these how-tos to control the existing Signalstation game in `test_app/`.
+Start with one small task: move the player right, release the key and check that
+the player stops. Then choose the workflow you need.
 
-Start with [one small task, six ways to control it](game_tests/control.md): move
-right, then release. Simple control comes before comprehensive game checks.
+## Choose a task
 
-1. [REPL](game_tests/control.md#1-you-decide-the-repl): enter one command at a time.
-2. [CLI](game_tests/control.md#2-you-decide-individual-cli-calls): submit and observe individual commands.
-3. [Scripts](game_tests/control.md#3-a-file-decides-the-sequence-native-scripts): run a fixed sequence from JSON files.
-4. [Python](game_tests/control.md#4-your-program-decides-python-feedback): choose the next action from current position.
-5. [Agent](game_tests/agent.md): hand the same public tools to a bounded agent loop.
-6. [Replay](game_tests/control.md#6-a-recording-decides-replay): repeat recorded inputs in a fresh session.
+1. [Move the player from the REPL](game_tests/control.md#1-move-the-player-from-the-repl).
+2. [Send individual CLI commands](game_tests/control.md#2-move-the-player-with-individual-cli-commands).
+3. [Run a movement sequence from JSON files](game_tests/control.md#3-run-the-movement-from-json-scripts).
+4. [Choose the next move from game state in Python](game_tests/control.md#4-choose-the-next-move-in-python).
+5. [Let your coding agent choose the next move](game_tests/agent.md).
+6. [Replay a recorded movement in a fresh session](game_tests/control.md#6-replay-a-recorded-movement).
 
-Then explore the [advanced public-CLI recipes](game_tests/README.md): per-tick
-movement assertions, real Unicode text editing and recording/replay isolation.
+For more detailed automation, [check movement, enter Unicode text or replay
+inputs with the supplied Python programs](game_tests/README.md).
 
-All examples use Signalstation-specific reflected data and a server you manage.
-[Build/server setup and graphical constraints](game_tests/README.md#run-from-the-repository-root)
-apply to every path. These are examples, not full product acceptance; the
-[acceptance suite](../tests/README.md) owns that coverage and the
-[test plan](../docs/testing-plan.md) owns its execution evidence.
+## Before you start
+
+[Build the game and start a local server](game_tests/README.md#prepare-the-game-and-server).
+The how-tos use real game windows and isolated settings. They do not replace
+Signalstation's movement, UI or other gameplay with test logic.
+
+To connect your own game first, follow the
+[Signalstation integration guide](../docs/user-guide.md). For command formats and
+error meanings, use the [API reference](../docs/api/usage.md).

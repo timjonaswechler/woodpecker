@@ -1,117 +1,183 @@
-# Advanced game-testing recipes
+# Automate movement, text input and replay
 
-**New to controlling a game?** Start with the [step-by-step control guide](control.md):
-REPL → individual CLI calls → fixed scripts → Python feedback → agent handoff →
-replay. Each adds one idea to the same small movement task; this page covers the
-more detailed checks and their shared build/server setup.
+Run a small Python program against Signalstation to check held-key movement,
+enter text in its existing UI or repeat recorded inputs in a fresh session.
+Each program uses the public Woodpecker CLI and reports whether its task succeeded.
+For commands you enter yourself, use the [REPL and CLI how-tos](control.md).
 
-These recipes exercise the existing Signalstation game described in the
-[user guide](../../docs/user-guide.md), not a separate test-game implementation.
-The simple control paths do not need a game-side tick counter. The stricter
-movement/replay checks below additionally read the optional `SimulationTicks`
-measurement resource; do not copy it into your game's movement systems.
+## Prepare the game and server
 
-Three standalone Python **3.11+** recipes for game developers, using only the
-[public CLI](../../docs/api/usage.md) and standard library. These are not another
-acceptance suite; the [product tests](../../tests/README.md) own that coverage.
+You need the repository's Rust toolchain, Python **3.11+**, a renderer and a display.
+All commands below run from the repository root in a Unix shell.
 
-## Run from the repository root
+**These examples open real game windows.** When an agent runs them, authorize
+that graphical run first. Keep the display awake and each game window partly
+visible. Do not resize it, change scaling, move it between displays or send
+native gameplay input during a controlled session. `--rendered` acknowledges
+these conditions but does not grant permission. [Run budgets](#run-budgets)
+list the app starts and actions for each program.
 
-**Obtain scoped permission before each graphical run, including repeats.** These
-commands open real Signalstation windows. `--rendered` is a technical acknowledgement,
-not permission. Keep the desktop awake and each window partly visible; do not
-resize it, change scaling, move it between displays, or use native input.
-
-1. Build the CLI and app with the features used by [app.toml](app.toml):
+1. Build the CLI and the game with its optional Woodpecker integration:
 
    ```sh
    cargo build --locked --features cli --bin woodpecker
    cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
    ```
 
-2. In terminal 1, start an externally managed local server **from this root** and
-   wait for its `Ready` line:
+2. In terminal 1, choose a free loopback address and start your server:
 
    ```sh
-   target/debug/woodpecker --address 127.0.0.1:4100 server start --artifact-dir target/game-example-sessions
+   target/debug/woodpecker --address 127.0.0.1:4100 \
+     server start --artifact-dir target/game-example-sessions
    ```
 
-3. In terminal 2, run the permitted examples serially:
+   Wait for the JSON line with `"state":"Ready"`. Keep this terminal open.
+   If the address is already in use, choose another one and use it consistently.
+
+3. In terminal 2, also from the repository root, set the same address:
 
    ```sh
-   python3 examples/game_tests/movement.py --address 127.0.0.1:4100 --rendered
-   python3 examples/game_tests/text.py --address 127.0.0.1:4100 --rendered
-   python3 examples/game_tests/replay.py --address 127.0.0.1:4100 --rendered
+   ADDRESS=127.0.0.1:4100
+   wp() { target/debug/woodpecker --address "$ADDRESS" "$@"; }
    ```
 
-   Each prints `PASS` only after its assertions and owned-session cleanup succeed.
-   Exit 0 means that example passed, not full product acceptance. Any action,
-   observation or cleanup failure exits nonzero. Do not use Python `-O` (rejected).
-   `python3 examples/game_tests/movement.py --help` (also `text.py` / `replay.py`)
-   starts nothing and requires no running server or built binaries.
+   The `wp` function only saves typing. It does not create a session or send
+   extra commands. Choose **one** task below. Its Python program creates and
+   prepares its own sessions, so do not create one manually for it.
 
-## Exact graphical scope
+## Check movement while a key is held
 
-Each session starts one unfocused, fixed **1440 × 900** window at scale 1, with
-isolated settings from [settings.json](settings.json), not personal settings.
+**Goal:** verify that a single key press keeps moving the player until release.
 
-| Example | App starts / windows over the run | Actions after readiness |
-| --- | --- | --- |
-| `movement.py` | 1 / 1 | One `arrow_right` press; four individually checked held ticks; one release; one still tick, then three more still ticks: **8 ticks**, 2 keyboard commands. |
-| `text.py` | 1 / 1 | Discover/click Settings, discover/click the existing Notes widget: move, press, release and one tick each, **6 ticks**. Submit `Grüße 🦉\n東京`, then one edit tick and one app-sync tick: **8 ticks total**, 6 pointer commands and 1 text command. Exact `Settings.notes` and unchanged other settings are asserted. |
-| `replay.py` | 2 / 2, serial | A records press, 4 ticks, release, 1 tick: **5 ticks**, 2 keyboard commands. Stop A before creating B. Copy only A's closed recording into B's public `artifact_dir`; B replays those **5 ticks** and inputs. Compare final position and tick delta. |
+1. Run the program without Python's `-O` option:
 
-In addition, **each session** explicitly selects engine startup capped at
-**3600 ticks / 60 seconds** in the TOML. Read-only CLI readiness observation is
-bounded at 90 seconds after confirmed creation, while launch/startup progress. `EngineReady` is not level readiness:
-each script visibly requests at most **120 further one-tick warps**, checking the
-app's `LevelLoad` between them and checking a 10-second deadline before another
-warp. No preparation ticks are hidden in a helper. Individual command/result
-waits are bounded at 10 seconds, so these are not hard total wall-clock promises.
+   ```sh
+   python3 examples/game_tests/movement.py --address "$ADDRESS" --rendered
+   ```
 
-All three commands together start **4 apps / 4 windows**, at most one live at a
-time, with **26 action ticks** plus the per-session preparation budgets. There
-are no OS inputs, resets, automatic action retries, display changes or hidden
-warmups. Replay uses fresh resource queries, never transplanted entity handles;
-while Replay is active, its result is observed only through Activity polls.
+2. Look for `PASS: four moving ticks and four still ticks; owned session ended.`
 
-## Ownership and retained evidence
+The program reads `Player.position`, presses `arrow_right` once and checks that
+x increases on each of four ticks. It releases the key and verifies four further
+ticks without movement. The other position coordinate must stay unchanged.
+Use [movement.py](movement.py) as a starting point when you need per-tick checks.
 
-- Use an idle server address you manage. Do not let another client control these
-  example-owned sessions. The scripts never start, stop or kill the server and
-  never stop sessions discovered through a list or an ID prefix.
-- Every create, input, warp and recording/replay command is visible in its example.
-  [_cli.py](_cli.py) only provides CLI subprocess transport/journaling, bounded
-  correlated observation, read-only resource queries and full-ID owned cleanup.
-- Normal completion explicitly calls public `session stop` for each owned full ID
-  and observes `Ended`. Failure cleanup does the same for confirmed creates not
-  already stopped, with a **40-second budget per session**, including a stop call
-  capped at 5 seconds. It never resubmits an attempted stop or falls back to kills.
-  `Failed`, timeout or loss of confirmation is an error, not successful cleanup;
-  an original failure is preserved alongside cleanup errors. This observes public
-  lifecycle state, not an independent OS-process or report-provider audit.
-- A transport failure, Activity Gap or unconfirmed submission fails the example:
-  no resubmit, reconnect repair or guessed outcome. A create whose ID was never
-  confirmed may have started an app; it cannot be safely claimed or stopped here.
-  The server owner must resolve that uncertainty using the retained evidence.
-- Client commands, stdout/stderr, preparation counts, outcomes and cleanup stay in
-  the printed `target/game-example-runs/<example>-<unique>/cli.jsonl`. Session files
-  stay in the absolute `artifact_dir` printed from public `session inspect`.
-  Nothing is broadly cleaned or deleted; replay retains both recording copies.
+## Enter Unicode text through the existing UI
 
-## Adapt to your game
+**Goal:** put `Grüße 🦉`, a newline and `東京` into Signalstation's Notes field.
 
-Replace the manifest/package/features and app arguments in `app.toml`. A relative
-manifest resolves from the **server's working directory**, not beside the TOML.
-The launched app runs in the manifest directory, so this seed argument is
-`../examples/game_tests/settings.json` relative to **test_app/**. Keep those two
-path bases distinct.
+1. Run:
 
-Replace Signalstation's public reflected resource paths (`SimulationTicks`,
-`LevelLoad`, `Player.position`, `Settings.notes`) and the expected settings with
-your own game oracle. Text discovers a button by child `Text` (`Einstellungen [M]`,
-whitespace-normalized), then `TextInput` by public `Name` (`Notizen`), and uses
-`ComputedNode` / `UiGlobalTransform` to derive logical-pixel coordinates. Adapt
-those queries, layout bounds and explicit edit/sync ticks to your existing UI;
-do not invent fixture widgets or tick until an expected answer appears. See the
-[Inspect/input/replay contracts](../../docs/api/target.md).
+   ```sh
+   python3 examples/game_tests/text.py --address "$ADDRESS" --rendered
+   ```
+
+2. Look for `PASS: exact Unicode Settings.notes after eight action ticks; owned session ended.`
+
+[text.py](text.py) finds the Settings button by its displayed text
+`Einstellungen [M]`, then finds the existing input named `Notizen`. It computes
+click coordinates from the widgets' current layout rather than hard-coding them.
+After focusing Notes, it submits the text and advances two ticks: one for Bevy's
+edit pass and one for Signalstation to copy the edit into `Settings.notes`.
+The program checks the exact text and that all other settings stay unchanged.
+
+## Record inputs and replay them in a fresh session
+
+**Goal:** reproduce the same final position from the same starting state.
+
+1. Run:
+
+   ```sh
+   python3 examples/game_tests/replay.py --address "$ADDRESS" --rendered
+   ```
+
+2. Look for `PASS: fresh B matched A's final position and five-tick delta; both owned sessions ended.`
+
+[replay.py](replay.py) records press → four ticks → release → one tick in session A.
+It closes the recording and stops A before creating B. It copies only that
+recording into B's reported artifact directory, replays it, then compares the
+final position and five-tick delta. Replay does not restore a world snapshot.
+Use this pattern only when you can establish the required starting state yourself.
+
+## Adapt a program to your game
+
+1. [Integrate Woodpecker into your existing game](../../docs/user-guide.md#6-diesen-integrationsweg-auf-dein-eigenes-spiel-übertragen).
+   Keep its normal input, movement and UI systems.
+2. Edit [app.toml](app.toml): replace the manifest, package, target, features and
+   game arguments. The manifest path resolves from the **server's working
+   directory**. Relative game arguments resolve from the manifest directory.
+   For Signalstation, that is why the seed is `../examples/game_tests/settings.json`.
+3. Replace the Signalstation resource paths in [_cli.py](_cli.py) and the program
+   with your game's reflected state. Choose a real readiness condition and a
+   success condition for your task.
+4. For text input, replace the button label and input name in `text.py`. Keep
+   layout-based coordinate discovery and use the edit/synchronization ticks
+   that your UI actually requires.
+5. For a state-driven example without a tick counter, start with
+   [feedback.py](feedback.py) and its [how-to](control.md#4-choose-the-next-move-in-python).
+   The three programs above also read Signalstation's optional `SimulationTicks`
+   measurement resource. Replace or remove those extra measurement assertions
+   when adapting them. Do not add a counter to your movement system.
+
+The helpers in `_cli.py` invoke the public CLI and match submitted requests to
+results. They are example code, not a public Python SDK. Command behavior and
+limits are defined in the [API contract](../../docs/api/target.md).
+
+## Find results and handle a failure
+
+A program prints `PASS` and exits 0 only after its checks and session cleanup
+succeed. Each creates its own sessions and stops only those full IDs. The server
+stays running. Run programs one at a time and do not let another client control
+their sessions.
+
+- Read the printed `Client journal` directory for commands, results and errors
+  in `cli.jsonl`. Session files remain in the printed `Session artifacts` directory.
+- If readiness fails, inspect the session error and its logs. Do not keep adding
+  ticks until the expected answer appears.
+- If a command is rejected, fails, times out or loses its result through an
+  Activity Gap, stop the task. Do not resubmit an input just to wait for its result.
+- If a create or stop has an unconfirmed outcome, retain the logs and resolve it
+  before another attempt. Do not guess an ID or claim successful cleanup.
+
+To see options without starting a server or game, run any program with `--help`:
+
+```sh
+python3 examples/game_tests/text.py --help
+```
+
+These programs show how to automate specific tasks. A successful run is not a
+full product acceptance result. The separate [product suite](../../tests/README.md)
+covers Woodpecker's contracts.
+
+## Stop your server
+
+Once all your tasks have finished, stop the server **only if you started it and
+no other sessions need it**:
+
+```sh
+wp server stop
+```
+
+Wait for the foreground server in terminal 1 to exit. This stops the server and
+any remaining sessions, not just the last example. Logs and recordings remain
+on disk.
+
+## Run budgets
+
+Each session uses [app.toml](app.toml) and an isolated copy of
+[settings.json](settings.json), not your personal settings. It opens one
+unfocused **1440 × 900** window at scale 1.
+
+| Program | Serial app starts | Actions after game readiness |
+| --- | ---: | --- |
+| `movement.py` | 1 | One press, four moving ticks, one release, four still ticks: **8 ticks**. |
+| `text.py` | 1 | Move/press/release for each of two UI clicks, each followed by a tick, then one text input and two ticks: **8 ticks**. |
+| `replay.py` | 2 | **5 ticks** and two keyboard commands recorded in A, then the same inputs and **5 ticks** replayed in B. A ends before B starts. |
+| `feedback.py` | 1 | One press, at most four moving ticks, one release and one still tick: **at most 5 ticks**. |
+
+In addition, each session allows up to **3600 engine-startup ticks / 60 seconds**.
+The programs wait at most 90 seconds for `EngineReady`, then request at most
+**120 explicit preparation ticks**, checking `LevelLoad` and a 10-second deadline
+before another tick. Commands have 10-second result deadlines. Cleanup allows
+40 seconds per session, including a stop call capped at five seconds.
+These are individual bounds, not a guaranteed total running time.
