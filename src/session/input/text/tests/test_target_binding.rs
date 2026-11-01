@@ -1,14 +1,22 @@
 use super::*;
 use bevy::{
     input_focus::{FocusCause, InputFocus},
-    text::apply_text_edits,
+    text::{TextReadWriteMode, apply_text_edits},
+    ui::InteractionDisabled,
     window::PrimaryWindow,
 };
 
 #[test]
 fn accepted_text_stays_bound_across_focus_despawn_and_editability_changes() {
-    // Three isolated software edit schedules; no UI renderer, OS clipboard or game.
-    for scenario in ["focus", "despawn", "not-editable"] {
+    // Isolated software edit schedules; no UI renderer, OS clipboard or game.
+    for scenario in [
+        "focus",
+        "despawn",
+        "not-editable",
+        "readonly",
+        "static",
+        "disabled",
+    ] {
         let mut app = App::new();
         app.add_plugins((bevy::asset::AssetPlugin::default(), bevy::text::TextPlugin));
         app.init_resource::<InputFocus>();
@@ -19,6 +27,40 @@ fn accepted_text_stays_bound_across_focus_despawn_and_editability_changes() {
             .resource_mut::<InputFocus>()
             .set(a, FocusCause::Navigated);
         let mut text = State::default();
+        // Non-editable targets must be rejected before any edit is queued.
+        match scenario {
+            "readonly" => {
+                app.world_mut()
+                    .entity_mut(a)
+                    .insert(TextReadWriteMode::ReadOnly);
+            }
+            "static" => {
+                app.world_mut()
+                    .entity_mut(a)
+                    .insert(TextReadWriteMode::Static);
+            }
+            "disabled" => {
+                app.world_mut().entity_mut(a).insert(InteractionDisabled);
+            }
+            _ => {}
+        }
+        if matches!(scenario, "readonly" | "static" | "disabled") {
+            let error = text
+                .input(
+                    app.world(),
+                    Input {
+                        text: "blocked".into(),
+                    },
+                )
+                .unwrap_err();
+            assert_eq!(error.code, "text_focus_unavailable", "{scenario}");
+            app.world_mut()
+                .entity_mut(a)
+                .remove::<InteractionDisabled>();
+            app.world_mut()
+                .entity_mut(a)
+                .insert(TextReadWriteMode::Editable);
+        }
         text.input(
             app.world(),
             Input {
@@ -48,6 +90,22 @@ fn accepted_text_stays_bound_across_focus_despawn_and_editability_changes() {
             }
             "not-editable" => {
                 app.world_mut().entity_mut(a).remove::<EditableText>();
+                None
+            }
+            "readonly" => {
+                app.world_mut()
+                    .entity_mut(a)
+                    .insert(TextReadWriteMode::ReadOnly);
+                None
+            }
+            "static" => {
+                app.world_mut()
+                    .entity_mut(a)
+                    .insert(TextReadWriteMode::Static);
+                None
+            }
+            "disabled" => {
+                app.world_mut().entity_mut(a).insert(InteractionDisabled);
                 None
             }
             "focus" => None,
@@ -83,11 +141,27 @@ fn accepted_text_stays_bound_across_focus_despawn_and_editability_changes() {
                 "replacement:"
             );
             assert!(app.world().get_entity(a).is_err());
-        } else {
+        } else if scenario == "not-editable" {
             assert!(app.world().get::<EditableText>(a).is_none());
             app.world_mut()
                 .entity_mut(a)
                 .insert(EditableText::new("restored:"));
+        } else {
+            assert_eq!(
+                app.world()
+                    .get::<EditableText>(a)
+                    .unwrap()
+                    .value()
+                    .to_string(),
+                "alpha:",
+                "{scenario}: edits accepted before the target became non-editable must be discarded"
+            );
+            app.world_mut()
+                .entity_mut(a)
+                .remove::<InteractionDisabled>();
+            app.world_mut()
+                .entity_mut(a)
+                .insert(TextReadWriteMode::Editable);
         }
         // A later fresh target/edit pass must not revive discarded text.
         text.flush(app.world_mut());
@@ -102,14 +176,19 @@ fn accepted_text_stays_bound_across_focus_despawn_and_editability_changes() {
                 "alpha:Grüße 🦉",
                 "The second flush must not deliver accepted text twice"
             );
-        } else if scenario == "not-editable" {
+        } else if scenario != "despawn" {
             assert_eq!(
                 app.world()
                     .get::<EditableText>(a)
                     .unwrap()
                     .value()
                     .to_string(),
-                "restored:"
+                if scenario == "not-editable" {
+                    "restored:"
+                } else {
+                    "alpha:"
+                },
+                "{scenario}: discarded text must not revive when editability returns"
             );
         }
         assert_eq!(
