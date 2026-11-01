@@ -89,6 +89,95 @@ class Classification(unittest.TestCase):
         self.assertEqual(self.classify(candidate=m.CANDIDATES[-1]), "invalid")
 
 
+class CampaignLifecycle(unittest.TestCase):
+    def run_campaign(self, *, build_fails=False, copy_fails=False, cleanup_fails=False):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            author, parent = root / "author", root / "parent"
+            for name in ("tests/mutations.py", "tests/runner_checks/mutations.py", "tests/mutations.md"):
+                path = author / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("tooling fixture")
+            products = {}
+            for name in ("target/debug/woodpecker", "target/debug/test_app"):
+                path = parent / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"protected parent product")
+                products[name] = m.file_state(path)
+            products_path = root / "products.json"
+            products_path.write_text(json.dumps(products))
+            previous = author / "target/test-runs/previous/evidence.log"
+            previous.parent.mkdir(parents=True)
+            previous.write_text("keep previous evidence")
+            args = type("Args", (), dict(parent_root=str(parent), parent_products=str(products_path),
+                evidence_dir=str(parent / "target/test-runs/campaign/mutation-evidence"),
+                source_ref="HEAD", clone_parent_cache=False))()
+            workspaces = []
+
+            def git(unused, *arguments):
+                if arguments[0] == "archive":
+                    Path(arguments[arguments.index("-o") + 1]).write_bytes(b"archive fixture")
+                return b"fixture-commit" if arguments[0] == "rev-parse" else b""
+
+            def extract(unused, source):
+                source.mkdir()
+                (source / "lib.rs").write_text("source fixture")
+
+            def build(source, cache, evidence, *unused):
+                workspaces.append(cache.parent)
+                (cache / "artifact").write_bytes(b"private build artifact")
+                (evidence / "baseline-build.log").write_text("build evidence")
+                if build_fails:
+                    raise RuntimeError("baseline build failed")
+                return process(), {}
+
+            copytree = m.shutil.copytree
+            def copy(source, destination, *arguments, **keywords):
+                if copy_fails:
+                    raise OSError("evidence copy failed")
+                return copytree(source, destination, *arguments, **keywords)
+
+            with patch.object(m, "ROOT", author), patch.object(m, "CANDIDATES", ()), \
+                    patch.object(m, "git", side_effect=git), patch.object(m, "extract", side_effect=extract), \
+                    patch.object(m, "tracked_state", return_value={}), patch.object(m, "build", side_effect=build), \
+                    patch.object(m.shutil, "copytree", side_effect=copy), \
+                    contextlib.ExitStack() as stack, contextlib.redirect_stdout(io.StringIO()) as output:
+                if cleanup_fails:
+                    stack.enter_context(patch.object(m.shutil, "rmtree", side_effect=OSError("cache removal failed")))
+                if copy_fails:
+                    with self.assertRaisesRegex(OSError, "evidence copy failed"):
+                        m.campaign(args)
+                    owned = workspaces[0]
+                    self.assertTrue((owned / "cargo-target/artifact").is_file())
+                    self.assertTrue((owned / "evidence/baseline-build.log").is_file())
+                    self.assertFalse(json.loads((owned / "evidence/summary.json").read_text())["complete"])
+                    return
+                code = m.campaign(args)
+            published = json.loads(output.getvalue())
+            report = json.loads(Path(published["report"]).read_text())
+            self.assertTrue((Path(published["report"]).parent / "baseline-build.log").is_file())
+            self.assertEqual(previous.read_text(), "keep previous evidence")
+            self.assertEqual({name: m.file_state(parent / name) for name in products}, products)
+            self.assertEqual(workspaces[0].exists(), cleanup_fails)
+            self.assertEqual(report["workspace_removed"], not cleanup_fails)
+            self.assertEqual(code, 2 if build_fails or cleanup_fails else 0)
+            self.assertEqual(report["complete"], not (build_fails or cleanup_fails))
+            if cleanup_fails:
+                self.assertTrue(any("cache removal failed" in error for error in report["errors"]))
+
+    def test_success_removes_owned_cache_after_publishing_evidence(self):
+        self.run_campaign()
+
+    def test_failed_build_still_publishes_evidence_and_removes_cache(self):
+        self.run_campaign(build_fails=True)
+
+    def test_failed_evidence_copy_preserves_workspace_and_incomplete_report(self):
+        self.run_campaign(copy_fails=True)
+
+    def test_cache_removal_failure_is_reported_as_incomplete(self):
+        self.run_campaign(cleanup_fails=True)
+
+
 class Safety(unittest.TestCase):
     def test_list_and_help_do_not_spawn_or_write(self):
         with patch.object(m.subprocess, "run") as run, patch.object(m.subprocess, "Popen") as popen, \
