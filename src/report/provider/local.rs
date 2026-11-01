@@ -224,11 +224,6 @@ impl Drop for Temporary<'_> {
     }
 }
 
-#[cfg(test)]
-pub(crate) fn submit(root: &Dir, output: &Path, report: &Report) -> Result<Outcome, Error> {
-    submit_cancellable(root, output, report, &AtomicBool::new(false))
-}
-
 pub(crate) fn submit_cancellable(
     root: &Dir,
     output: &Path,
@@ -244,16 +239,6 @@ pub(crate) fn submit_cancellable(
         file.sync_all()?;
         work::check(cancel)
     })
-}
-
-#[cfg(test)]
-fn submit_with(
-    root: &Dir,
-    output: &Path,
-    report: &Report,
-    write: impl FnOnce(&mut File, &str) -> io::Result<()>,
-) -> Result<Outcome, Error> {
-    submit_with_cancel(root, output, report, &AtomicBool::new(false), write)
 }
 
 fn submit_with_cancel(
@@ -300,6 +285,3 @@ fn submit_with_cancel(
     }
     result
 }
-
-#[cfg(test)]
-mod tests;

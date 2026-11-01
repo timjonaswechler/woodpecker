@@ -18,10 +18,17 @@ pub(super) enum Reply {
     Ended,
 }
 
-pub(super) fn spawn(root: Dir) -> (mpsc::Sender<Operation>, mpsc::Receiver<Reply>) {
+pub(super) fn spawn(
+    root: Dir,
+    clock: crate::command::tick::Clock,
+) -> (mpsc::Sender<Operation>, mpsc::Receiver<Reply>) {
     let (sender, operations) = mpsc::channel();
     let (replies, receiver) = mpsc::channel();
-    std::thread::spawn(move || run(root, operations, replies, Recording::start));
+    std::thread::spawn(move || {
+        run(root, operations, replies, |root, path| {
+            Recording::start(root, path, &clock)
+        })
+    });
     (sender, receiver)
 }
 

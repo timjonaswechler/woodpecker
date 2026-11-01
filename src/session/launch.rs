@@ -244,33 +244,3 @@ fn optional_command(command: &mut Command, cancel: &AtomicBool) -> Option<String
         std::thread::sleep(std::time::Duration::from_millis(2));
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn optional_metadata_is_trimmed_and_missing_failed_or_hung_tools_are_nonfatal() {
-        let cancel = AtomicBool::new(false);
-        assert_eq!(
-            optional_command(
-                Command::new("sh").args(["-c", "printf '  version\\n'"]),
-                &cancel
-            ),
-            Some("version".into())
-        );
-        assert!(
-            optional_command(&mut Command::new("/nonexistent/woodpecker-tool"), &cancel).is_none()
-        );
-        assert!(optional_command(Command::new("sh").args(["-c", "exit 2"]), &cancel).is_none());
-        let start = std::time::Instant::now();
-        assert!(optional_command(Command::new("sh").args(["-c", "sleep 30"]), &cancel).is_none());
-        assert!(start.elapsed() < std::time::Duration::from_secs(5));
-        assert!(
-            optional_command(
-                Command::new("sh").args(["-c", "sleep 30"]),
-                &AtomicBool::new(true)
-            )
-            .is_none()
-        );
-    }
-}

@@ -4,11 +4,12 @@ use crate::{
     handle::Handle,
 };
 use bevy::{
-    ecs::{component::ComponentId, reflect::ReflectComponent, world::EntityRef},
-    prelude::{AppTypeRegistry, Children, Entity, Name, World},
+    ecs::{
+        component::ComponentId, reflect::ReflectComponent, resource::IsResource, world::EntityRef,
+    },
+    prelude::{AppTypeRegistry, Children, Name, World},
     reflect::{TypeRegistration, TypeRegistry},
 };
-use std::collections::HashSet;
 
 pub(super) fn query(
     world: &World,
@@ -37,18 +38,17 @@ pub(super) fn query(
         } => resolve(type_paths)?,
         _ => Vec::new(),
     };
-    let resources: HashSet<_> = world.resource_entities().iter().map(|(_, e)| e).collect();
     let mut entities = if let Some(handle) = handle {
         let id = handle
             .resolve(world)
             .ok()
-            .filter(|id| !resources.contains(id))
+            .filter(|id| world.get::<IsResource>(*id).is_none())
             .ok_or_else(|| Diagnostic::new("entity_not_found", handle))?;
         vec![world.entity(id)]
     } else {
         world
             .iter_entities()
-            .filter(|entity| !resources.contains(&entity.id()))
+            .filter(|entity| !entity.contains::<IsResource>())
             .collect()
     };
     entities.retain(|entity| {
@@ -119,7 +119,7 @@ pub(super) fn query(
                     entity::Result::Components { components }
                 }
                 entity::Projection::Hierarchy { depth } => entity::Result::Hierarchy {
-                    root: hierarchy(world, entity, *depth, &resources),
+                    root: hierarchy(world, entity, *depth),
                 },
             };
             Item::Entity {
@@ -188,12 +188,7 @@ fn read(
     }
 }
 
-fn hierarchy(
-    world: &World,
-    entity: EntityRef<'_>,
-    depth: u8,
-    resources: &HashSet<Entity>,
-) -> entity::hierarchy::Node {
+fn hierarchy(world: &World, entity: EntityRef<'_>, depth: u8) -> entity::hierarchy::Node {
     let children = if depth == 0 {
         Vec::new()
     } else {
@@ -201,9 +196,9 @@ fn hierarchy(
             .get::<Children>()
             .into_iter()
             .flat_map(|children| children.iter())
-            .filter(|id| !resources.contains(id))
+            .filter(|id| world.get::<IsResource>(**id).is_none())
             .filter_map(|id| world.get_entity(*id).ok())
-            .map(|child| hierarchy(world, child, depth - 1, resources))
+            .map(|child| hierarchy(world, child, depth - 1))
             .collect()
     };
     entity::hierarchy::Node {
@@ -212,6 +207,3 @@ fn hierarchy(
         children,
     }
 }
-
-#[cfg(test)]
-mod tests;

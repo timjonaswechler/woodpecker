@@ -6,6 +6,36 @@ use std::time::{Duration, Instant};
 // bound the wait for a child that closed a required pipe and remains alive.
 const EOF_EXIT_TIMEOUT: Duration = Duration::from_secs(1);
 
+#[cfg(test)]
+#[path = "coordinator/tests/test_request_id_exhaustion.rs"]
+mod test_request_id_exhaustion;
+
+#[cfg(test)]
+pub(super) struct TestControls {
+    pub launched: Option<(
+        process::Process,
+        cap_std::fs::Dir,
+        crate::report::Context,
+        std::path::PathBuf,
+    )>,
+    pub next_id: u64,
+    pub recorder: Option<recording::Recorder>,
+    pub replay: Option<replay::Replay>,
+    pub loop_checkpoint: Option<(mpsc::Receiver<()>, mpsc::Sender<()>)>,
+}
+#[cfg(test)]
+impl Default for TestControls {
+    fn default() -> Self {
+        Self {
+            launched: None,
+            next_id: 1,
+            recorder: None,
+            replay: None,
+            loop_checkpoint: None,
+        }
+    }
+}
+
 fn launch(
     config: &Config,
     cancel: &Arc<AtomicBool>,
@@ -42,6 +72,7 @@ fn launch(
     let root = root.canonicalize().map_err(Error::io)?;
     let directory = cap_std::fs::Dir::open_ambient_dir(&root, cap_std::ambient_authority())
         .map_err(Error::io)?;
+    super::workspace::prepare(&root, &directory, &mut command)?;
     command
         .env("WOODPECKER_ARTIFACT_DIR", root)
         .env(
@@ -56,6 +87,14 @@ fn launch(
         .env(
             "WOODPECKER_TICK_PACE",
             serde_json::to_string(&config.tick.pace).unwrap(),
+        )
+        .env(
+            "WOODPECKER_STARTUP",
+            serde_json::to_string(&config.startup).unwrap(),
+        )
+        .env(
+            "WOODPECKER_TICK_CLOCK",
+            serde_json::to_string(&config.tick.clock).unwrap(),
         );
     let context = crate::report::Context {
         application,
@@ -84,6 +123,7 @@ pub(super) fn run(
     shared: Arc<Shared>,
     cancel: Arc<AtomicBool>,
     ready: mpsc::Sender<Result<Capabilities, Error>>,
+    #[cfg(test)] mut controls: Option<TestControls>,
 ) {
     // A lost coordinator must wake receivers even when unwinding bypasses the normal end path.
     struct EndOnDrop(Arc<Shared>);
@@ -94,6 +134,12 @@ pub(super) fn run(
         }
     }
     let _end = EndOnDrop(shared.clone());
+    #[cfg(test)]
+    let result = match controls.as_mut().and_then(|c| c.launched.take()) {
+        Some(launched) => Ok(launched),
+        None => launch(&config, &cancel),
+    };
+    #[cfg(not(test))]
     let result = launch(&config, &cancel);
     let (mut process, root, context, project) = match result {
         Ok(process) => process,
@@ -111,6 +157,10 @@ pub(super) fn run(
     );
     let mut active = BTreeMap::<u64, Command>::new();
     let mut next = 1u64;
+    #[cfg(test)]
+    if let Some(controls) = &controls {
+        next = controls.next_id;
+    }
     let mut shutdown: Option<Outcome> = None;
     let mut stopping = false;
     let mut reason = None;
@@ -128,9 +178,23 @@ pub(super) fn run(
     shared.state.lock().unwrap().report_destination = Some(Arc::new(
         crate::report::Destination::new(replay_root.clone(), config.report.clone(), project),
     ));
-    let mut replay = replay::Replay::new(replay_root);
-    let mut recorder = recording::Recorder::new(root);
+    #[cfg(test)]
+    let mut replay = controls
+        .as_mut()
+        .and_then(|c| c.replay.take())
+        .unwrap_or_else(|| replay::Replay::new(replay_root, config.tick.clock.clone()));
+    #[cfg(not(test))]
+    let mut replay = replay::Replay::new(replay_root, config.tick.clock.clone());
+    #[cfg(test)]
+    let mut recorder = controls
+        .as_mut()
+        .and_then(|c| c.recorder.take())
+        .unwrap_or_else(|| recording::Recorder::new(root, config.tick.clock.clone()));
+    #[cfg(not(test))]
+    let mut recorder = recording::Recorder::new(root, config.tick.clock.clone());
     let mut deferred = VecDeque::<(u64, Command)>::new();
+    let mut startup_pending = config.startup.enabled();
+    let mut startup_started: Option<Instant> = None;
     loop {
         recording_notices(&shared, &mut reason, recorder.poll());
         if cancel.load(Ordering::Acquire) {
@@ -167,12 +231,66 @@ pub(super) fn run(
                 }
                 process::Event::Line(line) => {
                     let decoded = serde_json::from_str::<Message>(&line);
+                    if matches!(
+                        &decoded,
+                        Ok(Message::EngineReady { .. } | Message::StartupFailed { .. })
+                    ) {
+                        if observation.wire_ready() && startup_pending {
+                            startup_pending = false;
+                            match decoded.unwrap() {
+                                Message::EngineReady { ticks } => {
+                                    push_event(&shared, &mut reason, Event::EngineReady { ticks })
+                                }
+                                Message::StartupFailed { ticks, error } => {
+                                    if !observation.initialized() {
+                                        let _ = ready.send(Err(Error::from(error.clone())));
+                                    }
+                                    push_event(
+                                        &shared,
+                                        &mut reason,
+                                        Event::StartupFailed {
+                                            ticks: Some(ticks),
+                                            error: error.clone(),
+                                        },
+                                    );
+                                    reason.get_or_insert(EndReason::TransportFailed {
+                                        channel: "startup".into(),
+                                        message: format!("{}: {}", error.code, error.message),
+                                    });
+                                }
+                                _ => unreachable!(),
+                            }
+                        } else if !observation.wire_ready() {
+                            let _ = ready.send(Err(Error::new(
+                                "invalid_ready",
+                                "startup status preceded SessionReady",
+                            )));
+                            return;
+                        } else {
+                            push_event(&shared, &mut reason, Event::ProtocolError { code: "unexpected_startup_status".into(), message: "startup status requires SessionReady and an unfinished engine startup".into() });
+                        }
+                        continue;
+                    }
                     if !observation.initialized() {
                         match decoded {
                             Ok(Message::Ready {
                                 version: protocol::VERSION,
                                 capabilities,
                             }) => {
+                                if config.tick.clock.duration().is_some()
+                                    && !capabilities.fixed_clock
+                                {
+                                    let _ = ready.send(Err(Error::new(
+                                        "unsupported_feature",
+                                        "application bridge does not support the requested fixed tick clock",
+                                    )));
+                                    return;
+                                }
+                                if config.startup.enabled() && !capabilities.engine_startup {
+                                    let _ = ready.send(Err(Error::new("unsupported_feature", "application bridge does not support the requested engine startup")));
+                                    return;
+                                }
+                                startup_started = Some(Instant::now());
                                 if let Err(error) = observation.ready(capabilities) {
                                     let _ = ready.send(Err(error));
                                     return;
@@ -247,6 +365,31 @@ pub(super) fn run(
                     }
                 }
             }
+        }
+        if startup_pending
+            && let startup::Config::Engine {
+                timeout_seconds, ..
+            } = config.startup
+            && startup_started
+                .is_some_and(|started| started.elapsed().as_secs() > u64::from(timeout_seconds))
+        {
+            startup_pending = false;
+            let error = protocol::Diagnostic::new(
+                "startup_timeout",
+                "application did not finish technical startup before its deadline",
+            );
+            if !observation.initialized() {
+                let _ = ready.send(Err(Error::from(error.clone())));
+            }
+            push_event(
+                &shared,
+                &mut reason,
+                Event::StartupFailed { ticks: None, error },
+            );
+            reason.get_or_insert(EndReason::TransportFailed {
+                channel: "startup".into(),
+                message: "technical startup deadline exceeded".into(),
+            });
         }
         if stopping && shutdown.as_ref().is_some_and(Result::is_err) {
             break;
@@ -341,6 +484,22 @@ pub(super) fn run(
                 // Observe completed loads before the next external command, including Stop.
                 for (id, outcome) in replay.poll(recorder.transitioning()) {
                     complete(&shared, id, outcome);
+                }
+                if startup_pending
+                    && !matches!(
+                        command,
+                        Command::Shutdown(_)
+                            | Command::Stop(_)
+                            | Command::ReplayStop(_)
+                            | Command::RecordingStop(_)
+                            | Command::Inspect(_)
+                    )
+                {
+                    let _ = response.send(Err(Error::new(
+                        "startup_in_progress",
+                        "wait for EngineReady before controlling or recording the simulation",
+                    )));
+                    continue;
                 }
                 let is_shutdown = matches!(command, Command::Shutdown(_));
                 let id = if stopping {
@@ -444,6 +603,12 @@ pub(super) fn run(
                         break;
                     }
                 }
+            }
+        }
+        #[cfg(test)]
+        if let Some((requests, acks)) = controls.as_ref().and_then(|c| c.loop_checkpoint.as_ref()) {
+            while requests.try_recv().is_ok() {
+                let _ = acks.send(());
             }
         }
         std::thread::sleep(Duration::from_millis(2));
@@ -589,31 +754,4 @@ pub(super) fn push_event(shared: &Shared, reason: &mut Option<EndReason>, value:
         });
     }
     shared.changed.notify_all();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn internal_commands_keep_bounded_history_without_unclaimed_results() {
-        let shared = Shared::default();
-        let command = Command::Stop(command::tick::warp::Stop {});
-        for id in 1..=100 {
-            accepted(&shared, id, &command, true);
-        }
-        assert_eq!(shared.state.lock().unwrap().history.len(), 50);
-        for id in 1..=100 {
-            complete(&shared, id, Ok(serde_json::json!({"was_running":false})));
-        }
-        let state = shared.state.lock().unwrap();
-        assert!(state.results.is_empty());
-        assert!(state.abandoned.is_empty());
-        assert!(
-            state
-                .history
-                .iter()
-                .all(|(_, entry)| matches!(entry.outcome, history::Outcome::Completed { .. }))
-        );
-    }
 }

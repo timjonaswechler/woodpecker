@@ -62,7 +62,7 @@ Clients erhalten die Adresse ausdrücklich. Ein nicht erreichbarer Server ergibt
 Verbindungsfehler.
 
 Serverkonfiguration enthält keine Spiel-Launch-Defaults. Jede Erstellung erhält ihre eigene
-vollständige Launch-, Tick- und Report-Konfiguration. Wiederholtes Lesen derselben Datei
+Launch-, Tick-, Startup- und Report-Konfiguration. Wiederholtes Lesen derselben Datei
 erzeugt unabhängige Laufzeitwerte. Andere Servereinstellungen benötigen einen Neustart,
 andere Session-Einstellungen eine neue Session. Fachliche Commands wie `SetPace` verändern
 weiterhin den dafür vorgesehenen Laufzeitzustand.
@@ -129,13 +129,20 @@ und geben nicht automatisch die vollständige Launch-Konfiguration aus.
 | Zustand | Bedeutung |
 | --- | --- |
 | `Starting` | Eintrag vorhanden; Vorbereitung oder Spielstart läuft |
-| `Ready` | Start und Handshake abgeschlossen; Commands dürfen trotzdem noch laufen |
+| `SessionReady` | Handshake abgeschlossen. Bei Manual-Startup steuerungsbereit, bei Engine-Startup noch in Vorbereitung |
+| `EngineReady` | Technische Vorbereitung abgeschlossen. Der eigene Ladezustand des Spiels muss separat geprüft werden |
 | `Stopping` | Herunterfahren läuft; Beobachtung bleibt möglich, neue Spielarbeit nicht |
 | `Ended` | Regulär beendet |
 | `Failed` | Vorbereitung, Start, Betrieb oder Abschluss fehlgeschlagen; mit Code und Meldung |
 
-Eine Verbindung ist in jedem dieser Zustände möglich. Commands mit Bereitschaftsvoraussetzung
-werden außerhalb von `Ready` abgelehnt, nicht für später vorgemerkt.
+Eine Verbindung ist in jedem dieser Zustände möglich. Neue Spiel-Commands benötigen
+`SessionReady` oder `EngineReady`. Außerhalb dieser Zustände werden sie abgelehnt,
+nicht für später vorgemerkt.
+
+Bei Manual-Startup bleibt die Session in `SessionReady`. Beim optionalen Engine-Startup
+sind bis `EngineReady` nur Inspect, Shutdown und die Stop-Operationen für Warp, Replay
+und Recording zulässig. Die jeweiligen Command-Vorbedingungen gelten weiterhin.
+Andere Commands werden vor Annahme mit `startup_in_progress` abgelehnt.
 Ein einzelner Command-Fehler macht die Session nicht automatisch `Failed`.
 
 Ein angenommener Shutdown wechselt nach `Stopping`. Ein vor Annahme blockierter
@@ -182,10 +189,11 @@ Failure-Daten erscheinen als `null`. `Ended` schließt den Session-Eventstrom, n
 Activity. Bereits angestoßene Report-Veröffentlichungen können danach ihr Ergebnis liefern;
 das Session-Endevent bestätigt deshalb keine vollständige Report-Ausgabe.
 
-Ohne Session-Annahme entsteht keine fiktive Request-ID. Das gilt insbesondere vor Ready,
-nach Session-Ende, bei vom Server abgewiesener neuer Arbeit während Server-Shutdown und
-bei blockiertem Einzel-Session-Shutdown. Fachliche Ablehnungen normal angenommener
-Commands erscheinen dagegen nach Pending mit deren ID.
+Ohne Session-Annahme entsteht keine Request-ID. Das gilt vor `SessionReady`, nach
+Session-Ende und bei Ablehnungen vor Annahme: etwa während Engine-Startup oder
+Server-Shutdown sowie bei blockiertem Einzel-Session-Shutdown. Ein bereits
+angenommener Command erhält dagegen auch bei fachlicher Ablehnung ein terminales
+Ergebnis mit seiner ID.
 
 Der Server nimmt Session-Events unabhängig von Clients entgegen. Bei `Failure` erzeugt er
 unmittelbar den Report-Snapshot und stößt danach `report::submit` an. Er behält Report und
@@ -198,9 +206,10 @@ Die Docker-artige Session-Verwaltung bietet `session stop <id>` als ausdrücklic
 Verwaltungsauftrag an. Er stoppt genau die gewählte Session, unabhängig davon, ob sie
 noch startet oder bereits läuft. Server und andere Sessions bleiben aktiv.
 
-Der Server setzt eine gewählte Session in `Starting` oder `Ready` auf `Stopping` und nimmt
-für sie keine neue Spielarbeit mehr an. Er beendet einen laufenden Startvorgang oder stoppt Replay und andere ausdrücklich
-stoppbare Arbeit über deren fachliche Operationen. Bereits gesendete, nicht stoppbare Commands
+Der Server setzt eine gewählte Session in `Starting`, `SessionReady` oder `EngineReady`
+auf `Stopping`. Für sie nimmt er keine neue Spielarbeit mehr an. Er beendet einen
+laufenden Startvorgang oder stoppt Replay und andere stoppbare Arbeit über deren
+fachliche Operationen. Bereits gesendete, nicht stoppbare Commands
 dürfen abschließen. Danach beendet er aktive Recordings sauber und führt den Session-Shutdown
 aus. Prozessbereinigung bleibt bei `session`, Ablaufkoordination bei `server`.
 
@@ -240,7 +249,13 @@ Absichtlich beendete Spielprozesse oder Startvorgänge sind keine Spielfehler-Re
 
 ### Start und Pfade
 
-`session::Config` enthält `launch`, `artifact_dir`, `tick` und `report`.
+`session::Config` legt Spielstart (`launch`), Artefaktordner (`artifact_dir`),
+Zeitsteuerung (`tick`), technische Vorbereitung (`startup`) und Reporting (`report`) fest.
+`tick` trennt reale Ausführungsgeschwindigkeit und simulierte Zeit. Die Regeln stehen
+unter [Explizite Simulation und Input](#explizite-simulation-und-input).
+Die vollständige [CLI-Beispielkonfiguration](../../examples/game_tests/app.toml)
+verwendet eine feste Uhr und Engine-Startup für Signalstation.
+
 `launch::Config` nennt verpflichtend Manifest, nicht leeres Package sowie genau ein benanntes
 Binary oder Example. `features` aktiviert Cargo-Features, `arguments` wird hinter `--`
 unverändert an die Anwendung übergeben.
@@ -261,13 +276,61 @@ Die Session legt ihn bei Bedarf an und kanonisiert ihn. Anlage-/Kanonisierungsfe
 Alle einzelnen Artefakte bleiben unter diesem gemeinsamen Root.
 
 Die Session übergibt den kanonischen Root intern als `WOODPECKER_ARTIFACT_DIR` und setzt
-`RUST_BACKTRACE=1` für den Kindprozess. Das Plugin liest den Root vor Ready.
-Ein fehlender oder ungültiger Root verhindert Ready.
+`RUST_BACKTRACE=1` für den Kindprozess. Das Plugin liest den Root vor dem Ready-Handshake.
+Ein fehlender oder ungültiger Root verhindert den Handshake.
 
-`Session::start` gibt erst nach erfolgreichem Handshake und erforderlicher Layer-Bestätigung
-einen nutzbaren Handle zurück. Start besitzt keinen eingebauten Timeout. Fehler vor Ready
-räumen gestartete Ressourcen auf. Das Serverinterface verwendet denselben Startweg intern
-abbrechbar, ohne den synchronen öffentlichen Einstieg zu verändern.
+Unter dem Artefakt-Root legt jede Session einen neuen `workspace/` mit `config/`,
+`data/` und `tmp/` an. Ein vorhandener Workspace wird nicht übernommen.
+`WOODPECKER_SESSION_DIR` enthält seinen absoluten Pfad. `TMPDIR`, `TMP` und `TEMP`
+verweisen für Launcher und Spiel auf `workspace/tmp/`.
+
+Das Spiel muss seine Speicherorte ausdrücklich auf diesen Workspace umstellen.
+Woodpecker leitet beliebige Dateizugriffe nicht um und ist keine Betriebssystem-Sandbox.
+Der Workspace bleibt nach Session-Ende erhalten. Das Arbeitsverzeichnis bleibt `project_dir`.
+
+`Session::start` gibt nach erfolgreichem Handshake und erforderlicher Layer-Bestätigung
+einen nutzbaren Handle zurück, ohne auf Engine- oder Spielbereitschaft zu warten.
+Der Handshake besitzt keinen eingebauten Timeout. Fehler davor räumen gestartete
+Ressourcen auf. Das Serverinterface verwendet denselben Startweg intern abbrechbar,
+ohne den synchronen öffentlichen Einstieg zu verändern.
+
+### Technischer Startup
+
+`startup::Config::Manual {}` ist der Standard. Bis zum ersten ausdrücklichen Warp
+läuft kein Anwendungstick. `Engine { timeout_seconds, max_ticks }` aktiviert dagegen
+die technische Vorbereitung mit gezählten normalen Anwendungsticks.
+`timeout_seconds: u32` und `max_ticks: u64` müssen beide größer als null sein.
+
+Für Engine-Startup installiert die Anwendung ihren Renderer, genau ein primäres
+Fenster und eine darauf gerichtete Kamera. Vor `session::Plugin` fügt sie
+`startup::Assets` als Bevy-Resource ein. Dessen Callback liest die tatsächlichen
+Startup-Handles aus dem World:
+
+- `None`: Die Asset-Liste ist noch nicht bekannt. Startup wartet weiter.
+- `Some(handles)`: Die Liste ist bekannt. Eine leere Liste ist etwa für eine
+  prozedurale Szene zulässig.
+
+Die [Integration in Signalstation](../user-guide.md#spielzustand-beobachten-laden-und-speichern-anbinden)
+und ihr [Adapter](../../test_app/src/woodpecker.rs) zeigen diese Einbindung.
+
+Engine-Startup wartet auf geladene Assets samt rekursiven Abhängigkeiten,
+instanziierte Szenen, vorbereitete GPU-Assets und Pipelines sowie einen
+abgeschlossenen Fensterframe. Dafür müssen Kamera und Renderoberfläche verfügbar
+sein. Fehlen sie noch, wartet Startup innerhalb seiner Grenzen weiter.
+Eine fehlende Kamera allein wird nicht als fehlender Renderer gemeldet.
+
+`Event::EngineReady { ticks }` bestätigt den Abschluss und nennt die Zahl der
+Vorbereitungsticks. Danach läuft ohne Warp kein weiterer Anwendungstick.
+Der eigene Ladezustand des Spiels, etwa Signalstations `LevelLoad`, bleibt separat
+zu prüfen. Während der Vorbereitung gelten die [Annahmeregeln](#sichtbarer-lebenszyklus).
+
+Fehler beenden die Vorbereitung mit `StartupFailed { ticks, error }`. Zu den
+Diagnosen gehören fehlende Voraussetzungen (`startup_asset_scope_missing`,
+`startup_renderer_missing`), Asset- oder Pipelinefehler (`startup_asset_failed`,
+`startup_pipeline_failed`) und überschrittene Grenzen (`startup_tick_limit`,
+`startup_timeout`). Der Server beendet die betroffene Session als `Failed`.
+Das Zeitbudget beginnt nach dem Handshake. Es begrenzt nicht die vorherige
+Cargo-Auflösung oder Prozessvorbereitung.
 
 ### Fortschritt, Annahme und Ergebnisse
 
@@ -286,8 +349,9 @@ ausschließlich zu `Session::shutdown`.
 
 `send` wartet nur auf Annahme und liefert `Pending<C::Output>`. Eine beendete oder technisch
 nicht erreichbare Session sowie erschöpfte normale IDs verhindern Annahme, Pending und
-History-Eintrag. Commandspezifische Zustands- und Wertfehler werden dagegen nach Annahme
-terminal, einschließlich Konflikten mit Replay oder Recording.
+History-Eintrag. Das gilt auch für `startup_in_progress` während
+[Engine-Startup](#sichtbarer-lebenszyklus). Andere commandspezifische Zustands- und
+Wertfehler werden nach Annahme terminal, einschließlich Konflikten mit Replay oder Recording.
 
 Die Session vergibt opake `u64`-Request-IDs ab 1, monoton und ohne Wiederverwendung.
 Interne Replay-Commands verwenden denselben Nummernraum. `u64::MAX` ist für den einmaligen
@@ -320,6 +384,10 @@ Sie enthalten keine Request-IDs. Die öffentliche History-Darstellung erscheint 
 Die Session puffert 256 normale Events und reserviert einen zusätzlichen Platz für `Ended`.
 `try_receive_event` fragt nicht blockierend ab, `receive_event` wartet. Die Varianten sind:
 
+- `EngineReady { ticks }` für den erfolgreichen technischen Startup,
+- `StartupFailed { ticks, error }` für einen Startup-Fehler mit Diagnose. `ticks` ist
+  `Some(n)`, wenn die Spielseite ihre Tickzahl gemeldet hat, sonst `None`
+  (auf dem Wire `null`), etwa beim Timeout des Session-Koordinators,
 - `ProtocolError { code, message }` für nicht einem offenen Command zuordenbare Protokollfehler,
 - `RecordingFailed { path, message }`,
 - `Failure { failure }`,
@@ -328,7 +396,9 @@ Die Session puffert 256 normale Events und reserviert einen zusätzlichen Platz 
 
 Endgründe sind `ProcessExit { status }`, `TransportClosed { channel }`,
 `TransportFailed { channel, message }` und `EventQueueOverflow { capacity, dropped_events }`.
-Kanäle sind stdin, stdout und stderr. Auch ein unerwarteter Exit-Status 0 ist ein Prozessende.
+Transportkanäle sind stdin, stdout und stderr. Bei `TransportFailed` bezeichnet
+`startup` zusätzlich einen gescheiterten technischen Startup, keine eigene Pipe.
+Auch ein unerwarteter Exit-Status 0 ist ein Prozessende.
 EOF nach bereits beobachtetem Prozessende gehört zum abschließenden Drain.
 Kommt stdout-/stderr-EOF vor dem beobachtbaren Prozessstatus, beginnt ab dem ersten
 EOF eine begrenzte, abbrechbare Klärungsfrist (derzeit eine reale Sekunde). Weitere
@@ -401,10 +471,33 @@ und keine Reports.
 
 ### Explizite Simulation und Input
 
-Nur `tick.warp.start` führt Ticks aus. Ein Tick führt die von der Anwendung konfigurierten
-Simulations-Schedules einmal in ihrer vorhandenen Reihenfolge aus und erhöht nach Erfolg
-den Tick-Zähler um eins. Die Anwendung besitzt Zeitkonfiguration und Bedeutung eines Ticks;
-`woodpecker` überschreibt keine simulierte Tick-Dauer.
+Ein Warp oder der ausdrücklich konfigurierte [Engine-Startup](#technischer-startup)
+führt gezählte Anwendungsticks aus. Jeder Tick führt die konfigurierte
+Haupt-Schedule-Reihenfolge einmal aus und erhöht nach Erfolg den Tick-Zähler um eins.
+Ein Tick ist nicht automatisch genau ein `FixedUpdate`. Dessen Ausführung bestimmt
+weiterhin Bevys feste Zeitschrittlogik.
+
+`tick::Config::clock` bestimmt, wie Bevy die Zeit je Tick aktualisiert:
+
+- **`Application {}` (Standard):** Die Anwendung behält ihre Zeitpolitik.
+  Bei Bevys `TimeUpdateStrategy::Automatic` kann die reale Zeit zwischen Ticks
+  in das nächste Delta eingehen, auch nach längerem Stillstand.
+- **`Fixed { seconds_per_tick }`:** Vor jedem gezählten Tick setzt Woodpecker
+  `TimeUpdateStrategy::ManualDuration` auf die gewählte Dauer. Schon Tick 1 erhält
+  dieses Delta für `Time<Real>`. `Time<Virtual>` berücksichtigt weiterhin die
+  anwendungseigene Pause, Geschwindigkeit und maximale Delta-Grenze.
+
+`seconds_per_tick` muss positiv und endlich sein. Die Umrechnung in `Duration`
+darf weder fehlschlagen noch auf null runden. Außerdem muss sich die Dauer ohne
+Überlauf zu `Instant::now()` addieren lassen. Ungültige Werte ergeben bei der
+Session-Validierung `InvalidConfig` (`invalid_config`), ohne ein Spiel zu starten.
+Für Fixed muss Bevys `TimePlugin` vor `session::Plugin` installiert sein.
+Fehlt es, löst das Einbinden des Session-Plugins im Spiel eine Panic aus und
+verhindert den erfolgreichen Ready-Handshake.
+
+Pace bestimmt die reale Abarbeitungsgeschwindigkeit, legt aber keine simulierte
+Tickdauer fest. Ohne Tick werden Bevys Zeitressourcen nicht aktualisiert.
+Eigene Threads oder externe Zeitquellen werden dadurch nicht pausiert.
 
 Input-Erfolg bedeutet Annahme, Prüfung und Vormerkung für den nächsten ausgeführten Tick,
 nicht bereits erfolgte Verarbeitung durch Anwendungssysteme. Mehrere Inputs vor einem Tick
@@ -428,28 +521,37 @@ Textfokus bezeichnet ausschließlich den Fokus innerhalb des jeweiligen Bevy Wor
 
 Keyboard verwendet eigene stabile, layoutunabhängige Key-Tokens mit fester interner Abbildung
 auf physisches `KeyCode` und logisches Bevy-`Key`.
-Pointer verwendet das Spielfenster. `MoveTo` benutzt logische Pixel vom linken oberen Rand,
-`MoveBy` ein Delta zur bekannten Position. Das Ziel muss `0 <= x < width` und
-`0 <= y < height` erfüllen; Ablehnung verändert die Position nicht.
+Pointer verwendet das Spielfenster. `MoveTo` benutzt logische Pixel vom linken oberen Rand;
+sein Ziel muss `0 <= x < width` und `0 <= y < height` erfüllen. Eine Ablehnung verändert
+die Position nicht. `MoveBy` verwendet ein relatives Delta; ohne bekannte Position beginnt
+er am Fenstermittelpunkt. Seine virtuelle Position wird auf die Fenstergrenzen geklemmt,
+mit weiterhin exklusiver Obergrenze. Das vollständige endliche Delta erreicht Bevy als
+`MouseMotion`, unabhängig von der geklemmten Picking-Bewegung. `MoveTo` erzeugt keine
+relative `MouseMotion`.
 Buttons sind `left`, `right`, `middle` und wirken an der aktuellen Position.
 Scroll übergibt horizontales und vertikales Delta samt Vorzeichen in Bevy-Zeileneinheiten;
 `[0,0]` ist erlaubt. Text geht an den eindeutigen lebenden, editierbaren Bevy-Fokus
 und umfasst höchstens 16.384 UTF-8-Bytes.
 
 Text bindet sich bei der Annahme an die fokussierte `EditableText`-Entity.
+`TextReadWriteMode::ReadOnly`, `Static` oder `InteractionDisabled` schließen
+Texteingabe aus. Ein solcher Fokus wird mit `text_focus_unavailable` abgelehnt.
 Ein späterer Fokuswechsel leitet angenommenen Text nicht in ein anderes Feld um.
-Erst beim nächsten Tick erhält dieses Feld den vorgemerkten Edit; Bevys normale
-Selektions-, Zeichenfilter- und Längenregeln bestimmen dessen Verarbeitung.
-Ist das Feld dann nicht mehr vorhanden oder editierbar, wird nichts an ein anderes
-Feld zugestellt. Der bestätigte Command-Erfolg bleibt eine Vormerkungsbestätigung.
-Leerer Text ist zulässig, er benötigt dieselben Fenster- und Fokusprüfungen.
+
+Beim nächsten Tick prüft Woodpecker das gebundene Ziel erneut. Ist es nicht mehr
+vorhanden oder editierbar, wird der vorgemerkte Text dauerhaft verworfen.
+Der bestätigte Command-Erfolg wird dadurch nicht nachträglich geändert.
+Andernfalls erhält das Feld den Edit. Bevys normale Selektions-, Zeichenfilter-
+und Längenregeln bestimmen dessen Verarbeitung.
+Leerer Text ist zulässig und benötigt dieselben Fenster- und Fokusprüfungen.
 
 ### Tick-Warp
 
 `Start { ticks, pace }` verlangt positive `u64`-Ticks. Die optionale Pace überschreibt
 nur diesen Warp; sonst gilt `tick::Config::pace`. Pace ist `AsFastAsPossible` oder
-`TicksPerSecond { target }` mit endlichem `target > 0`. Sie steuert ausschließlich reale
-Geschwindigkeit, nicht simulierte Zeit, und verspricht keine erreichbare Leistung.
+`TicksPerSecond { target }` mit endlichem `target > 0`. Sie legt das reale
+Ausführungstempo fest, garantiert aber keine erreichbare Leistung. Die simulierte
+Dauer folgt der [Clock-Politik](#explizite-simulation-und-input).
 
 `SetPace` setzt den Laufzeitstandard und gilt sofort für verbleibende Ticks eines aktiven Warps.
 `Stop` beendet den Warp, ohne laufenden Warp ist es ein erfolgreicher No-op.
@@ -616,15 +718,27 @@ Eine Datei enthält genau einen Abschnitt in eigenständig versioniertem JSONL:
 {"type":"recording_ended","outcome":"stopped","recorded_commands":1}
 ```
 
+Das Beispiel verwendet Formatversion 1 für die Anwendungszeitpolitik, ohne
+`clock`-Feld im Header. Bei einer Fixed-Clock schreibt der Recorder Version 2:
+
+```json
+{"type":"recording_started","format_version":2,"clock":{"kind":"fixed","seconds_per_tick":0.016666667}}
+```
+
+Version 2 verlangt eine gültige Clock-Angabe; Version 1 erlaubt keine solche Angabe.
+Der Loader vergleicht die effektive Tickdauer mit der aktuellen Session und lehnt
+eine Abweichung vor Plan-Ausführung mit `replay_clock_mismatch` ab. Eine Datei mit
+Version 1 setzt Anwendungszeit voraus.
+
 Header zuerst, null oder mehr Command-Objekte, genau ein Footer zuletzt.
 Jede Zeile ist ein JSON-Objekt; Leerzeilen, zusätzliche Daten, unbekannte oder doppelte Felder
 und unbekannte `type`-Werte sind ungültig. Ein abschließendes LF ist optional.
 `recorded_commands` muss exakt stimmen. Eine Datei ohne vollständigen Footer ist ungültig.
 Commands und Outcomes werden ungekürzt ohne Request-IDs gespeichert und können vertraulich sein.
 
-Outcome-Formen:
+Outcome-Formen, jeweils ein Objekt pro Zeile:
 
-```json
+```jsonl
 {"status":"completed","output":null}
 {"status":"rejected","error":{"code":"entity_not_found","message":"..."}}
 {"status":"protocol_failed","error":{"code":"invalid_response","message":"..."}}
@@ -858,23 +972,51 @@ stderr in erfundene Kategorien zerlegt. Alle öffentlichen Fehler implementieren
 
 ### Nachrichten
 
-`session::protocol` besitzt UTF-8-JSONL über stdin/stdout zwischen Session und Spiel.
-stderr bleibt Diagnose-/Markerkanal. Erste Protokollnachricht ist genau:
+`session::protocol` definiert UTF-8-JSONL über stdin/stdout zwischen Session und Spiel.
+stderr bleibt Diagnose- und Markerkanal. Die erste Protokollnachricht der Spielseite
+ist ein Ready-Handshake, beispielsweise:
 
 ```json
 {"status":"ready","version":3,"capabilities":{"screenshot":true}}
 ```
 
-Version muss 3 sein, Screenshot immer Boolean. Fehlende, typfalsche oder zusätzliche
-Ready-Felder ergeben `invalid_ready`, andere Version `unsupported_protocol_version`.
-Ein weiterer Ready nach erfolgreichem Start ergibt nicht fatal `unexpected_ready`
-und ändert den Capability-Snapshot nicht.
+`version` muss 3 sein, `capabilities.screenshot` ein boolescher Wert. Die optionalen
+booleschen Felder `fixed_clock` und `engine_startup` bestätigen die gewählte feste
+Uhr bzw. den Engine-Startup. Ohne diese Felder gilt jeweils `false`. Bestätigt die
+Spielseite eine angeforderte Funktion nicht, scheitert der Start mit `InvalidConfig`
+und dem öffentlich ausgegebenen Code `invalid_config`.
+
+Fehlende Pflichtfelder, falsche Feldtypen oder unbekannte Felder ergeben `invalid_ready`.
+Eine andere Protokollversion ergibt `unsupported_protocol_version`.
+Ein weiterer Ready-Handshake nach erfolgreichem Start erzeugt ein nicht fatales
+`ProtocolError`-Event mit `unexpected_ready`. Der Capability-Snapshot bleibt unverändert.
+
+Bei aktiviertem Engine-Startup meldet die Spielseite nach dem Handshake dessen
+Abschluss. Bei Erfolg lautet die Nachricht beispielsweise:
+
+```json
+{"status":"engine_ready","ticks":12}
+```
+
+Bei einem Fehler meldet sie stattdessen:
+
+```json
+{"status":"startup_failed","ticks":12,"error":{"code":"startup_tick_limit","message":"..."}}
+```
+
+Diese Nachrichten sind keine Command-Antworten. Die Session überführt sie in die
+[Events `EngineReady` und `StartupFailed`](#history-events-und-fehler).
+Ein Startup-Abschluss vor dem Ready-Handshake bricht den Start mit `invalid_ready` ab.
+Ein unerwarteter oder wiederholter Abschluss nach dem Handshake erzeugt ein
+nicht fatales `ProtocolError`-Event mit `unexpected_startup_status` und ändert den
+Startup-Zustand nicht. Überschreitet die Spielseite ihr Zeitbudget ohne Abschluss,
+erzeugt der Session-Koordinator selbst `StartupFailed` mit unbekannter Tickzahl.
 
 Input, Tick und Inspect gehören fest zur Version. `screenshot` bestätigt vollständige
 optionale Installation samt Renderer, nicht Erfolg jedes konkreten Aufrufs.
 Die Anwendung bestimmt ihre Bevy-Zusammensetzung; das Plugin installiert keinen Renderer.
 
-```json
+```jsonl
 {"request_id":17,"command":"input.keyboard.press","arguments":{"key":"a"}}
 {"request_id":17,"command":"input.keyboard.press","status":"completed","output":null}
 {"request_id":18,"command":"input.keyboard.press","status":"rejected","error":{"code":"key_already_pressed","message":"..."}}
@@ -925,9 +1067,9 @@ Ein `blocked`-Replay-Outcome ist ein technischer Planabschluss, kein erfolgreich
 Nachweis des aufgezeichneten Ablaufs. Die normalen Start-/Stop-Ablehnungen und
 Ladefehler bleiben wie oben beschrieben.
 
-Inspect-Argumente:
+Inspect-Argumente, jeweils ein Beispiel pro Zeile:
 
-```json
+```jsonl
 {"source":"entities","entity":null,"with":[],"without":[],"projection":{"kind":"summary"}}
 {"source":"resources","selector":{"kind":"type","type_path":"game::GameState"},"projection":{"kind":"value"}}
 ```
@@ -941,9 +1083,9 @@ Optionale Inspect-Felder sind ausdrücklich `null`, Listen immer Arrays.
 Unbekannte oder zur anderen Source gehörende Felder werden abgelehnt.
 
 Verschachtelte Enum-Kinds verwenden `snake_case`. Beispiele für Entity-Summary und
-Resource-Value:
+Resource-Value, jeweils ein Ergebnis pro Zeile:
 
-```json
+```jsonl
 {"items":[{"kind":"entity","entity":{"index":7,"generation":1},"result":{"kind":"summary","name":"Player","component_count":8}}]}
 {"items":[{"kind":"resource","result":{"kind":"value","type_path":"game::GameState","value":{"status":"readable","value":{"score":42}}}}]}
 ```

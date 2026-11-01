@@ -1,6 +1,9 @@
-//! Version 1 persistence. The coordinator never performs file IO.
+//! Versioned persistence. The coordinator never performs file IO.
+#[cfg(all(test, unix))]
+#[path = "file/tests/test_path_replacement.rs"]
+mod test_path_replacement;
 use super::super::{Error, Outcome};
-use crate::command::Command;
+use crate::command::{Command, tick::Clock};
 use cap_fs_ext::{DirExt, FollowSymlinks, OpenOptionsFollowExt};
 use cap_std::fs::{Dir, File, OpenOptions};
 use serde_json::{Value, json};
@@ -52,6 +55,19 @@ fn parent(root: &Dir, path: &str) -> Result<(Dir, String), Error> {
 
 // Replay shares the writer's lexical rules and opens every component without following links.
 pub(crate) fn open_read(root: &Dir, path: &str) -> Result<File, Error> {
+    open_read_at(
+        root,
+        path,
+        #[cfg(test)]
+        || {},
+    )
+}
+
+fn open_read_at(
+    root: &Dir,
+    path: &str,
+    #[cfg(test)] checkpoint: impl FnOnce(),
+) -> Result<File, Error> {
     validate(path)?;
     let mut parts: Vec<_> = path.split('/').collect();
     let name = parts.pop().unwrap();
@@ -61,6 +77,8 @@ pub(crate) fn open_read(root: &Dir, path: &str) -> Result<File, Error> {
             .open_dir_nofollow(part)
             .map_err(|e| path_error(e, path))?;
     }
+    #[cfg(test)]
+    checkpoint(); // Per-call exchange after pinning parents, before opening the final entry.
     let mut options = OpenOptions::new();
     options.read(true).follow(FollowSymlinks::No);
     // A swapped-in FIFO must not leave the loader blocked in open before metadata validation.
@@ -99,8 +117,8 @@ pub(super) struct Recording<W: Write = File> {
 }
 
 impl Recording {
-    pub fn start(root: &Dir, path: String) -> Result<Self, Error> {
-        Self::start_with(root, path, |file| file)
+    pub fn start(root: &Dir, path: String, clock: &Clock) -> Result<Self, Error> {
+        Self::start_with(root, path, clock, |file| file)
     }
 }
 
@@ -108,9 +126,29 @@ impl<W: Sink> Recording<W> {
     pub(super) fn start_with(
         root: &Dir,
         path: String,
+        clock: &Clock,
         wrap: impl FnOnce(File) -> W,
     ) -> Result<Self, Error> {
+        Self::start_at(
+            root,
+            path,
+            clock,
+            wrap,
+            #[cfg(test)]
+            || {},
+        )
+    }
+
+    fn start_at(
+        root: &Dir,
+        path: String,
+        clock: &Clock,
+        wrap: impl FnOnce(File) -> W,
+        #[cfg(test)] checkpoint: impl FnOnce(),
+    ) -> Result<Self, Error> {
         let (directory, name) = parent(root, &path)?;
+        #[cfg(test)]
+        checkpoint(); // The opened parent capability must survive a pathname exchange.
         let options = OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -133,8 +171,16 @@ impl<W: Sink> Recording<W> {
             path,
             count: 0,
         };
+        // Keep application-clock recordings compatible with existing readers.
+        // A fixed clock changes replay semantics, so it requires a new version.
+        let header = match clock {
+            Clock::Application {} => json!({"type":"recording_started","format_version":1}),
+            Clock::Fixed { .. } => {
+                json!({"type":"recording_started","format_version":2,"clock":clock})
+            }
+        };
         if let Err(error) = recording
-            .line(&json!({"type":"recording_started","format_version":1}))
+            .line(&header)
             .and_then(|_| recording.stream.flush())
         {
             let path = recording.path.clone();

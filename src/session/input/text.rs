@@ -3,10 +3,24 @@ use bevy::prelude::*;
 #[cfg(feature = "ui")]
 use bevy::{
     input_focus::InputFocus,
-    text::{EditableText, TextEdit},
+    text::{EditableText, TextEdit, TextReadWriteMode},
+    ui::InteractionDisabled,
 };
 
+#[cfg(all(test, feature = "ui"))]
+#[path = "text/tests/test_target_binding.rs"]
+mod test_target_binding;
+
 const MAX_BYTES: usize = 16_384;
+
+#[cfg(feature = "ui")]
+fn is_editable(world: &World, entity: Entity) -> bool {
+    world.get::<EditableText>(entity).is_some()
+        && world
+            .get::<TextReadWriteMode>(entity)
+            .is_none_or(|mode| *mode == TextReadWriteMode::Editable)
+        && world.get::<InteractionDisabled>(entity).is_none()
+}
 
 #[derive(Default)]
 pub(crate) struct State {
@@ -33,7 +47,7 @@ impl State {
             let entity = world
                 .get_resource::<InputFocus>()
                 .and_then(InputFocus::get)
-                .filter(|entity| world.get::<EditableText>(*entity).is_some())
+                .filter(|entity| is_editable(world, *entity))
                 .ok_or_else(|| {
                     Diagnostic::new(
                         "text_focus_unavailable",
@@ -55,14 +69,19 @@ impl State {
     pub(crate) fn flush(&mut self, _world: &mut World) {
         #[cfg(feature = "ui")]
         for (entity, text) in self.pending.drain(..) {
+            if !is_editable(_world, entity) {
+                continue;
+            }
             if let Some(mut editable) = _world.get_mut::<EditableText>(entity) {
-                // Queue the same edit as Bevy's IME commit handler, without touching
-                // the OS IME or bypassing Bevy's text filtering and selection logic.
-                editable.queue_edit(TextEdit::ImeCommit { value: text.into() });
+                // Bevy 0.20's ImeCommit counts selected text against max_characters.
+                // Clear composition, then use its selection-aware insertion path.
+                // Both edits still run through Bevy's normal filter and edit system.
+                editable.queue_edit(TextEdit::ImeSetCompose {
+                    value: "".into(),
+                    cursor: None,
+                });
+                editable.queue_edit(TextEdit::Insert(text.into()));
             }
         }
     }
 }
-
-#[cfg(test)]
-mod tests;

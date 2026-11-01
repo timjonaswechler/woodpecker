@@ -80,18 +80,6 @@ fn command(project: &Path, program: impl AsRef<std::ffi::OsStr>, operation: Oper
     command
 }
 
-/// Reuse the session's process-group ownership and concurrent pipe draining.
-/// Closing the writer after the single JSON payload supplies EOF to `--input -`.
-#[cfg(test)]
-fn execute(command: Command, operation: Operation, input: Option<String>) -> Result<String, Error> {
-    execute_cancellable(
-        command,
-        operation,
-        input,
-        &std::sync::atomic::AtomicBool::new(false),
-    )
-}
-
 fn execute_cancellable(
     command: Command,
     operation: Operation,
@@ -277,6 +265,3 @@ fn submit_with(
         reference: issue.reference(Operation::Publish)?,
     })
 }
-
-#[cfg(test)]
-mod tests;

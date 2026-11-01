@@ -1,4 +1,6 @@
 /target/
+/test_app/target/
+/test_zoo/target/
+/test_zoo/artifacts/
 /bevy_test_apps/target/
-/tests/fixtures/process/target/
 __pycache__/

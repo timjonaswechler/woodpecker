@@ -11,14 +11,19 @@ pub const PREFIX: &str = "/v1";
 pub struct Create {
     pub launch: session::launch::Config,
     pub tick: crate::command::tick::Config,
+    #[serde(default)]
+    pub startup: session::startup::Config,
     pub report: crate::report::Config,
 }
 impl Create {
     pub fn validate(&self) -> std::result::Result<(), session::Error> {
         self.launch.validate()?;
         self.report.validate()?;
-        if !self.tick.pace.is_valid() {
-            return Err(session::Error::new("invalid_config", "invalid pace"));
+        if !self.tick.pace.is_valid() || !self.tick.clock.is_valid() || !self.startup.valid() {
+            return Err(session::Error::new(
+                "invalid_config",
+                "invalid tick or startup configuration",
+            ));
         }
         Ok(())
     }
@@ -110,7 +115,8 @@ pub struct OpenCommand {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Lifecycle {
     Starting,
-    Ready,
+    SessionReady,
+    EngineReady,
     Stopping,
     Ended,
     Failed,
@@ -136,34 +142,5 @@ impl From<session::Error> for Result {
             code: e.code().into(),
             message: e.message().into(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn shared_fixtures() {
-        let text = r#"{"version":1,"call":1,"operation":{"kind":"submit","command":{"command":"tick.warp.start","arguments":{"ticks":3}}}}"#;
-        let request: Request = serde_json::from_str(text).unwrap();
-        assert_eq!(serde_json::to_string(&request).unwrap(), text);
-        assert!(
-            serde_json::from_str::<Request>(
-                &text.replace("\"ticks\":3", "\"ticks\":3,\"extra\":0")
-            )
-            .is_err()
-        );
-        let response = Response {
-            version: VERSION,
-            call: 1,
-            result: Result::Pending {
-                request_id: 1,
-                command: "tick.warp.start".into(),
-            },
-        };
-        assert_eq!(
-            serde_json::to_string(&response).unwrap(),
-            r#"{"version":1,"call":1,"result":{"kind":"pending","request_id":1,"command":"tick.warp.start"}}"#
-        );
     }
 }

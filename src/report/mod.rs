@@ -11,12 +11,15 @@ pub(crate) mod observer;
 pub mod provider;
 mod signature;
 mod snapshot;
-#[cfg(test)]
-mod tests;
 pub(crate) mod work;
 pub use failure::{BacktraceStatus, Failure, Location, Origin};
 pub use signature::Signature;
 pub use snapshot::{Application, Context, Platform, Report, SourceRevision, Toolchain};
+
+#[cfg(all(test, feature = "server"))]
+pub(crate) fn test_report(failure: Failure, context: Context) -> Report {
+    Report::from_snapshot(failure, context, std::path::Path::new("/owned-fixture"))
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -112,16 +115,6 @@ impl Destination {
         self.submit_using(report, cancel, || {
             provider::github::submit_cancellable(&self.project, report, cancel)
         })
-    }
-
-    #[cfg(test)]
-    fn submit_with(
-        &self,
-        report: &Report,
-        remote: impl FnOnce() -> Result<provider::Outcome, provider::github::Error>,
-    ) -> Result<provider::Outcome, Error> {
-        self.submit_using(report, &std::sync::atomic::AtomicBool::new(false), remote)
-            .unlimited()
     }
 
     fn submit_using(

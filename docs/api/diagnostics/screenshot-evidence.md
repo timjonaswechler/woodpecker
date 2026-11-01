@@ -6,7 +6,8 @@ Die damaligen fehlgeschlagenen Bildabnahmen bei Vollverdeckung bleiben dokumenti
 Der [aktuelle Zielumfang](../target.md#screenshot) akzeptiert dort eine Ablehnung
 bei fehlender Renderoberfläche; erfolgreiche Aufnahme ist kein Abschlusskriterium.
 [black-screenshots.md](black-screenshots.md) erklärt Fehlerpfad und Guard;
-der [Abschlussplan](../implementation-plan.md) besitzt die verbleibenden Aufgaben.
+der [historische Abschlussplan](../implementation-plan.md) bewahrt den damaligen
+Aufgabenstand. Aktuelle Testarbeit steht im [Testsuite-Plan](../../testing-plan.md).
 
 ## Systeme und Versionen
 
@@ -111,7 +112,7 @@ python3 tests/diagnostics/capture_causality_rc.py --prepare-only
 
 Die Szenenmatrix kann gezielt mit `--prepare-scenes mesh_picking ui` gebaut
 werden. Ihre Instrumentierung und nativen Messhelfer stehen neben dem Treiber
-unter [tests/diagnostics/](../../../tests/diagnostics/).
+unter tests/diagnostics/ (historischer Pfad `../../../tests/diagnostics/`).
 
 ### Kontrollierte Diagnosen
 

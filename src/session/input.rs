@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[path = "input/tests/test_native_input.rs"]
+mod test_native_input;
+
 pub(super) mod keyboard;
 pub(super) mod pointer;
 pub(super) mod text;

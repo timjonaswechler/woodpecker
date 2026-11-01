@@ -1,6 +1,12 @@
-# Weiterarbeit an woodpecker
+# Historische Übergaben zu woodpecker
 
-## Aktueller Stand
+**Archiv vor dem Suite-Neuaufbau, kein aktueller Wiedereinstieg.** Die folgenden
+Aufträge, Branch-/PR-Zustände, Testszenen und Befehle beschreiben frühere Stände;
+entfernte Fixtures sind nicht mehr ausführbar. Aktueller Teststand und nächste
+Arbeit stehen ausschließlich im [Testsuite-Plan](../testing-plan.md),
+ausführbare Aufrufe in der [Testanleitung](../../tests/README.md).
+
+## Damaliger Stand
 
 Session-/Prozessverwaltung, explizite Warps, virtuelle Eingaben, Inspect,
 Screenshot-Grundfunktion, Recording/Replay und Reports sind implementiert.
@@ -44,7 +50,7 @@ Metadaten sind nicht automatisch lesbar. Der Asset-Pfad und die ursprünglichen 
 Abhängigkeiten sind für direkte Binärstarts eingerichtet; ein Query-Alias hält
 Clippy ohne Suppression grün. Fixture: `tests/fixtures/alien_cake_addict.toml`,
 `features = []`. Bedienung und Grenzen im
-[Bevy-README](../../bevy_test_apps/README.md#alien-cake-addict-controlled-preparation).
+Bevy-README (historischer Pfad `../../bevy_test_apps/README.md#alien-cake-addict-controlled-preparation`).
 Prüfstand/Logs: `target/alien-cake-minimal/`. Alle neun Spiel-Funktionskörper und die
 Update-Systemreihenfolge stimmen mit `b085470` überein (ohne Format-/Kommentarvergleich).
 Die zehn bisherigen Bevy-Tests, strenges Clippy, All-Targets-Check ohne Features und
@@ -353,4 +359,4 @@ cargo clippy --manifest-path bevy_test_apps/Cargo.toml --all-features --all-targ
 
 Frühere Ausnahmebefehle in historischen Nachweisen bleiben als damaliger Prüfstand
 sichtbar; sie sind keine aktuelle Prüfempfehlung. Build- und Test-App-Hinweise stehen im
-[Bevy-README](../../bevy_test_apps/README.md).
+Bevy-README (historischer Pfad `../../bevy_test_apps/README.md`).

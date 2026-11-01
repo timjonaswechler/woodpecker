@@ -11,7 +11,7 @@ use crate::{
     },
 };
 use clap::{Parser, Subcommand};
-use std::{io::Write, net::SocketAddr, path::PathBuf, time::Duration};
+use std::{ffi::OsString, io::Write, net::SocketAddr, path::PathBuf, time::Duration};
 type Error = Box<dyn std::error::Error>;
 
 #[derive(Parser)]
@@ -69,7 +69,7 @@ enum Session {
     Submit {
         id: String,
         #[arg(long)]
-        command: String,
+        command: OsString,
     },
     Poll {
         id: String,
@@ -139,6 +139,9 @@ pub fn run() -> Result<(), Error> {
                 management.request("POST", &format!("/sessions/{id}/stop"), None)?
             }
             Session::Submit { id, command } => {
+                let command = command
+                    .into_string()
+                    .map_err(|_| "invalid_json: command must be valid UTF-8")?;
                 let _: serde_json::Value =
                     serde_json::from_str(&command).map_err(|e| format!("invalid_json: {e}"))?;
                 let command: Command =
@@ -177,27 +180,4 @@ fn print(value: &impl serde::Serialize) -> Result<(), Error> {
     writeln!(stdout)?;
     stdout.flush()?;
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn local_operations_require_no_credentials() {
-        let args = Arguments::try_parse_from([
-            "woodpecker",
-            "--address",
-            "127.0.0.1:4100",
-            "session",
-            "ls",
-        ])
-        .unwrap();
-        assert!(matches!(
-            args.resource,
-            Resource::Session {
-                action: Session::Ls
-            }
-        ));
-    }
 }

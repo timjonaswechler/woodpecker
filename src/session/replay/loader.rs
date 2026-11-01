@@ -1,6 +1,9 @@
 //! The versioned file schema stops here. Execution receives only a validated command plan.
 use super::super::{Error, recording::file};
-use crate::command::{Command, tick::warp};
+use crate::command::{
+    Command,
+    tick::{Clock, warp},
+};
 use cap_std::fs::Dir;
 use serde::{Deserialize, de};
 use serde_json::Value;
@@ -18,6 +21,7 @@ pub(super) type Plan = VecDeque<Command>;
 struct Header {
     r#type: String,
     format_version: u64,
+    clock: Option<Clock>,
 }
 
 #[derive(Deserialize)]
@@ -65,11 +69,21 @@ struct IoDiagnostic {
     message: String,
 }
 
-pub(super) fn load(root: &Dir, path: &str, cancel: &AtomicBool) -> Result<Option<Plan>, Error> {
+pub(super) fn load(
+    root: &Dir,
+    path: &str,
+    cancel: &AtomicBool,
+    clock: &Clock,
+) -> Result<Option<Plan>, Error> {
     if cancel.load(Ordering::Acquire) {
         return Ok(None);
     }
-    parse(BufReader::new(file::open_read(root, path)?), path, cancel)
+    parse(
+        BufReader::new(file::open_read(root, path)?),
+        path,
+        cancel,
+        clock,
+    )
 }
 
 fn invalid(path: &str, line: usize, message: impl fmt::Display) -> Error {
@@ -83,6 +97,7 @@ pub(super) fn parse(
     mut reader: impl BufRead,
     path: &str,
     cancel: &AtomicBool,
+    clock: &Clock,
 ) -> Result<Option<Plan>, Error> {
     let mut text = String::new();
     let mut line_number = 0;
@@ -116,10 +131,31 @@ pub(super) fn parse(
             if header.r#type != "recording_started" {
                 return Err(invalid(path, line_number, "expected recording_started"));
             }
-            if header.format_version != 1 {
+            let recorded_clock = match header.format_version {
+                1 if !value.0.as_object().unwrap().contains_key("clock") => Clock::Application {},
+                1 => {
+                    return Err(invalid(
+                        path,
+                        line_number,
+                        "version 1 does not define a clock",
+                    ));
+                }
+                2 => header.clock.filter(Clock::is_valid).ok_or_else(|| {
+                    invalid(path, line_number, "version 2 requires a valid clock")
+                })?,
+                _ => {
+                    return Err(Error::new(
+                        "unsupported_recording_version",
+                        format!("{path}: line 1: version {}", header.format_version),
+                    ));
+                }
+            };
+            if recorded_clock.duration() != clock.duration() {
                 return Err(Error::new(
-                    "unsupported_recording_version",
-                    format!("{path}: line 1: version {}", header.format_version),
+                    "replay_clock_mismatch",
+                    format!(
+                        "{path}: recording clock {recorded_clock:?} differs from session clock {clock:?}"
+                    ),
                 ));
             }
             continue;

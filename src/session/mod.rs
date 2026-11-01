@@ -1,4 +1,5 @@
 //! Synchronous typed sessions backed by a private, continuously progressing coordinator.
+mod clock;
 mod coordinator;
 mod error;
 pub mod history;
@@ -12,11 +13,14 @@ pub mod protocol;
 mod recording;
 mod replay;
 mod screenshot;
+pub mod startup;
 mod window;
+mod workspace;
 
 use crate::command::{self, Command};
 pub use crate::report::capture::tracing_error_layer;
 pub use error::Error;
+pub use input::pointer::ID as VIRTUAL_POINTER_ID;
 pub use plugin::Plugin;
 pub use protocol::Capabilities;
 use serde::Serialize;
@@ -36,16 +40,21 @@ pub struct Config {
     pub launch: launch::Config,
     pub artifact_dir: PathBuf,
     pub tick: command::tick::Config,
+    pub startup: startup::Config,
     pub report: crate::report::Config,
 }
 impl Config {
     pub fn validate(&self) -> Result<(), Error> {
         self.launch.validate()?;
         self.report.validate()?;
-        if self.artifact_dir.as_os_str().is_empty() || !self.tick.pace.is_valid() {
+        if self.artifact_dir.as_os_str().is_empty()
+            || !self.tick.pace.is_valid()
+            || !self.tick.clock.is_valid()
+            || !self.startup.valid()
+        {
             return Err(Error::new(
                 "invalid_config",
-                "artifact directory and valid tick pace required",
+                "artifact directory and valid tick/startup configuration required",
             ));
         }
         Ok(())
@@ -94,11 +103,31 @@ impl<T> Drop for Pending<T> {
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Event {
-    Failure { failure: crate::report::Failure },
-    ObservationError { code: String, message: String },
-    ProtocolError { code: String, message: String },
-    RecordingFailed { path: String, message: String },
-    Ended { reason: EndReason },
+    EngineReady {
+        ticks: u64,
+    },
+    StartupFailed {
+        ticks: Option<u64>,
+        error: protocol::Diagnostic,
+    },
+    Failure {
+        failure: crate::report::Failure,
+    },
+    ObservationError {
+        code: String,
+        message: String,
+    },
+    ProtocolError {
+        code: String,
+        message: String,
+    },
+    RecordingFailed {
+        path: String,
+        message: String,
+    },
+    Ended {
+        reason: EndReason,
+    },
 }
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -182,8 +211,17 @@ impl Session {
         let (ready, initialized) = mpsc::channel();
         let state = shared.clone();
         let abort = cancel.clone();
-        let worker =
-            std::thread::spawn(move || coordinator::run(config, input, state, abort, ready));
+        let worker = std::thread::spawn(move || {
+            coordinator::run(
+                config,
+                input,
+                state,
+                abort,
+                ready,
+                #[cfg(test)]
+                None,
+            )
+        });
         match initialized.recv().unwrap_or_else(|_| Err(Error::ended())) {
             Ok(capabilities) => Ok(Self {
                 shared,

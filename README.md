@@ -7,43 +7,49 @@ disconnect without stopping accepted work.
 Local clients are trusted. No access key or environment setup is required.
 Remote operation is not supported.
 
+The current integration targets Bevy 0.20.0 and requires Rust 1.97.1 or newer.
+
 ## Current implementation
 
 The experimental v3 slice supports tick warps, pace changes, stop, reflected
 resource and entity inspection, virtual pointer, keyboard and text input, PNG screenshots,
 session management, JSONL recording, replay, reporting, REPL, scripts and shutdown.
-Combined lifecycle/load acceptance remains unfinished. Fully covered windows are
-not guaranteed to be capturable; an unavailable render surface produces an explicit error.
+Fully covered windows are not guaranteed to be capturable; an unavailable render surface produces an explicit error.
 Actual black images are valid. Screenshot comparison is not a product feature.
 The v2 API and its `host`/`driver` features have been removed.
 
 Controlled sessions ignore native mouse, touch, keyboard and IME input. Their pointers
 do not move the OS cursor or require window focus. Applications using Bevy UI must
-enable `woodpecker/ui`, which also enables focused text input. The context-menu fixture
-enables it through `slice`.
+enable `woodpecker/ui`, which also enables focused text input. A complete Bevy 0.20
+text widget also needs the application's `bevy_ui_widgets` feature and `TextInputPlugin`.
 
+- **[User guide: learn integration on the real Signalstation game](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
-- [Completion plan and coverage](docs/api/implementation-plan.md)
-- [Handoff and remaining tasks](docs/api/next-steps.md)
-- [CLI usage and acceptance tests](docs/api/usage.md)
-- [Bevy test applications](bevy_test_apps/README.md)
+- [CLI usage](docs/api/usage.md)
+- [Historical implementation notes](docs/api/implementation-plan.md)
+- [Historical handoff snapshots](docs/api/next-steps.md)
+- [Agreed test-suite redesign and overall acceptance plan](docs/testing-plan.md)
+- [Playable collection game and shared test app](test_app/README.md)
+- [Standalone station model zoo](test_zoo/README.md)
 
 ## Build and run
 
 From this repository's root:
 
 ```sh
-cargo build --features cli --bin woodpecker
-cargo build --manifest-path bevy_test_apps/Cargo.toml --features slice --bin counter
+cargo build --locked --features cli --bin woodpecker
+cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 target/debug/woodpecker --address 127.0.0.1:4100 \
   server start --artifact-dir target/session-artifacts
 ```
 
-In another terminal:
+The [user guide](docs/user-guide.md) first introduces Signalstation as a normal game,
+then explains its actual optional Woodpecker integration and how to transfer that
+boundary to your own game. Start the same game in another terminal:
 
 ```sh
 target/debug/woodpecker --address 127.0.0.1:4100 \
-  session create --config tests/fixtures/counter.toml
+  session create --config examples/game_tests/app.toml
 target/debug/woodpecker --address 127.0.0.1:4100 session ls
 ```
 
@@ -69,19 +75,27 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 
 ## Tests
 
-See [tests/README.md](tests/README.md) for groups, build prerequisites and coverage
-retention decisions. Rendered acceptance requires separate GUI approval.
+The [acceptance guide](tests/README.md) is the executable entry point. There are
+94 product tests: 93 local cases and one separately authorized real GitHub case.
+The common local run also checks the existing deliberate negative control and
+the feature/build matrix. Harness checks are separate, not extra product cases.
 
 ```sh
-cargo test --all-features --all-targets
-cargo test --manifest-path bevy_test_apps/Cargo.toml --all-features --all-targets
-python3 -m tests.acceptance.headless.session_lifecycle
-python3 -m tests.acceptance.rendered.context_menu
-python3 -m tests.acceptance.headless.server_shutdown
+python3 -m tests.acceptance --list             # plan only; no builds or processes
+python3 -m tests.acceptance --non-graphical    # passing subset still exits 2
 ```
 
-The process tests launch real children. macOS Gatekeeper can delay or reject
-locally built executables; see the [environment note](docs/api/usage.md#noch-nicht-enthalten).
+The latest complete local run and separate real GitHub verification passed.
+The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints)
+records their exact source state, evidence and remaining work; this is not a
+claim that every future run or all possible application behavior is verified.
+Rendered runs require explicit scoped permission, an awake desktop and visible
+windows. No headless replacement or automatic retry is used. The
+[game-control examples](examples/README.md) start with REPL, CLI and fixed scripts,
+then add Python feedback, agent handoff and replay. Advanced recipes cover
+movement and Unicode text checks; all examples are separate from acceptance. The bounded
+[mutation campaign](tests/mutations.md) checks four existing windowless contracts
+in isolated source copies, without claiming universal fault detection.
 
 ## Origin
 
