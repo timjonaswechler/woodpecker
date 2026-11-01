@@ -106,7 +106,22 @@ Normale Builds verwenden `target/`; der echte `panic=abort`-Fall zusätzlich
 `target/panic-abort` mit `CARGO_PROFILE_DEV_PANIC=abort`. Das ist ein eigener
 wiederverwendbarer Cache, kein anderes normales Buildprofil. Der erste Build
 braucht entsprechend Platz. Der Runner führt kein `cargo clean` aus und löscht
-weder Caches noch frühere Belege. Laufartefakte sind lokal, nicht versioniert.
+weder diese wiederverwendbaren Caches noch frühere Belege. Die isolierten
+Einmal-Caches der [Mutationsprüfung](mutations.md#isolation-und-belege) werden
+hingegen nach gesicherten Belegen entfernt. Laufartefakte sind lokal, nicht versioniert.
+
+Das Entwicklungsprofil nutzt `debug = "line-tables-only"`; das davon erbende
+Testprofil ebenso. Backtraces behalten Datei-/Zeilennummern, aber keine volle
+Typ-/Variableninspektion im Debugger. Assertions und Overflow-Checks bleiben an.
+Der eigenständige Live-Driver nutzt dieselbe Einstellung; die Report-Fixture
+übernimmt die Workspace-Profile. Für gezielte Debuggersitzungen aktiviert
+`CARGO_PROFILE_DEV_DEBUG=2` (bei `cargo test`: `CARGO_PROFILE_TEST_DEBUG=2`)
+volle Debuginfo erneut und erzeugt damit zusätzliche Cachevarianten.
+
+Normale Worktree-Caches bleiben getrennt: ein gemeinsames `target/` kann bei
+parallelen Builds App-Binaries überschreiben. Nach der Profilumstellung bleiben
+alte Artefakte zunächst liegen. Nur bei Bedarf einmal bereinigen; ein regelmäßiges
+`cargo clean` würde den kompletten Neuaufbau immer wieder erzwingen.
 
 ## Einzeltests
 

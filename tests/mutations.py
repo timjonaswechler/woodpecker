@@ -407,11 +407,20 @@ def campaign(args):
             shutil.copytree(runtime_artifacts, evidence / "runtime-artifacts")
         report["counts"] = {key: sum(row["outcome"] == key for row in report["candidates"])
                             for key in ("killed", "survived", "known-equivalent", "invalid", "incomplete")}
-        report["complete"] = not report["errors"] and all(report.get(key) for key in
-            ("final_source_restored", "authoring_sites_unchanged", "parent_tracked_unchanged", "parent_products_unchanged"))
+        # Never publish success before evidence is durable and the private cache is gone.
+        report["complete"] = False
+        report["workspace_removed"] = False
         save(evidence / "summary.json", report)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(evidence, destination)
+        try:
+            shutil.rmtree(owned)
+            report["workspace_removed"] = True
+        except OSError as error:
+            report["errors"].append(f"Workspace cleanup: {type(error).__name__}: {error}")
+        report["complete"] = not report["errors"] and report["workspace_removed"] and all(report.get(key) for key in
+            ("final_source_restored", "authoring_sites_unchanged", "parent_tracked_unchanged", "parent_products_unchanged"))
+        save(destination / "summary.json", report)
         print(json.dumps(dict(report=str(destination / "summary.json"), counts=report["counts"],
                               complete=report["complete"], errors=report["errors"]), indent=2))
     return 2 if not report["complete"] else 1 if report["counts"]["survived"] else 0
