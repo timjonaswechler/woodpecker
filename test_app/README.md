@@ -351,24 +351,44 @@ sind oben mit ihren jeweiligen Opt-ins und Risiken beschrieben.
 
 ### Asset-Formate
 
-Alle Modelldateien liegen unter `asset/meshes/`, geordnet nach ihrer Verwendung im Spiel:
+Das Spiel lädt zwölf Modellpaare unter `asset/meshes/`, geordnet nach ihrer Verwendung:
 
-- `characters/`: Spielfiguren.
-- `weapons/`: Waffen wie der Trainingsblaster.
-- `environment/`: Level, Wände, Böden, Treppen, Brücken, Tore und Gelände.
-- `props/`: Einrichtung, Behälter, Paletten, Tische und Konsolen.
-- `collectibles/`: Sammelobjekte wie Münzen und Energiezellen.
-- `targets/`: Zielscheiben, Ständer und Bruchstücke für den Schießstand.
+- `characters/`: `Dummy_Base` als Spielfigur.
+- `weapons/`: `training_blaster`.
+- `environment/`: `courtyard` als Level und `workshop_stair` als Treppenmodul.
+- `collectibles/`: `Coin_A` als Münze.
+- `targets/`: `target` und `target_pieces_A` bis `target_pieces_F` für den Schießstand.
 
-Die Herkunft eines Modells bestimmt keinen eigenen Ordner. glTF und zugehörige BIN-Datei liegen jeweils zusammen; gemeinsam verwendete Texturen liegen unter `asset/textures/`.
+Statische Einrichtung wie Kisten, Bänke und Bücherregale ist im Levelmodell
+`courtyard` enthalten. Bedienobjekte, Energiezellen und Zielständer erzeugt das
+Spiel dagegen im Rust-Code. Der Modell-Zoo verwendet dieselben im Code erzeugten
+Objektmodelle.
 
-Für Modell-Dateien beider Apps gilt ein gemeinsamer Standard: `.gltf` für Szene und Materialien, externe `.bin`-Dateien für Geometrie und externe `.png`-Dateien für Texturen. Die 72 KayKit-Modelle teilen genau eine `asset/textures/prototypebits_texture.png`. Geometrie, Materialdefinitionen und Texturen werden nicht zusätzlich als FBX, OBJ, MTL oder GLB vorgehalten. Farbige Materialien ohne Texturen benötigen keine PNG. Direkt im Rust-Code erzeugte Objektmodelle bleiben davon unabhängig.
+Für Modelldateien gilt ein gemeinsames Format: `.gltf` beschreibt Szene und
+Materialien, die zugehörige `.bin` enthält Geometriedaten. Beide liegen im selben
+Ordner. Externe Texturen liegen als PNG vor. Die neun KayKit-Modelle teilen
+`asset/textures/prototypebits_texture.png`. Modelle mit rein farbigen Materialien
+brauchen keine PNG. Zusätzliche FBX-, OBJ-, MTL- oder GLB-Kopien werden nicht vorgehalten.
 
-Alle zu einem Modell referenzierten BIN- und PNG-Dateien müssen mit ausgeliefert werden. Blender-Quellen, Sicherungen und Exportskripte liegen unter `asset/blender/`, Planungsdateien unter [`planning/`](../planning/) im Repository-Root. Der Bearbeitungsordner `asset/blender/` enthält Quellen, keine Laufzeitmodelle. Der bearbeitbare Dummy liegt unter [asset/blender/dummy_base.blend](asset/blender/dummy_base.blend). Seine Pillenform ist noch nicht in den Runtime-Export `Dummy_Base.gltf` übernommen. Schriften und Lizenzen bleiben unverändert.
+Zum Ausliefern gehören neben den glTF-Dateien alle darin referenzierten BIN- und
+PNG-Dateien. Ihre relativen Pfade müssen erhalten bleiben. Das Spiel benötigt
+außerdem die Bilder unter `asset/ui/` und die Schriften samt OFL-Lizenzen unter
+`asset/fonts/`.
 
-Die Blender-Skripte verwenden den gemeinsamen Exporter `asset/blender/gltf_export.py` mit `GLTF_SEPARATE`. Texturquellen müssen als PNG vorliegen; andere exportierte Bildformate werden unmittelbar als Fehler gemeldet. Die bisherigen automatisierten Asset-Prüfungen sind entfernt; die beschriebenen Formate bleiben die Vorgabe für Laufzeitmodelle.
+Bearbeitbare Blender-Quellen und Exportskripte liegen unter `asset/blender/`,
+Planungsdateien unter [`planning/`](../planning/). Sie werden zum Spielen nicht
+benötigt. Der [bearbeitbare Dummy](asset/blender/dummy_base.blend) besitzt eine
+Pillenform, die noch nicht in den Laufzeitexport `Dummy_Base.gltf` übernommen ist.
 
-Die Exporter schreiben Modelle direkt in ihre jeweilige Kategorie. `asset/blender/create_station.py` legt die erzeugte Maßübersicht unter `artifacts/station-dimensions.json` ab.
+Die Blender-Skripte verwenden `asset/blender/gltf_export.py` mit `GLTF_SEPARATE`.
+Der Exporter schreibt die Modelle in ihre jeweilige Kategorie und prüft danach
+die referenzierten BIN- und PNG-Dateien. Texturquellen müssen bereits als PNG vorliegen.
+Andere exportierte Bildformate werden als Fehler gemeldet.
+
+`asset/blender/create_station.py` erzeugt optionale Entwurfsmodelle, die das Spiel
+nicht lädt. Seine Maßübersicht liegt nach dem Lauf unter
+`artifacts/station-dimensions.json`. Diese Generatorausgaben gehören nicht zum
+oben beschriebenen Laufzeitbestand.
 
 ### Module
 
