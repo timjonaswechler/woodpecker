@@ -7,7 +7,7 @@ import subprocess
 import time
 import unittest
 
-from tests._support import CLI, ROOT, start_server
+from tests._support import app_binary, base_config, cli_binary, ROOT, start_server
 
 
 class ActivityGapTest(unittest.TestCase):
@@ -35,9 +35,9 @@ class ActivityGapTest(unittest.TestCase):
             "pending state. No inputs or retries. Permission for this run is "
             "required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "activity-gap", activity_bytes=4096)
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)
@@ -132,7 +132,7 @@ class ActivityGapTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("w"))
         stderr = self.enterContext((directory / "stderr.log").open("w"))
-        command = [str(CLI), "--address", server.address, "session", "repl", session_id]
+        command = [str(cli_binary()), "--address", server.address, "session", "repl", session_id]
         observer = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout,
                                     stderr=stderr, text=True, start_new_session=True)
         self.addCleanup(self._cleanup_observer, observer, directory)

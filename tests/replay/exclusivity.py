@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, start_server, write_app_config
 from tests.pointer import pointer_states
 from tests.recording import read_jsonl, write_jsonl
 
@@ -17,12 +17,12 @@ class ReplayExclusivityTest(unittest.TestCase):
                          "stopped early. Nine external requests deliberately rejected while busy; "
                          "later g press/release without ticks checks unpoisoned input state. "
                          "Maximum 120 ticks, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "replay-exclusivity")
         configuration = load_config()
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
         config_path = server.artifacts / "config.toml"
-        write_config(config_path, configuration)
+        write_app_config(config_path, configuration)
         session_id = server.cli("session", "create", "--config", str(config_path))["id"]
         deadline = time.monotonic() + 30
         while True:

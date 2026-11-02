@@ -1,31 +1,18 @@
 """All three pointer buttons reach both picking and Bevy button state across ticks."""
 import os
-import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._shared import game
 from tests.pointer import MOUSE, TICKS, pointer_states
 
 
 class PointerButtonsTest(unittest.TestCase):
     def test_three_buttons_hold_and_release_independently_on_the_virtual_pointer(self):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "One manual-startup window, exactly eight ticks. move_to [720,850], "
-                         "left/right/middle press, hold, separate releases, idle. No OS input. "
-                         "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "pointer-buttons")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
-        deadline = time.monotonic() + 30
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "SessionReady":
-                break
-            self.assertEqual(detail["state"], "Starting", detail)
-            if time.monotonic() >= deadline:
-                self.fail("SessionReady deadline exceeded")
-            time.sleep(0.05)
+                         "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+                         "then F9 and three reset ticks. This case uses 8 action ticks. "
+                         "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
+        server, session_id = game(self, "pointer-buttons")
         before_ticks = server.read_resource(session_id, TICKS)["ticks"]
         before = pointer_states(server, session_id)
         self.assertTrue(before)
@@ -101,5 +88,3 @@ class PointerButtonsTest(unittest.TestCase):
         self.assertEqual(server.read_resource(session_id, MOUSE), empty_mouse)
         self.assertEqual(server.read_resource(session_id, TICKS)["ticks"] - before_ticks, 8)
         server.record(["observation", "pointer-buttons"], presses=presses, releases=releases, action_ticks=8)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)

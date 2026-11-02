@@ -9,7 +9,7 @@ import time
 import unittest
 import uuid
 
-from tests._support import ROOT, load_config
+from tests._support import ROOT, app_binary, load_config, product_binary
 from tests.providers.live_transport import cleanup, pages, request
 
 
@@ -108,7 +108,7 @@ class GithubLiveTest(unittest.TestCase):
         self.assertNotIn("WOODPECKER_TEST_GH_ROOT", os.environ, "Fake gh is not live evidence")
         self.gh = shutil.which("gh")
         self.assertIsNotNone(self.gh, "Real authenticated gh required; never enter a token in chat")
-        driver = ROOT / "target/debug/github-live-driver"
+        driver = product_binary("github-live-driver")
         self.assertTrue(driver.is_file(), "Use acceptance.py build phase first")
         self.artifacts = Path(tempfile.mkdtemp(prefix="github-live-", dir=ROOT / "target/test-runs"))
         self.artifact_dirs = [str(self.artifacts)]
@@ -138,6 +138,7 @@ class GithubLiveTest(unittest.TestCase):
         self.addCleanup(cleanup, process, self.artifacts)
         configuration = load_config()
         configuration["launch"]["manifest_path"] = str(ROOT / configuration["launch"]["manifest_path"])
+        configuration["launch"]["executable"] = str(app_binary().resolve())
         configuration["report"]["provider"] = {"kind": "github"}
         # Every SDK operation is explicit here; the helper is only transport.
         request(process, {"action": "start", "config": configuration,

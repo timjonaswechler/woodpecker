@@ -1,48 +1,18 @@
 """Absolute virtual positioning activates an actual laid-out UI button only on ticks."""
 import os
-import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._shared import game
 from tests.pointer import MOUSE, TICKS, layout_target, pointer_states, read_components
 
 
 class UiClickTest(unittest.TestCase):
     def test_absolute_pointer_picks_the_real_map_button_without_early_effects(self):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "One window, up to 3600 engine ticks/60 s and 120 readiness ticks/10 s, "
-                         "then three ticks: move_to, left press, left release on the map button. "
-                         "No OS cursor input. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "pointer-ui-click")
-        config = server.artifacts / "engine.toml"
-        configuration = load_config()
-        configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
-        write_config(config, configuration)
-        session_id = server.cli("session", "create", "--config", str(config))["id"]
-        deadline = time.monotonic() + 90
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "EngineReady":
-                break
-            self.assertIn(detail["state"], ("Starting", "SessionReady"), detail)
-            if time.monotonic() >= deadline:
-                self.fail("EngineReady deadline exceeded")
-            time.sleep(0.05)
-        startup_ticks = server.read_resource(session_id, TICKS)["ticks"]
-        deadline = time.monotonic() + 10
-        for additional in range(121):
-            load = server.read_resource(session_id, "test_app::level::LevelLoad")
-            if load == "Ready":
-                break
-            self.assertEqual(load, "Loading")
-            if additional == 120 or time.monotonic() >= deadline:
-                self.fail("Game readiness budget exceeded")
-            self.assertEqual(server.call(session_id, {
-                "command": "tick.warp.start", "arguments": {"ticks": 1},
-            }), {"requested_ticks": 1, "executed_ticks": 1, "outcome": "completed"})
-        server.record(["preparation", "game-ready"], startup_ticks=startup_ticks, additional_ticks=additional)
+                         "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+                         "then F9 and three reset ticks. This case uses 3 action ticks. "
+                         "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
+        server, session_id = game(self, "pointer-ui-click")
         view_type = "test_app::player::camera::ViewState"
         button_type = "bevy_ui_widgets::button::Button"
         pressed_type = "bevy_ui::interaction_states::Pressed"
@@ -88,5 +58,3 @@ class UiClickTest(unittest.TestCase):
         self.assertEqual(server.read_resource(session_id, TICKS)["ticks"] - before_ticks, 3)
         server.record(["observation", "ui-click"], target=target, position=center, action_ticks=3,
                       mode="Map", pointer=final)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)

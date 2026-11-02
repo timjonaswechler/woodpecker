@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use std::{
     fs,
     sync::{Arc, Barrier},
@@ -13,6 +13,13 @@ use woodpecker::{
 
 #[test]
 fn local_provider_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(local_provider_contract)
+    )) {
+        return;
+    }
     support::rendered();
     let path = support::artifacts("rust-local-provider");
     let config = support::config(&path);

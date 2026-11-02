@@ -4,7 +4,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, start_server, write_app_config
 
 
 class StartupFailuresTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class StartupFailuresTest(unittest.TestCase):
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -36,7 +36,7 @@ class StartupFailuresTest(unittest.TestCase):
             configuration["launch"]["arguments"][:0] = [
                 "--woodpecker-diagnostics", "--woodpecker-startup", mode,
             ]
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             server.record(["variant", mode], max_ticks=max_ticks, timeout_seconds=10,
                           expected_code=expected_code)
             created = server.cli("session", "create", "--config", str(config))

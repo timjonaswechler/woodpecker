@@ -1,7 +1,7 @@
 [workspace]
 resolver = "3"
-members = ["test_app", "test_zoo"]
-default-members = ["."]
+members = ["test_app", "test_zoo", "crates/host", "crates/cli", "tests/fixtures/abort"]
+default-members = [".", "crates/cli"]
 
 [package]
 name = "woodpecker"
@@ -25,6 +25,7 @@ cli = ["client", "dep:clap", "dep:toml", "dep:crossterm", "dep:unicode-width"]
 
 [dependencies]
 base64 = "0.22"
+bevy_ecs = { version = "=0.20.0", default-features = false, features = ["std"] }
 sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
@@ -45,56 +46,7 @@ toml = { version = "0.8", optional = true }
 crossterm = { version = "0.29", optional = true }
 unicode-width = { version = "0.2", optional = true }
 
-[[bin]]
-name = "woodpecker"
-path = "src/cli/main.rs"
-required-features = ["cli"]
-
 [[test]]
-name = "local_provider"
-path = "tests/rust/test_local_provider.rs"
+name = "contracts"
+path = "tests/rust/contracts.rs"
 required-features = ["cli"]
-
-[[test]]
-name = "github_provider"
-path = "tests/rust/test_github_provider.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "report_snapshot"
-path = "tests/rust/test_report_snapshot.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "report_signature"
-path = "tests/rust/test_report_signature.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "pending_ownership"
-path = "tests/rust/test_pending_ownership.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "pending_drop"
-path = "tests/rust/test_pending_drop.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "session_shutdown"
-path = "tests/rust/test_session_shutdown.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "history"
-path = "tests/rust/test_history.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "event_overflow"
-path = "tests/rust/test_event_overflow.rs"
-required-features = ["cli"]
-
-[[test]]
-name = "handle_encoding"
-path = "tests/rust/test_handle_encoding.rs"

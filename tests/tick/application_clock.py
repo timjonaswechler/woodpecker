@@ -3,7 +3,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, start_server, write_app_config
 
 
 class ApplicationClockTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class ApplicationClockTest(unittest.TestCase):
             "WOODPECKER_TEST_RENDERED=1",
         )
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -37,7 +37,7 @@ class ApplicationClockTest(unittest.TestCase):
             configuration["launch"]["arguments"][:0] = [
                 "--woodpecker-diagnostics", "--woodpecker-clock", mode,
             ]
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             server.record(["variant", mode], ticks=3, expected_elapsed=expected_elapsed,
                           expected_delta=expected_delta, expected_speed=expected_speed)
             session_id = server.cli("session", "create", "--config", str(config))["id"]

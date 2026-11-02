@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, start_server, load_config, write_app_config
 
 
 def _color_fraction(image, rect, rgb_min, rgb_max):
@@ -29,7 +29,7 @@ class ScreenshotCaptureTest(unittest.TestCase):
         except ImportError:
             self.fail("Screenshot checks require Pillow: python3 -m pip install Pillow")
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -40,7 +40,7 @@ class ScreenshotCaptureTest(unittest.TestCase):
         arguments = configuration["launch"]["arguments"]
         self.assertIn("--fixed-window", arguments)
         self.assertEqual(arguments[arguments.index("--scale-factor") + 1], "1")
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 90
         while True:

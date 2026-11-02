@@ -18,6 +18,10 @@ pub struct Config {
     pub target: Target,
     pub features: Vec<String>,
     pub arguments: Vec<String>,
+    /// Run this prepared executable instead of invoking `cargo run`.
+    /// Relative paths are resolved against the manifest's directory.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub executable: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -35,6 +39,10 @@ impl Config {
         if self.manifest_path.as_os_str().is_empty()
             || self.package.trim().is_empty()
             || name.trim().is_empty()
+            || self
+                .executable
+                .as_ref()
+                .is_some_and(|path| path.as_os_str().is_empty())
         {
             return Err(Error::new(
                 "invalid_config",
@@ -170,24 +178,36 @@ impl Config {
                 cancel,
             ),
         };
-        let mut command = Command::new(cargo);
-        command
-            .args(["run", "--quiet", "--manifest-path"])
-            .arg(manifest)
-            .args(["--package", &self.package])
-            .current_dir(&project);
-        match &self.target {
-            Target::Binary { name } => {
-                command.args(["--bin", name]);
+        let mut command = if let Some(executable) = &self.executable {
+            let executable = project.join(executable);
+            if !executable.is_file() {
+                return Err(Error::new(
+                    "invalid_config",
+                    "prepared executable must be a regular file",
+                ));
             }
-            Target::Example { name } => {
-                command.args(["--example", name]);
+            Command::new(executable.canonicalize().map_err(Error::io)?)
+        } else {
+            let mut command = Command::new(cargo);
+            command
+                .args(["run", "--quiet", "--manifest-path"])
+                .arg(manifest)
+                .args(["--package", &self.package]);
+            match &self.target {
+                Target::Binary { name } => {
+                    command.args(["--bin", name]);
+                }
+                Target::Example { name } => {
+                    command.args(["--example", name]);
+                }
             }
-        }
-        if !self.features.is_empty() {
-            command.arg("--features").arg(self.features.join(","));
-        }
-        command.arg("--").args(&self.arguments);
+            if !self.features.is_empty() {
+                command.arg("--features").arg(self.features.join(","));
+            }
+            command.arg("--");
+            command
+        };
+        command.current_dir(&project).args(&self.arguments);
         Ok(Resolved {
             project,
             command,

@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, load_config, read_tick_probe, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, read_tick_probe, start_server, write_app_config
 
 
 class DisconnectTest(unittest.TestCase):
@@ -17,12 +17,12 @@ class DisconnectTest(unittest.TestCase):
             "client-free interval and new observers verify continued work. No inputs. "
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "session-disconnect")
         configuration = load_config()
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
         config = server.artifacts / "config.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 30
         while True:

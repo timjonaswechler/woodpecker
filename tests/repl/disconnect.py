@@ -13,7 +13,7 @@ import termios
 import time
 import unittest
 
-from tests._support import CLI, ROOT, load_config, start_server, write_config
+from tests._support import app_binary, base_config, cli_binary, ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.repl import ReplIO, tty_settings
 
@@ -26,9 +26,9 @@ class ReplDisconnectTest(unittest.TestCase):
                          "A fourth REPL explicitly shuts down the game. One additional external "
                          "peer then ends unexpectedly (zero game ticks, declared server/REPL exits 1). "
                          "No desktop input or retries. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "repl-disconnect")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)
@@ -52,14 +52,14 @@ class ReplDisconnectTest(unittest.TestCase):
                 self.addCleanup(os.close, slave)
                 fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
                 before_tty = termios.tcgetattr(slave)
-                process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(CLI),
+                process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(cli_binary()),
                                            "--address", server.address, "session", "repl", session_id],
                                           cwd=ROOT, stdin=slave, stdout=slave, stderr=stderr,
                                           start_new_session=True, env={**os.environ, "TERM": "xterm-256color"})
                 client = ReplIO(process, directory, master=master)
             else:
                 stdout = self.enterContext((directory / "stdout.log").open("wb"))
-                process = subprocess.Popen([str(CLI), "--address", server.address, "session", "repl", session_id],
+                process = subprocess.Popen([str(cli_binary()), "--address", server.address, "session", "repl", session_id],
                                            cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
                                            start_new_session=True)
                 client = ReplIO(process, directory)
@@ -102,7 +102,7 @@ class ReplDisconnectTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("wb"))
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([str(CLI), "--address", server.address, "session", "repl", session_id],
+        process = subprocess.Popen([str(cli_binary()), "--address", server.address, "session", "repl", session_id],
                                    cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, start_new_session=True)
         client = ReplIO(process, directory)
         self.addCleanup(client.cleanup)
@@ -131,7 +131,7 @@ class ReplDisconnectTest(unittest.TestCase):
         configuration["launch"].update(manifest_path=str(manifest), package="woodpecker-protocol-fixture",
                                        target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=["recording-end"])
         config = broken.artifacts / "peer.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         self.assertEqual(load_config(config)["launch"], configuration["launch"])
         self.assertEqual(configuration["launch"]["package"], "woodpecker-protocol-fixture")
         created = broken.cli("session", "create", "--config", str(config))
@@ -152,7 +152,7 @@ class ReplDisconnectTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("wb"))
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([str(CLI), "--address", broken.address, "session", "repl", peer_id],
+        process = subprocess.Popen([str(cli_binary()), "--address", broken.address, "session", "repl", peer_id],
                                    cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, start_new_session=True)
         client = ReplIO(process, directory)
         self.addCleanup(client.cleanup, 1)

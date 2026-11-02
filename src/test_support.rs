@@ -17,15 +17,20 @@ impl Drop for WorkerGuard {
         }
     }
 }
+pub(crate) fn root() -> PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .find(|path| path.join("tests/app.toml").is_file())
+        .expect("workspace test fixture root")
+        .to_path_buf()
+}
 pub(crate) fn artifacts(label: &str) -> PathBuf {
     static NEXT: AtomicU64 = AtomicU64::new(0);
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("target/test-runs")
-        .join(format!(
-            "internal-{label}-{}-{}",
-            std::process::id(),
-            NEXT.fetch_add(1, Ordering::Relaxed)
-        ));
+    let path = root().join("target/test-runs").join(format!(
+        "internal-{label}-{}-{}",
+        std::process::id(),
+        NEXT.fetch_add(1, Ordering::Relaxed)
+    ));
     std::fs::create_dir_all(&path).unwrap();
     println!("Artefakte: {}", path.display());
     path
@@ -38,7 +43,7 @@ pub(crate) fn config(path: &std::path::Path) -> crate::session::Config {
         startup: crate::session::startup::Config,
         report: crate::report::Config,
     }
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let root = root();
     let output = std::process::Command::new("python3")
         .args([
             "-c",

@@ -6,6 +6,32 @@ use std::{
 };
 use woodpecker::{report, session};
 
+/// Serialize the parent harness; each original contract runs in an exact fresh child.
+pub fn isolated(qualified: &str) -> bool {
+    static WORKER: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    let name = qualified
+        .split_once("::")
+        .expect("qualified contract name")
+        .1;
+    if std::env::var("WOODPECKER_CONTRACT_WORKER").as_deref() == Ok(name) {
+        let args: Vec<_> = std::env::args().collect();
+        assert!(args.windows(2).any(|pair| pair == ["--exact", name]));
+        assert!(args.iter().any(|argument| argument == "--test-threads=1"));
+        return true;
+    }
+    let _worker = WORKER.lock().unwrap_or_else(|poison| poison.into_inner());
+    let status = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", name, "--nocapture", "--test-threads=1"])
+        .env("WOODPECKER_CONTRACT_WORKER", name)
+        .status()
+        .expect("start isolated contract worker");
+    assert!(
+        status.success(),
+        "isolated contract {name} failed: {status}"
+    );
+    false
+}
+
 pub fn rendered() {
     assert_eq!(
         std::env::var("WOODPECKER_TEST_RENDERED").as_deref(),
@@ -40,6 +66,11 @@ pub fn config(path: &Path) -> session::Config {
     let mut file: File =
         toml::from_str(&std::fs::read_to_string(root().join("tests/app.toml")).unwrap()).unwrap();
     file.launch.manifest_path = root().join(file.launch.manifest_path);
+    file.launch.executable = Some(
+        std::env::var_os("WOODPECKER_TEST_APP")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| root().join("target/debug/test_app")),
+    );
     session::Config {
         launch: file.launch,
         tick: file.tick,

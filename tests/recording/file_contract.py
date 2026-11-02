@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, start_server, write_app_config
 from tests.recording import read_jsonl
 
 
@@ -17,13 +17,13 @@ class RecordingFileContractTest(unittest.TestCase):
                          "Warp at 2/s is stopped early (maximum 61 ticks total); ShiftLeft inputs, "
                          "two expected game rejections. No OS input or retries. "
                          "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "recording-file-contract", env={"RUST_LOG": "error"})
         configuration = load_config()
         configuration["launch"]["arguments"].insert(0, "--woodpecker-diagnostics")
         configuration["report"]["tracing_errors"] = True
         config = server.artifacts / "diagnostics.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 30
         while True:

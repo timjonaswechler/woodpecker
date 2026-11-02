@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, WINDOW_POSITIONS, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, WINDOW_POSITIONS, start_server, load_config, write_app_config
 
 
 class FileIsolationTest(unittest.TestCase):
@@ -26,7 +26,7 @@ class FileIsolationTest(unittest.TestCase):
             "Personal settings are read only for a hash comparison, never changed. "
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         personal = ROOT / "test_app/settings.json"
         seed_path = ROOT / "tests/settings.json"
         personal_before = self._fingerprint(personal)
@@ -45,7 +45,7 @@ class FileIsolationTest(unittest.TestCase):
             configuration = load_config()
             configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
             configuration["launch"]["arguments"][:0] = ["--window-position", f"{x},{y}"]
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             session_id = server.cli("session", "create", "--config", str(config))["id"]
             sessions.append(session_id)
             deadline = time.monotonic() + 90

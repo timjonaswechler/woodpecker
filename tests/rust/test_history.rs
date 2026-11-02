@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use woodpecker::{
     command::{Command, inspect, tick::warp},
     report::{Failure, Report},
@@ -7,6 +7,9 @@ use woodpecker::{
 
 #[test]
 fn history_contract() {
+    if !support::isolated(concat!(module_path!(), "::", stringify!(history_contract))) {
+        return;
+    }
     assert_eq!(
         std::env::var("WOODPECKER_TEST_RENDERED").as_deref(),
         Ok("1"),
@@ -14,6 +17,21 @@ fn history_contract() {
     );
     let path = support::artifacts("rust-history");
     let mut session = Session::start(support::config(&path)).unwrap();
+    // Keep the history probe's payload bounded. Querying every loaded scene subtree
+    // 55 times can outlast the slow warp and no longer tests an active evicted request.
+    let windows = session
+        .send(inspect::Command::Entities {
+            entity: None,
+            with: vec!["bevy_window::window::Window".into()],
+            without: vec![],
+            projection: inspect::entity::Projection::Summary {},
+        })
+        .unwrap();
+    let windows: inspect::Output = support::receive(&mut session, windows);
+    let [inspect::Item::Entity { entity: window, .. }] = windows.items.as_slice() else {
+        panic!("one stable window entity required");
+    };
+    let window = *window;
     let mut active = session
         .send(warp::Start {
             ticks: 120,
@@ -24,7 +42,7 @@ fn history_contract() {
     for index in 0..55 {
         // Vary a valid public argument, not a fictitious registered type path.
         let query = inspect::Command::Entities {
-            entity: None,
+            entity: Some(window),
             with: vec![],
             without: vec![],
             projection: inspect::entity::Projection::Hierarchy { depth: index as u8 },
@@ -33,7 +51,7 @@ fn history_contract() {
         let _output: inspect::Output = support::receive(&mut session, pending);
         accepted.push(Command::Inspect(query));
         let snapshot = session.history();
-        assert_eq!(snapshot.len(), 50.min(index + 2));
+        assert_eq!(snapshot.len(), 50.min(index + 3));
         assert_eq!(snapshot.last().unwrap().command, *accepted.last().unwrap());
         assert!(matches!(
             snapshot.last().unwrap().outcome,

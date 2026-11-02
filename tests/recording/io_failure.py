@@ -8,7 +8,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, base_config, ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.recording import read_jsonl
 
@@ -21,7 +21,7 @@ class RecordingIoFailureTest(unittest.TestCase):
                          "Only owned servers have a 65536-byte file soft limit; Cargo/game limits restored. "
                          "Two additional windowless peers end with pending work, one during footer I/O. "
                          "No panic, foreign files or retries. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         parent_limit = resource.getrlimit(resource.RLIMIT_FSIZE)
         runs = ROOT / "target/test-runs"
         runs.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,7 @@ class RecordingIoFailureTest(unittest.TestCase):
         real_limit.mkdir()
         server = start_server(self, "recording-active-io", activity_bytes=16 * 1024 * 1024,
                               command_prefix=[sys.executable, launcher, "limit", str(limit), real_limit])
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server, prebuilt=False)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)
@@ -136,7 +136,7 @@ class RecordingIoFailureTest(unittest.TestCase):
                 target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=["recording-end"],
             )
             config = server.artifacts / "peer.toml"
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             created = server.cli("session", "create", "--config", str(config))
             session_id = created["id"]
             root = Path(created["artifact_dir"])

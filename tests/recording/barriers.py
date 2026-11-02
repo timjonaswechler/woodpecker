@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._support import app_binary, base_config, ROOT, start_server
 from tests.recording import read_jsonl
 
 
@@ -16,9 +16,9 @@ class RecordingBarriersTest(unittest.TestCase):
                          "(maximum 120 ticks), no inputs. Recording controls and read-only queries "
                          "are pipelined around file boundaries. No forced transition timing or retries. "
                          "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "recording-barriers")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)

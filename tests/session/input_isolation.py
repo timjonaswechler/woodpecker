@@ -3,7 +3,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, WINDOW_POSITIONS, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, WINDOW_POSITIONS, start_server, load_config, write_app_config
 
 
 class InputIsolationTest(unittest.TestCase):
@@ -45,7 +45,7 @@ class InputIsolationTest(unittest.TestCase):
             "pointer move_to [720,450] and middle press/release. No OS input. "
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "input-isolation")
         sessions = []
         ticks_type = "test_app::woodpecker::SimulationTicks"
@@ -57,7 +57,7 @@ class InputIsolationTest(unittest.TestCase):
             configuration = load_config()
             configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
             configuration["launch"]["arguments"][:0] = ["--window-position", f"{x},{y}"]
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             session_id = server.cli("session", "create", "--config", str(config))["id"]
             sessions.append(session_id)
             deadline = time.monotonic() + 90

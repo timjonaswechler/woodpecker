@@ -11,7 +11,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 
 
 class ProtocolFaultsTest(unittest.TestCase):
@@ -57,6 +57,12 @@ class ProtocolFaultsTest(unittest.TestCase):
         peer = ROOT / "tests/faults/protocol_peer.py"
         adapter.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(peer))} cargo \"$@\"\n")
         adapter.chmod(0o700)
+        prebuilt = fixture / "prebuilt-peer"
+        prebuilt.write_text(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(peer))} peer \"$@\"\n")
+        prebuilt.chmod(0o700)
+        metadata_only = fixture / "metadata-only-cargo"
+        metadata_only.write_text(f'#!/bin/sh\ncase "$1" in metadata|--version) exec {shlex.quote(str(adapter))} "$@";; *) exit 89;; esac\n')
+        metadata_only.chmod(0o700)
         environment = {"CARGO": str(adapter), "WOODPECKER_TEST_REAL_CARGO": cargo,
                        "WOODPECKER_TEST_PEER_MANIFEST": str(manifest)}
         for mode, startup_error in (
@@ -69,17 +75,21 @@ class ProtocolFaultsTest(unittest.TestCase):
         ):
             holder = {}
             self.addCleanup(self._peer_cleanup, holder)
-            server = start_server(self, f"protocol-{mode}", env=environment,
+            prebuilt_case = mode == "wrong-version"
+            server = start_server(self, f"protocol-{mode}",
+                                  env={**environment, "CARGO": str(metadata_only)} if prebuilt_case else environment,
                                   expected_exit_code=1 if startup_error else 0)
             configuration = load_config()
             configuration["launch"].update(
                 manifest_path=str(manifest), package="woodpecker-protocol-fixture",
                 target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=[mode],
             )
+            if prebuilt_case:
+                configuration["launch"]["executable"] = str(prebuilt)
             if mode == "missing-engine-startup":
                 configuration["startup"] = {"kind": "engine", "timeout_seconds": 1, "max_ticks": 1}
             config = server.artifacts / "protocol.toml"
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             # Check the launch barrier before submitting anything to the server.
             parsed = load_config(config)
             self.assertEqual(parsed["launch"]["manifest_path"], str(manifest))

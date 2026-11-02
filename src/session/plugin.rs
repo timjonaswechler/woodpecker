@@ -25,6 +25,23 @@ use std::{
 #[derive(Default)]
 pub struct Plugin;
 
+/// Register through `LogPlugin::custom_layer`; preserve the application's filters.
+pub fn tracing_error_layer(_app: &mut App) -> Option<bevy::log::BoxedLayer> {
+    crate::report::capture::error_layer()
+}
+
+#[derive(Resource)]
+struct ResetInputs;
+
+impl Plugin {
+    /// Request that a game's explicit reset also clears controlled keyboard, text and
+    /// pointer state after the current simulation tick. Does not execute a tick,
+    /// reset time or change the session lifecycle. Call from the application's reset system.
+    pub fn reset_inputs_after_tick(world: &mut World) {
+        world.insert_resource(ResetInputs);
+    }
+}
+
 #[derive(Resource)]
 struct Bridge {
     input: Mutex<mpsc::Receiver<String>>,
@@ -250,6 +267,12 @@ fn run_tick(world: &mut World, bridge: &mut Bridge) {
         let _ = world.try_run_schedule(*label);
     }
     bridge.input_gate.swap_window_events(world);
+    if world.remove_resource::<ResetInputs>().is_some() {
+        bridge.keyboard = default();
+        bridge.pointer = default();
+        bridge.text = default();
+        super::input::reset(world);
+    }
     bridge.ticks = bridge.ticks.checked_add(1).expect("tick counter exhausted");
     if bridge.ticks == 1 {
         render::start(world);

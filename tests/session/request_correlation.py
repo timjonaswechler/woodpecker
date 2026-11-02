@@ -4,7 +4,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, WINDOW_POSITIONS, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, WINDOW_POSITIONS, start_server, load_config, write_app_config
 
 
 class RequestCorrelationTest(unittest.TestCase):
@@ -16,14 +16,14 @@ class RequestCorrelationTest(unittest.TestCase):
             "three maximum-speed ticks. Multiple one-shot CLI clients, no inputs. "
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "request-correlation")
         sessions = []
         for label, (x, y) in zip(("A", "B"), WINDOW_POSITIONS):
             config = server.artifacts / f"session-{label}.toml"
             configuration = load_config()
             configuration["launch"]["arguments"][:0] = ["--window-position", f"{x},{y}"]
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             sessions.append(server.cli("session", "create", "--config", str(config))["id"])
         session_a, session_b = sessions
         self.assertNotEqual(session_a, session_b)

@@ -9,7 +9,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import CLI, ROOT, Server
+from tests._support import cli_binary, ROOT, Server
 
 
 class ScriptUnknownTest(unittest.TestCase):
@@ -28,7 +28,7 @@ class ScriptUnknownTest(unittest.TestCase):
         self.assertEqual(process.returncode, 0, f"Wire fixture failed; see {artifacts}")
 
     def test_connection_correlation_and_gap_abort_without_losing_known_results_or_retrying(self):
-        self.assertTrue(CLI.is_file(), "Build the CLI first")
+        self.assertTrue(cli_binary().is_file(), "Build the CLI first")
         runs = ROOT / "target/test-runs"
         runs.mkdir(parents=True, exist_ok=True)
         session_id = "1" * 32

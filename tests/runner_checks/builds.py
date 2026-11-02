@@ -27,7 +27,7 @@ class BuildSelectionTest(unittest.TestCase):
              ["cli", "app-automation"], [], False),
             ([python_row("tests.inspect.resource_value", kind="control")],
              ["cli", "app-automation"], [], False),
-            ([python_row("tests.reports.panic_abort")], ["cli"], [], False),
+            ([python_row("tests.reports.panic_abort")], ["cli", "app-abort"], [], False),
             ([python_row("tests.providers.github_live", external=True)],
              ["app-automation", "github-live-driver"], [], False),
             ([dict(kind="rust", target="handle_encoding", graphics=False)],
@@ -72,7 +72,7 @@ class BuildSelectionTest(unittest.TestCase):
 
     def test_list_shows_builds_without_processes_or_creating_artifacts(self):
         examples = [
-            (["--non-graphical"], ["cli", "rust-tests"], False),
+            (["--non-graphical"], ["cli", "app-abort", "rust-tests"], False),
             (["--pilot"], ["cli", "app-automation"], False),
             (["--negative-control"], ["cli", "app-automation"], False),
             (["--external-github"], ["app-automation", "github-live-driver"], False),
@@ -91,7 +91,7 @@ class BuildSelectionTest(unittest.TestCase):
                 if expected is not None:
                     self.assertEqual(names, expected)
                 if not flags:
-                    self.assertEqual(len(names), 11)
+                    self.assertEqual(len(names), 12)
                     self.assertNotIn("github-live-driver", names)
                 run.assert_not_called()
                 logged.assert_not_called()
@@ -176,19 +176,34 @@ class BuildSelectionTest(unittest.TestCase):
 
     def test_python_build_only_never_enumerates_rust_binaries(self):
         with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "tests").mkdir()
+            for name in ("app.toml", "settings.json"):
+                (root / "tests" / name).write_bytes((ROOT / "tests" / name).read_bytes())
             row = python_row("tests.session.server_lifecycle", graphics=False)
             row.update(status="Nicht ausgeführt", artifacts=[])
-            with patch.object(acceptance, "inventory", return_value=({"case": row}, {}, [], [])), \
+            binary = Path(directory) / "woodpecker"
+            binary.write_text("#!/bin/sh\nexit 0\n")
+            def compiled(command, path, **kwargs):
+                Path(path).write_text(json.dumps(dict(reason="compiler-artifact", executable=str(binary),
+                    target=dict(name="woodpecker", kind=["bin"]), profile=dict(test=False))) + "\n")
+                return 0
+            with patch.object(acceptance, "ROOT", root), \
+                    patch.object(acceptance, "inventory", return_value=({"case": row}, {}, [], [])), \
                     patch.object(acceptance.tempfile, "mkdtemp", return_value=directory), \
                     patch.object(acceptance.shutil, "which", side_effect=lambda name: name), \
                     patch.object(acceptance.subprocess, "run", return_value=Mock(stdout="version")) as run, \
-                    patch.object(acceptance, "logged", return_value=0) as logged, \
+                    patch.object(acceptance, "logged", side_effect=compiled) as logged, \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(acceptance.main(["--non-graphical", "--build-only"]), 2)
             report = json.loads((Path(directory) / "summary.json").read_text())
             self.assertEqual(report["errors"], [])
             self.assertEqual([row["name"] for row in report["builds"]], ["cli"])
             self.assertEqual(logged.call_count, 1)
+            manifest = json.loads(Path(report["products_manifest"]).read_text())
+            self.assertEqual(manifest["root"], str(root.resolve()))
+            self.assertTrue(all(Path(product["path"]).is_relative_to(root.resolve())
+                                for product in manifest["products"].values()))
             self.assertFalse(any("--list" in call.args[0] for call in run.call_args_list))
 
     def test_ci_shell_requires_passing_subset_and_expected_exit(self):
@@ -271,10 +286,9 @@ class BuildSelectionTest(unittest.TestCase):
 
 
 class AbortCacheTest(unittest.TestCase):
-    def test_repeated_runs_share_only_build_cache_not_logs_or_server_environment(self):
-        class BuildFinished(Exception):
+    def test_repeated_runs_use_prepared_abort_binary_without_building(self):
+        class ConfigPrepared(Exception):
             pass
-        environments = []
         original_target = os.environ.get("CARGO_TARGET_DIR")
         original_panic = os.environ.get("CARGO_PROFILE_DEV_PANIC")
         with tempfile.TemporaryDirectory() as directory:
@@ -282,36 +296,26 @@ class AbortCacheTest(unittest.TestCase):
                 artifacts = Path(directory) / str(index)
                 artifacts.mkdir()
                 server = Mock(artifacts=artifacts)
-                server.process.wait.return_value = 0
-                process = Mock()
-                process.wait.return_value = 0
-                process.poll.return_value = 0
                 case = panic_abort.PanicAbortTest()
-                try:
-                    with patch.dict(os.environ, {"WOODPECKER_TEST_RENDERED": "1"}), \
-                            patch.object(panic_abort, "start_server", side_effect=[server, BuildFinished]) as start, \
-                            patch.object(panic_abort.subprocess, "Popen", return_value=process) as popen, \
-                            patch.object(Path, "is_file", return_value=True):
-                        with self.assertRaises(BuildFinished):
-                            case.test_abort_build_reports_panic_once_and_not_process_exit()
-                        environments.append(popen.call_args.kwargs["env"])
-                        metadata = json.loads((artifacts / "abort-build.json").read_text())
-                        self.assertEqual(metadata["CARGO_TARGET_DIR"], str(ROOT / "target/panic-abort"))
-                        self.assertEqual(start.call_args.kwargs["env"], {
-                            "CARGO_TARGET_DIR": str(ROOT / "target/panic-abort"), "CARGO_PROFILE_DEV_PANIC": "abort"})
-                finally:
-                    self.assertTrue(case.doCleanups())
-                self.assertFalse((artifacts / "abort-target").exists())
-        self.assertEqual(environments[0]["CARGO_TARGET_DIR"], environments[1]["CARGO_TARGET_DIR"])
-        self.assertEqual(environments[0]["CARGO_PROFILE_DEV_PANIC"], "abort")
+                with patch.dict(os.environ, {"WOODPECKER_TEST_RENDERED": "1"}), \
+                        patch.object(panic_abort, "start_server", return_value=server) as start, \
+                        patch.object(panic_abort, "write_app_config", side_effect=ConfigPrepared) as write, \
+                        patch.object(subprocess, "Popen") as popen, patch.object(Path, "is_file", return_value=True):
+                    with self.assertRaises(ConfigPrepared):
+                        case.test_abort_build_reports_panic_once_and_not_process_exit()
+                self.assertEqual(write.call_args.args[1]["launch"]["executable"],
+                                 str((ROOT / "target/panic-abort/debug/woodpecker-abort-fixture").resolve()))
+                self.assertEqual(start.call_count, 1)
+                self.assertEqual(start.call_args.kwargs, {"expected_exit_code": 1})
+                popen.assert_not_called()
         self.assertEqual(os.environ.get("CARGO_TARGET_DIR"), original_target)
         self.assertEqual(os.environ.get("CARGO_PROFILE_DEV_PANIC"), original_panic)
 
-    def test_abort_graphics_guard_precedes_server_and_build(self):
+    def test_missing_abort_product_blocks_before_server_or_build(self):
         case = panic_abort.PanicAbortTest()
-        with patch.dict(os.environ, {"WOODPECKER_TEST_RENDERED": "0"}), \
+        with patch.object(Path, "is_file", return_value=False), \
                 patch.object(panic_abort, "start_server") as start, \
-                patch.object(panic_abort.subprocess, "Popen") as popen:
+                patch.object(subprocess, "Popen") as popen:
             with self.assertRaises(AssertionError):
                 case.test_abort_build_reports_panic_once_and_not_process_exit()
         start.assert_not_called()

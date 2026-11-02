@@ -4,7 +4,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.reports import audit_local_files, failures, observe, reports
 
@@ -25,7 +25,7 @@ class InvalidMarkerTest(unittest.TestCase):
             configuration["launch"].update(manifest_path=str(manifest), package="woodpecker-protocol-fixture",
                 target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=["report-marker-" + variant])
             config = server.artifacts / "config.toml"
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             self.assertEqual(load_config(config)["launch"], configuration["launch"])
             created = server.cli("session", "create", "--config", str(config))
             session_id = created["id"]

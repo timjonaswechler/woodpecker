@@ -2,6 +2,7 @@
 use bevy::prelude::*;
 
 mod clock;
+mod fixture;
 mod reflection;
 mod reports;
 mod startup;
@@ -11,6 +12,9 @@ pub(crate) fn install(app: &mut App) {
         || !std::env::args().any(|argument| argument == "--woodpecker-diagnostics")
     {
         return;
+    }
+    if std::env::args().any(|argument| argument == "--woodpecker-test-fixture") {
+        fixture::install(app);
     }
     if let Some(mode) = crate::app::launch::value::<String>("--woodpecker-startup") {
         startup::install(app, &mode);

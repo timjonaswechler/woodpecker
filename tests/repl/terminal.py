@@ -13,7 +13,7 @@ import time
 import unicodedata
 import unittest
 
-from tests._support import CLI, ROOT, start_server
+from tests._support import app_binary, base_config, cli_binary, ROOT, start_server
 from tests.repl import ReplIO, tty_settings
 
 
@@ -25,9 +25,9 @@ class ReplTerminalTest(unittest.TestCase):
                          "Unicode/editing/help/pending bytes and one external read-only query. "
                          "No desktop input/resizing or virtual game input. Permission required: "
                          "WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "repl-terminal")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)
@@ -48,7 +48,7 @@ class ReplTerminalTest(unittest.TestCase):
         before = termios.tcgetattr(slave)
         (directory / "tty-before.txt").write_text(repr(before) + "\n")
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(CLI),
+        process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(cli_binary()),
                                    "--address", server.address, "session", "repl", session_id],
                                   cwd=ROOT, stdin=slave, stdout=slave, stderr=stderr, start_new_session=True,
                                   env={**os.environ, "TERM": "xterm-256color"})
@@ -124,7 +124,7 @@ class ReplTerminalTest(unittest.TestCase):
         error_before = termios.tcgetattr(error_slave)
         error_stderr = self.enterContext((error_directory / "stderr.log").open("wb"))
         missing_id = "0" * 32 if session_id != "0" * 32 else "1" * 32
-        failing = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(error_directory), str(CLI),
+        failing = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(error_directory), str(cli_binary()),
                                    "--address", server.address, "session", "repl", missing_id],
                                   cwd=ROOT, stdin=error_slave, stdout=error_slave, stderr=error_stderr,
                                   start_new_session=True, env={**os.environ, "TERM": "xterm-256color"})

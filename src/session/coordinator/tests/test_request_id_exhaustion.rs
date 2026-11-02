@@ -26,7 +26,7 @@ fn exhausted_ids_never_admit_work_or_lose_pending_and_reserved_shutdown() {
         let mut command = std::process::Command::new("python3");
         command
             .arg(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                crate::test_support::root()
                     .join("tests/faults/internal_peer.py"),
             )
             .arg(&path);

@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, start_server, load_config, write_app_config
 from tests.reports import audit_local_files
 
 
@@ -18,7 +18,7 @@ class TracingReportTest(unittest.TestCase):
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -29,7 +29,7 @@ class TracingReportTest(unittest.TestCase):
         configuration = load_config()
         configuration["launch"]["arguments"].insert(0, "--woodpecker-diagnostics")
         configuration["report"]["tracing_errors"] = True
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 30
         while True:

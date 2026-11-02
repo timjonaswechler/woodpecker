@@ -39,7 +39,7 @@ HANDLE = dict(source="src/handle.rs", old="EntityGeneration::from_bits(self.gene
               test_source="tests/rust/test_handle_encoding.rs", function="handle_encoding_contract",
               assertion="                assert_eq!(entity.generation().to_bits(), generation);",
               signature=("assertion `left == right` failed", "left: 0", "right: 2147483648"),
-              target="handle_encoding")
+              target="contracts")
 CANDIDATES = (
     Candidate("handle-generation-bit", "4.69", new="EntityGeneration::from_bits(self.generation & 0x7fff_ffff)", **HANDLE),
     Candidate("native-keyboard-leak", "4.71", "src/session/input.rs",
@@ -69,10 +69,10 @@ CANDIDATES = (
                           "for all u32 values. The same EntityGeneration::from_bits receives the same value; "
                           "no effects, evaluation-order or overflow change.", **HANDLE),
 )
-# Workspace members must remain resolvable, but are not built. No app assets needed.
-ARCHIVE_PATHS = ("Cargo.toml", "Cargo.lock", "src", "tests/rust", "tests/faults/internal_peer.py",
-                 "tests/app.toml", "tests/settings.json", "test_app/Cargo.toml", "test_app/src",
-                 "test_zoo/Cargo.toml", "test_zoo/src")
+# Keep the complete workspace resolvable; canonical unit compilation embeds game assets.
+ARCHIVE_PATHS = ("Cargo.toml", "Cargo.lock", "src", "crates", "tests/rust", "tests/fixtures/abort",
+                 "tests/faults/internal_peer.py", "tests/app.toml", "tests/settings.json",
+                 "test_app/Cargo.toml", "test_app/src", "test_app/asset", "test_zoo/Cargo.toml", "test_zoo/src")
 
 
 def save(path, data):
@@ -253,8 +253,9 @@ def run_test(source, cache, evidence, label, artifacts, candidate, env):
         raise ValueError(f"Compiled test binding failed: {listing['log']}")
     name = matches[0]
     before = set((source / "target/test-runs").glob("**/peer.json"))
+    worker_env = {**env, "WOODPECKER_CONTRACT_WORKER": name} if candidate.target else env
     result = logged([executable, "--exact", name, "--nocapture", "--test-threads=1"],
-                    source, evidence / f"{label}-test.log", env, 60)
+                    source, evidence / f"{label}-test.log", worker_env, 60)
     result.update(function=name, executable=str(executable), executable_sha256=digest(executable),
                   listing=listing, peers=[])
     for path in sorted(set((source / "target/test-runs").glob("**/peer.json")) - before):
@@ -333,7 +334,7 @@ def campaign(args):
                                  ("CARGO_NET_OFFLINE", "CARGO_TARGET_DIR", "WOODPECKER_TEST_RENDERED", "RUST_BACKTRACE", "RUSTFLAGS")}
         save(evidence / "summary.json", report)  # Paths/hashes durable before any mutation.
         baseline_build, artifacts = build(source, cache, evidence, "baseline",
-            [dict(kind="internal"), dict(kind="rust", target="handle_encoding")], env)
+            [dict(kind="internal"), dict(kind="rust", target="contracts")], env)
         report["builds"].append(baseline_build)
         if not clean(baseline_build) or baseline_build["returncode"] != 0:
             raise RuntimeError(f"Baseline build infrastructure failure: {baseline_build['log']}")

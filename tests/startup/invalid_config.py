@@ -6,7 +6,7 @@ import tempfile
 import tomllib
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 
 
 class InvalidStartupTickConfigTest(unittest.TestCase):
@@ -57,7 +57,7 @@ class InvalidStartupTickConfigTest(unittest.TestCase):
                 invalid["launch"], source["launch"], label,
             )
             config = server.artifacts / f"{label}.toml"
-            write_config(config, invalid)
+            write_app_config(config, invalid)
             server.record(["variant", label], config=str(config))
             result = server.run_cli("session", "create", "--config", str(config))
             self.assertEqual(result.returncode, 1, (label, result.stdout, result.stderr))

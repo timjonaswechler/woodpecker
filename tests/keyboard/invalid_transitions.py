@@ -1,36 +1,20 @@
 """Rejected keyboard transitions preserve queued and applied virtual key state."""
 import json
 import os
-import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._shared import game
 
 
 class InvalidTransitionsTest(unittest.TestCase):
     def test_invalid_tokens_and_transitions_preserve_queued_held_and_released_state(self):
         self.assertEqual(
             os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-            "This test opens one Signalstation window with manual startup and exactly "
-            "four ticks. Virtual ShiftLeft press/release; duplicate press, unmatched "
-            "ControlLeft release and unknown-token press/release are deliberately "
-            "rejected while queued and held; duplicate queued release is rejected too. "
-            "Nine expected rejections, no OS input. Permission for this run is "
-            "required: WOODPECKER_TEST_RENDERED=1",
+            "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+            "then F9 and three reset ticks. This case uses 4 action ticks. "
+            "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "keyboard-invalid-transitions")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
-        deadline = time.monotonic() + 30
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "SessionReady":
-                break
-            self.assertEqual(detail["state"], "Starting", detail)
-            if time.monotonic() >= deadline:
-                self.fail("SessionReady deadline exceeded")
-            time.sleep(0.05)
+        server, session_id = game(self, "keyboard-invalid-transitions")
         ticks_type = "test_app::woodpecker::SimulationTicks"
         keys_type = "bevy_input::button_input::ButtonInput<bevy_input::keyboard::KeyCode>"
         before_ticks = server.read_resource(session_id, ticks_type)["ticks"]
@@ -91,5 +75,3 @@ class InvalidTransitionsTest(unittest.TestCase):
         self.assertEqual(server.cli("session", "inspect", session_id)["state"], "SessionReady")
         server.record(["observation", "invalid-keyboard-transitions"], rejections=rejections,
                       held=applied, released=released, final=idle, action_ticks=4)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)

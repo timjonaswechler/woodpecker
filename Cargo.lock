@@ -6089,12 +6089,59 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "bevy",
+ "bevy_ecs",
  "cap-fs-ext",
  "cap-std",
  "clap",
  "crossterm",
  "getrandom 0.4.3",
  "image",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "toml 0.8.23",
+ "tracing",
+ "tracing-subscriber",
+ "tungstenite",
+ "unicode-width",
+ "ureq",
+]
+
+[[package]]
+name = "woodpecker_abort_fixture"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "woodpecker_cli"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "woodpecker_host",
+]
+
+[[package]]
+name = "woodpecker_host"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "base64 0.22.1",
+ "bevy_ecs",
+ "cap-fs-ext",
+ "cap-std",
+ "clap",
+ "crossterm",
+ "getrandom 0.4.3",
  "libc",
  "serde",
  "serde_json",

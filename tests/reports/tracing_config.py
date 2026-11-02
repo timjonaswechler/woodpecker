@@ -3,7 +3,7 @@ import os
 import time
 import unittest
 
-from tests._support import load_config, start_server, write_config
+from tests._support import load_config, start_server, write_app_config
 from tests.reports import audit_local_files, failures, observe, reports
 
 
@@ -28,7 +28,7 @@ class TracingConfigTest(unittest.TestCase):
             if key is None:
                 configuration["launch"]["arguments"] += ["--woodpecker-no-tracing-layer"]
             path = server.artifacts / "config.toml"
-            write_config(path, configuration)
+            write_app_config(path, configuration)
             created = server.cli("session", "create", "--config", str(path))
             session_id = created["id"]
             deadline = time.monotonic() + 30

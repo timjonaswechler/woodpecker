@@ -2,7 +2,7 @@
 import time
 import unittest
 
-from tests._support import load_config, start_server, write_config
+from tests._support import load_config, start_server, write_app_config
 
 
 class LaunchFailureTest(unittest.TestCase):
@@ -14,7 +14,7 @@ class LaunchFailureTest(unittest.TestCase):
         configuration = load_config()
         configuration["launch"]["manifest_path"] = str(missing_manifest)
         config = server.artifacts / "missing-manifest.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         self.assertEqual(load_config(config)["launch"]["manifest_path"], str(missing_manifest))
 
         # Intrinsically valid configuration is accepted before file resolution.

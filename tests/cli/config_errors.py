@@ -5,7 +5,7 @@ import shlex
 import tempfile
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 
 
 class ConfigErrorsTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class ConfigErrorsTest(unittest.TestCase):
             else:
                 configuration[key] = value
             path = artifacts / f"{label}.toml"
-            write_config(path, configuration)
+            write_app_config(path, configuration)
             cases.append((label, path, diagnostic))
 
         observations = []

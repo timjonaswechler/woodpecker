@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.recording import read_jsonl
 from tests.shutdown import progress, wait_state
@@ -26,7 +26,7 @@ class ShutdownSignalsTest(unittest.TestCase):
             configuration = load_config()
             configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
             path = server.artifacts / "config.toml"
-            write_config(path, configuration)
+            write_app_config(path, configuration)
             created = server.cli("session", "create", "--config", str(path))
             session_id = created["id"]
             detail = wait_state(server, session_id, "SessionReady", timeout=30)
@@ -58,7 +58,7 @@ class ShutdownSignalsTest(unittest.TestCase):
         configuration["launch"].update(manifest_path=str(manifest), package="woodpecker-protocol-fixture",
             target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=["shutdown-hold"])
         config = held.artifacts / "config.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         self.assertEqual(load_config(config)["launch"], configuration["launch"])
         created = held.cli("session", "create", "--config", str(config))
         session_id = created["id"]
