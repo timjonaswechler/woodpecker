@@ -7,12 +7,12 @@ import subprocess
 import tempfile
 import unittest
 
-from tests._support import CLI, ROOT, start_server
+from tests._support import cli_binary, ROOT, start_server
 
 
 class LocalAccessTest(unittest.TestCase):
     def test_remote_bind_and_browser_origin_are_rejected_without_disabling_local_access(self):
-        self.assertTrue(CLI.is_file(), "Build the CLI first")
+        self.assertTrue(cli_binary().is_file(), "Build the CLI first")
         runs = ROOT / "target/test-runs"
         runs.mkdir(parents=True, exist_ok=True)
         guard = Path(tempfile.mkdtemp(prefix="local-access-bind-", dir=runs))
@@ -22,7 +22,7 @@ class LocalAccessTest(unittest.TestCase):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reservation:
             reservation.bind(("127.0.0.1", 0))
             reservation.listen(1)
-            command = [str(CLI), "--address", f"0.0.0.0:{reservation.getsockname()[1]}",
+            command = [str(cli_binary()), "--address", f"0.0.0.0:{reservation.getsockname()[1]}",
                        "server", "start", "--artifact-dir", str(guard / "sessions")]
             rejected = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=5)
         (guard / "bind.json").write_text(json.dumps({

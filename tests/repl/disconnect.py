@@ -13,7 +13,7 @@ import termios
 import time
 import unittest
 
-from tests._support import app_binary, base_config, CLI, ROOT, load_config, start_server, write_app_config
+from tests._support import app_binary, base_config, cli_binary, ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.repl import ReplIO, tty_settings
 
@@ -52,14 +52,14 @@ class ReplDisconnectTest(unittest.TestCase):
                 self.addCleanup(os.close, slave)
                 fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
                 before_tty = termios.tcgetattr(slave)
-                process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(CLI),
+                process = subprocess.Popen([sys.executable, str(ROOT / "tests/repl/pty_client.py"), str(directory), str(cli_binary()),
                                            "--address", server.address, "session", "repl", session_id],
                                           cwd=ROOT, stdin=slave, stdout=slave, stderr=stderr,
                                           start_new_session=True, env={**os.environ, "TERM": "xterm-256color"})
                 client = ReplIO(process, directory, master=master)
             else:
                 stdout = self.enterContext((directory / "stdout.log").open("wb"))
-                process = subprocess.Popen([str(CLI), "--address", server.address, "session", "repl", session_id],
+                process = subprocess.Popen([str(cli_binary()), "--address", server.address, "session", "repl", session_id],
                                            cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
                                            start_new_session=True)
                 client = ReplIO(process, directory)
@@ -102,7 +102,7 @@ class ReplDisconnectTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("wb"))
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([str(CLI), "--address", server.address, "session", "repl", session_id],
+        process = subprocess.Popen([str(cli_binary()), "--address", server.address, "session", "repl", session_id],
                                    cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, start_new_session=True)
         client = ReplIO(process, directory)
         self.addCleanup(client.cleanup)
@@ -152,7 +152,7 @@ class ReplDisconnectTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("wb"))
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([str(CLI), "--address", broken.address, "session", "repl", peer_id],
+        process = subprocess.Popen([str(cli_binary()), "--address", broken.address, "session", "repl", peer_id],
                                    cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, start_new_session=True)
         client = ReplIO(process, directory)
         self.addCleanup(client.cleanup, 1)

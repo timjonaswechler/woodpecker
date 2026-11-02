@@ -6,7 +6,7 @@ import subprocess
 import time
 import unittest
 
-from tests._support import app_binary, base_config, CLI, ROOT, start_server
+from tests._support import app_binary, base_config, cli_binary, ROOT, start_server
 from tests.recording import read_jsonl, write_jsonl
 from tests.repl import ReplIO
 
@@ -48,7 +48,7 @@ class ReplCommandsTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("wb"))
         stderr = self.enterContext((directory / "stderr.log").open("wb"))
-        process = subprocess.Popen([str(CLI), "--address", server.address, "session", "repl", session_id],
+        process = subprocess.Popen([str(cli_binary()), "--address", server.address, "session", "repl", session_id],
                                    cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr,
                                    start_new_session=True)
         client = ReplIO(process, directory)

@@ -7,7 +7,7 @@ import subprocess
 import time
 import unittest
 
-from tests._support import app_binary, base_config, CLI, ROOT, start_server
+from tests._support import app_binary, base_config, cli_binary, ROOT, start_server
 
 
 class ActivityGapTest(unittest.TestCase):
@@ -132,7 +132,7 @@ class ActivityGapTest(unittest.TestCase):
         directory.mkdir()
         stdout = self.enterContext((directory / "stdout.log").open("w"))
         stderr = self.enterContext((directory / "stderr.log").open("w"))
-        command = [str(CLI), "--address", server.address, "session", "repl", session_id]
+        command = [str(cli_binary()), "--address", server.address, "session", "repl", session_id]
         observer = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.PIPE, stdout=stdout,
                                     stderr=stderr, text=True, start_new_session=True)
         self.addCleanup(self._cleanup_observer, observer, directory)

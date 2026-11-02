@@ -21,18 +21,21 @@ def product_binary(name):
     return PRODUCTS.get("bin:" + name, ROOT / "target/debug" / name)
 
 
+def cli_binary():
+    return PRODUCTS.get("bin:woodpecker", CLI)
+
+
 def app_binary():
     return product_binary("test_app")
 
 
 @contextlib.contextmanager
 def _use_products(products):
-    global CLI, PRODUCTS
-    previous_cli, previous_products = CLI, PRODUCTS
+    global PRODUCTS
+    previous_products = PRODUCTS
     previous_app = os.environ.get("WOODPECKER_TEST_APP")
     previous_abort = os.environ.get("WOODPECKER_TEST_ABORT_APP")
     PRODUCTS = dict(products)
-    CLI = PRODUCTS.get("bin:woodpecker", CLI)
     for role, variable in (("bin:test_app", "WOODPECKER_TEST_APP"),
                            ("bin:woodpecker-abort-fixture", "WOODPECKER_TEST_ABORT_APP")):
         if role in PRODUCTS:
@@ -40,7 +43,7 @@ def _use_products(products):
     try:
         yield
     finally:
-        CLI, PRODUCTS = previous_cli, previous_products
+        PRODUCTS = previous_products
         for variable, value in (("WOODPECKER_TEST_APP", previous_app), ("WOODPECKER_TEST_ABORT_APP", previous_abort)):
             if value is None:
                 os.environ.pop(variable, None)
@@ -228,7 +231,7 @@ class Server:
 
     def run_cli(self, *arguments, timeout=10):
         """Return exit status and output from one invocation, including expected errors."""
-        command = [str(CLI), "--address", self.address, *arguments]
+        command = [str(cli_binary()), "--address", self.address, *arguments]
         self.record(command, status="submitted")
         try:
             result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
@@ -352,7 +355,7 @@ class Server:
 
 def start_server(test, label, *, expected_exit_code=0, env=None, activity_bytes=None, command_prefix=(), shutdown_seconds=2):
     """Register cleanup immediately, including if readiness or the test fails."""
-    test.assertTrue(CLI.is_file(), "Build first: cargo build --locked --features cli --bin woodpecker")
+    test.assertTrue(cli_binary().is_file(), "Build first: cargo build --locked -p woodpecker_cli --bin woodpecker")
     runs = ROOT / "target/test-runs"
     runs.mkdir(parents=True, exist_ok=True)
     artifacts = Path(tempfile.mkdtemp(prefix=f"{label}-", dir=runs))
@@ -360,7 +363,7 @@ def start_server(test, label, *, expected_exit_code=0, env=None, activity_bytes=
     print(f"\nArtefakte: {artifacts}", flush=True)
     stdout = test.enterContext((artifacts / "server.stdout.log").open("wb"))
     stderr = test.enterContext((artifacts / "server.stderr.log").open("wb"))
-    command = [str(CLI), "--address", "127.0.0.1:0", "server", "start",
+    command = [str(cli_binary()), "--address", "127.0.0.1:0", "server", "start",
                "--artifact-dir", str(artifacts / "sessions"), "--shutdown-seconds", str(shutdown_seconds)]
     if activity_bytes is not None:
         command.extend(["--activity-bytes", str(activity_bytes)])

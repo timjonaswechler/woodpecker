@@ -6,12 +6,12 @@ import subprocess
 import tempfile
 import unittest
 
-from tests._support import CLI, ROOT
+from tests._support import cli_binary, ROOT
 
 
 class CommandErrorsTest(unittest.TestCase):
     def test_invalid_json_utf8_and_command_shapes_do_not_send_even_a_valid_prefix(self):
-        self.assertTrue(CLI.is_file(), "Build the CLI first")
+        self.assertTrue(cli_binary().is_file(), "Build the CLI first")
         runs = ROOT / "target/test-runs"
         runs.mkdir(parents=True, exist_ok=True)
         artifacts = Path(tempfile.mkdtemp(prefix="cli-command-errors-", dir=runs))
@@ -49,7 +49,7 @@ class CommandErrorsTest(unittest.TestCase):
                       "invalid_json"))
 
         for label, source, code in cases:
-            command = [str(CLI), "--address", address, "session", "submit", "0" * 32,
+            command = [str(cli_binary()), "--address", address, "session", "submit", "0" * 32,
                        "--command", source]
             result = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=10)
             (artifacts / f"{label}.stdout").write_bytes(result.stdout)
