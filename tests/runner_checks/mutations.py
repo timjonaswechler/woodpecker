@@ -4,6 +4,7 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -193,7 +194,7 @@ class Safety(unittest.TestCase):
 
     def test_standard_build_commands_stay_windowless_locked_and_compile_only(self):
         for rows, expected in [([dict(kind="internal")], ["--lib"]),
-                               ([dict(kind="rust", target="handle_encoding")], ["--test", "handle_encoding"])]:
+                               ([dict(kind="rust", target="contracts")], ["--test", "contracts"])]:
             with patch.object(m, "logged", return_value=process(log="offline.log")) as logged, \
                     patch.object(m, "executables", return_value={}):
                 m.build(Path("source"), Path("cache"), Path("evidence"), "offline", rows, {})
@@ -202,6 +203,48 @@ class Safety(unittest.TestCase):
                 self.assertIn(flag, command)
             self.assertEqual(command[:2], ["cargo", "test"])
             self.assertNotIn("--bin", command)
+
+    def test_real_source_archive_resolves_every_workspace_member_offline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            archive, source = root / "source.tar", root / "source"
+            m.git(m.ROOT, "archive", "--format=tar", "-o", str(archive), "HEAD", *m.ARCHIVE_PATHS)
+            m.extract(archive, source)
+            result = subprocess.run(["cargo", "metadata", "--locked", "--offline", "--no-deps", "--format-version", "1"],
+                                    cwd=source, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            packages = {package["name"]: package for package in json.loads(result.stdout)["packages"]}
+            self.assertTrue({"woodpecker_host", "woodpecker_cli", "woodpecker_abort_fixture"} <= packages.keys())
+            self.assertIn("contracts", [target["name"] for target in packages["woodpecker"]["targets"]])
+            self.assertTrue((source / "test_app/asset/meshes/environment/courtyard.gltf").is_file())
+
+    def test_public_contract_probe_runs_one_real_isolated_worker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            cache, evidence = root / "cache", root / "evidence"
+            cache.mkdir()
+            evidence.mkdir()
+            implementation = (m.ROOT / "tests/rust/support/mod.rs").read_text()
+            implementation = "pub fn isolated(" + implementation.split("pub fn isolated(", 1)[1].split("\npub fn rendered", 1)[0]
+            source = root / "worker.rs"
+            source.write_text(implementation + '''
+mod handle_encoding {
+    #[test]
+    fn handle_encoding_contract() {
+        if !crate::isolated(concat!(module_path!(), "::", stringify!(handle_encoding_contract))) { return; }
+        assert_eq!(1, 1);
+    }
+}
+''')
+            executable = cache / "contracts"
+            built = subprocess.run(["rustc", "--test", "--edition=2024", str(source), "-o", str(executable)],
+                                   capture_output=True, text=True, timeout=30)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            candidate = m.CANDIDATES[0]
+            artifacts = {(candidate.target, ("test",)): str(executable)}
+            result, output = m.run_test(root, cache, evidence, "worker", artifacts, candidate, os.environ.copy())
+            self.assertEqual(output.count("running 1 test\n"), 1, output)
+            self.assertEqual(m.classify(process(), True, result, output, candidate, result["function"], 1), "survived")
 
     def test_missing_run_arguments_stop_before_setup(self):
         with patch.object(m, "campaign") as campaign, contextlib.redirect_stderr(io.StringIO()):
