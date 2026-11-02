@@ -15,7 +15,7 @@ pub(super) mod file;
 mod worker;
 
 #[cfg(all(test, unix))]
-#[path = "tests/test_transition_races.rs"]
+#[path = "../tests/test_transition_races.rs"]
 mod test_transition_races;
 
 enum State {

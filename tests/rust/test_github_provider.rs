@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use std::fs;
 use woodpecker::{
     report::{
@@ -10,6 +10,13 @@ use woodpecker::{
 
 #[test]
 fn github_provider_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(github_provider_contract)
+    )) {
+        return;
+    }
     support::rendered();
     let path = support::artifacts("rust-github-provider");
     let gh = path.join("gh");

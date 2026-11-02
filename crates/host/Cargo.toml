@@ -1,0 +1,34 @@
+[package]
+name = "woodpecker_host"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[features]
+default = []
+server = ["dep:axum", "dep:tokio", "dep:getrandom"]
+client = ["server", "dep:ureq", "dep:tungstenite"]
+cli = ["client", "dep:clap", "dep:toml", "dep:crossterm", "dep:unicode-width"]
+
+[dependencies]
+bevy_ecs = { version = "=0.20.0", default-features = false, features = ["std"] }
+base64 = "0.22"
+sha2 = "0.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
+cap-std = "3"
+cap-fs-ext = "3"
+axum = { version = "0.8", features = ["ws"], optional = true }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros", "signal"], optional = true }
+getrandom = { version = "0.4", optional = true }
+ureq = { version = "3", default-features = false, features = ["json"], optional = true }
+tungstenite = { version = "0.29", optional = true }
+libc = "0.2"
+clap = { version = "4.5", features = ["derive", "string"], optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", features = ["raw_value"] }
+toml = { version = "0.8", optional = true }
+crossterm = { version = "0.29", optional = true }
+unicode-width = { version = "0.2", optional = true }
+

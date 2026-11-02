@@ -118,7 +118,7 @@ fn transition_races_obey_real_file_barriers_and_never_release_cancelled_plans() 
             let mut command = std::process::Command::new("python3");
             command
                 .arg(
-                    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    crate::test_support::root()
                         .join("tests/faults/internal_peer.py"),
                 )
                 .arg(&path);
@@ -351,7 +351,7 @@ fn transition_races_obey_real_file_barriers_and_never_release_cancelled_plans() 
         let mut command = std::process::Command::new("python3");
         command
             .arg(
-                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                crate::test_support::root()
                     .join("tests/faults/internal_peer.py"),
             )
             .arg(&path);

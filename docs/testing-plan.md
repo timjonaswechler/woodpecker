@@ -8,7 +8,59 @@ Ausführung und Inventar: [Testanleitung](../tests/README.md).
 Öffentliche Abläufe: [Spieltest-Beispiele](../examples/README.md).
 Fehlersensitivität: [Mutationsanleitung](../tests/mutations.md).
 
-## Abnahme und Mergeentscheidung
+## Aktuelle Erweiterung: vorbereitete Programme und kleinerer Buildgraph
+
+Auf `feat/shared-application-tests` sind rendererfreier CLI-/Host-Build,
+zusammengefasste prozessisolierte Rust-Verträge, kleine echte Abort-Fixture und
+wiederverwendbare Programme umgesetzt. Kein neues Compilerprofil und keine
+zusätzliche Debuginfo-/Compilerflag-Optimierung gehören zu diesem Umbau.
+
+- 76 Harness-, zehn Planungs- und 19 Spieltests sowie Workspace-Clippy mit allen
+  Features/Targets und `-D warnings` bestanden.
+- Die vollständige grafische lokale Abnahme bestand: **93 Produkttests plus
+  typisierte Negativkontrolle**, keine fehlenden lokalen Belege oder Cleanup-Fehler.
+  [Gesamtlauf](../target/test-runs/acceptance-udkhqci1/summary.json).
+  Das ersetzt den früher fehlgeschlagenen Grafiknachweis für diesen Quellstand,
+  ist aber kein Nachweis, dass dessen damalige Surface-Ursache behoben wurde.
+- Keyboard, Pointer, Text und ein weiterer Einzeltest bestanden über vier
+  Aufrufe mit derselben App **PID 23764**; explizites Stoppen wurde bestätigt.
+  [Hoststatus](../target/test-runs/code-size-proof/persistent-status.json) und
+  [Shutdown](../target/test-runs/code-size-proof/persistent-stop.log).
+- Nach verlustfreiem Wiederherstellen des Compilercaches verwendete Cargo alle
+  **1.460 Ausgaben frisch**, ohne erneute Kompilierung.
+  [Frischenachweis](../target/test-runs/code-size-proof/freshness.json).
+- Die zusätzliche Target-Bereinigung entfernte 30 Incremental-Caches nicht mehr
+  benötigter Crates sowie die belegten alten Ausgaben des Vollspiel-Aborts,
+  `mein_spiel` und der öffentlichen `test_app`-Bibliothekskopie. Quellen und Belege
+  blieben erhalten. Cargo verwendete danach weiterhin alle **1.460 Ausgaben frisch**;
+  vorbereitete Programme blieben bytegleich. Acht gemeinsame Eingabetests liefen
+  anschließend über zwei Aufrufe mit derselben, offen gebliebenen App **PID 62453**;
+  auch der kleine Abort-Fall bestand.
+  [Bereinigung und Messwerte](../target/test-runs/target-cleanup-proof/result.json).
+- Nach ausdrücklicher Nutzerfreigabe wurden **123 redundante alte Befehlsjournale**
+  aus 17 sauber beendeten Wiederholungsläufen gelöscht. Fehlerbelege, aktueller
+  Gesamtnachweis, alle Manifeste und vorbereiteten Programme blieben erhalten.
+  Nach dieser Bereinigung wurden für das gesamte `target/` rund **4,061 GB** gemessen, einschließlich rund
+  **394 MB verbleibender Testbelege/-fixtures**. Das **5-GB-Ruhebudget ist damit
+  erfüllt**, mit bereits komprimiertem Compilercache; während Builds benötigt er
+  weiterhin seinen größeren entpackten Arbeitsraum. Die ältere
+  [Budgetprüfung](../target/test-runs/acceptance-_gczp95w/summary.json) bleibt als
+  damaliger Fehlnachweis unverändert erhalten.
+  [Löschplan und aktuelle Budgetmessung](../target/test-runs/log-cleanup-proof/result.json).
+  Programmprüfsummen, Manifest und CLI-Aufruf wurden nach der Bereinigung validiert.
+- Beim Vorabcheck dieser Logbereinigung war App-PID 62453 bereits beendet;
+  Host und Server liefen noch. Deren Verzeichnisse und Zustand wurden geschützt,
+  keine App neu gestartet oder übernommen. Bei der späteren Mergevorbereitung war
+  `target/` bereits geleert; der noch laufende Diagnosehost wurde identitätsgeprüft
+  beendet. Sein Serverexit 1 bleibt ein fehlgeschlagener Cleanup-Nachweis und wird
+  nicht nachträglich als erfolgreich gewertet.
+
+Ein neuer echter GitHub-Provider-Lauf wurde nicht ausgeführt. Das Ruhebudget und
+die lokale Abnahme sind belegt. Der Nutzer hat anschließend auch diese Arbeit
+zum Mergen freigegeben; Abschlussreview und CI werden vor dem Merge geprüft.
+Auto-Merge und Merge Queue werden nicht verwendet.
+
+## Historische Abnahme und Mergeentscheidung
 
 [PR #16](https://github.com/timjonaswechler/woodpecker/pull/16) bündelt die Arbeiten
 im Hauptrepository `woodpecker` gegen `main`. Auto-Merge und Merge Queue werden
@@ -26,7 +78,7 @@ geprüft. Branch-Regeln werden nicht umgangen.
 Davon 93 lokal und einer extern. Mit Negativkontrolle 3.18 enthält das Inventar
 95 Einträge; die 49 Harness-Prüfungen zählen separat.
 
-## Aktuelle Abschlussprüfung auf `55c4036`
+## Frühere Abschlussprüfung auf `55c4036`
 
 Die drei Abschlusscommits enthalten den Text-Editierbarkeitsfix, die Entfernung
 ungenutzter Laufzeit-Assets und die überarbeiteten Nutzer-How-tos/API-Verträge.
@@ -86,9 +138,10 @@ sowie die [früheren Laufgrenzen](../target/test-runs/steps-6-7-ab8235by/complet
 bleiben Teil des Nachweises. Historische Qualitätsnoten werden nicht automatisch
 aufgewertet; die Mutationsstichprobe beweist keine universelle Fehlersensitivität.
 
-Artefakte unter `target/` sind lokal und nicht versioniert. Vollständige Logs,
-Fehlversuche, Quellhashes und Cleanup-Audits bleiben dort erhalten; die frühere
-Detailplanung liegt außerdem in der Git-Historie. Diese Dokumentbereinigung
+Artefakte unter `target/` sind lokal und nicht versioniert. Erhaltene Nachweise
+umfassen Logs, Fehlversuche, Quellhashes und Cleanup-Audits. Die ausdrücklich
+freigegebene Entfernung redundanter Wiederholungsjournale ist oben protokolliert;
+die frühere Detailplanung liegt außerdem in der Git-Historie. Diese Dokumentbereinigung
 ersetzt keine Laufbelege und wiederholt keine Produktabnahme.
 
 ## Verbindliche Testregeln

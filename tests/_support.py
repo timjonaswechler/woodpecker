@@ -34,7 +34,7 @@ def _use_products(products):
     PRODUCTS = dict(products)
     CLI = PRODUCTS.get("bin:woodpecker", CLI)
     for role, variable in (("bin:test_app", "WOODPECKER_TEST_APP"),
-                           ("bin:test_app:abort", "WOODPECKER_TEST_ABORT_APP")):
+                           ("bin:woodpecker-abort-fixture", "WOODPECKER_TEST_ABORT_APP")):
         if role in PRODUCTS:
             os.environ[variable] = str(PRODUCTS[role])
     try:

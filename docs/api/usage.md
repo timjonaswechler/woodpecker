@@ -607,8 +607,10 @@ auf stdout aus. Die REPL verwendet dagegen einen Prompt, Statuszeilen und JSON-P
 Auswahl, Voraussetzungen und ausführbare Tests stehen in der
 [Testanleitung](../../tests/README.md); aktueller Stand und genaue Belege im
 [Testsuite-Plan](../testing-plan.md). Python-Fälle liegen in `tests/<feature>/`,
-zehn öffentliche Rust-Targets in `tests/rust/`, neun interne Owner-Tests unter
-`src/`. Die entfernten `tests/fixtures/`-, `tests/integration/`- und
+zehn öffentliche Rust-Verträge im gemeinsamen Target `tests/rust/contracts.rs`,
+neun interne Owner-Tests unter `src/`. Die kleine `tests/fixtures/abort` ist ein
+Produktionsprotokoll-Partner für den echten Abort-Fall, kein alternativer Suite-
+Einstieg. Die entfernten monolithischen Fixture-/Integrations- und
 `tests/acceptance/headless/`-/`rendered/`-Einstiege sind nicht mehr auszuführen.
 
 Der echte Abort-Build gehört zu `tests.reports.panic_abort`, der begrenzte

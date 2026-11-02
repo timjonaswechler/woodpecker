@@ -35,7 +35,9 @@ Implementierungsstelle, keine Kopien in Client und Server.
 
 Direkte Rust-Nutzung von `session::Session`, `session::Plugin`, Commands und Reports funktioniert
 ohne Server-/CLI-Abhängigkeiten. Die Platzierung eines Moduls bestimmt nicht automatisch
-seine öffentlichen Exports oder seine Paketierung.
+seine öffentlichen Exports oder seine Paketierung. Die rendererfreie
+Host-Paketierung mit gemeinsamer Produktionsquelle ist in
+[ADR-0025](../adr/0025-shared-host-source-and-prepared-contracts.md) begründet.
 
 ## Server und Zugriff
 

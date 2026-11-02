@@ -1,4 +1,4 @@
-"""A separate real panic=abort app must emit its synchronous panic marker before death."""
+"""The real panic=abort runtime must flush the shared production hook before death; no renderer."""
 import json
 import os
 import signal
@@ -13,17 +13,16 @@ from tests.reports import audit_local_files, failures, observe, reports
 
 class PanicAbortTest(unittest.TestCase):
     def test_abort_build_reports_panic_once_and_not_process_exit(self):
-        self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "Use the prepared panic=abort automation app, then one manual window, "
-                         "F11 and one intentional aborting tick. Server declared exit 1; local reports. "
-                         "Permission required: WOODPECKER_TEST_RENDERED=1")
-        executable = Path(os.environ.get("WOODPECKER_TEST_ABORT_APP", ABORT_TARGET / "debug/test_app"))
+        executable = Path(os.environ.get("WOODPECKER_TEST_ABORT_APP",
+                                         ABORT_TARGET / "debug/woodpecker-abort-fixture"))
         self.assertTrue(executable.is_file(), "Prepare panic-abort with acceptance --test tests.reports.panic_abort --build-only")
         server = start_server(self, "panic-abort-run", expected_exit_code=1)
         (server.artifacts / "abort-build.json").write_text(json.dumps({"prepared_executable": str(executable)}) + "\n")
         configuration = load_config()
         configuration["launch"]["executable"] = str(executable.resolve())
-        configuration["launch"]["arguments"] += ["--woodpecker-diagnostics"]
+        configuration["launch"].update(manifest_path="tests/fixtures/abort/Cargo.toml", package="woodpecker_abort_fixture",
+            features=[], target={"kind": "binary", "name": "woodpecker-abort-fixture"}, arguments=[])
+        configuration["tick"]["clock"] = {"kind": "application"}
         path = server.artifacts / "config.toml"
         write_app_config(path, configuration)
         session_id = server.cli("session", "create", "--config", str(path))["id"]
@@ -44,7 +43,7 @@ class PanicAbortTest(unittest.TestCase):
                          any(v["kind"] == "lifecycle" and v["state"] == "Failed" for v in e))
         self.assertEqual(len(failures(events)), 1, events)
         self.assertEqual(failures(events)[0]["origin"]["kind"], "panic")
-        self.assertEqual(failures(events)[0]["message"], "Signalstation diagnostic panic")
+        self.assertEqual(failures(events)[0]["message"], "Woodpecker diagnostic panic")
         self.assertEqual(len(reports(events)), 1, events)
         self.assertEqual(reports(events)[0]["result"]["status"], "submitted")
         ended = [event["event"] for event in events

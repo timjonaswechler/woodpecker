@@ -72,7 +72,7 @@ class BuildSelectionTest(unittest.TestCase):
 
     def test_list_shows_builds_without_processes_or_creating_artifacts(self):
         examples = [
-            (["--non-graphical"], ["cli", "rust-tests"], False),
+            (["--non-graphical"], ["cli", "app-abort", "rust-tests"], False),
             (["--pilot"], ["cli", "app-automation"], False),
             (["--negative-control"], ["cli", "app-automation"], False),
             (["--external-github"], ["app-automation", "github-live-driver"], False),
@@ -304,16 +304,16 @@ class AbortCacheTest(unittest.TestCase):
                     with self.assertRaises(ConfigPrepared):
                         case.test_abort_build_reports_panic_once_and_not_process_exit()
                 self.assertEqual(write.call_args.args[1]["launch"]["executable"],
-                                 str((ROOT / "target/panic-abort/debug/test_app").resolve()))
+                                 str((ROOT / "target/panic-abort/debug/woodpecker-abort-fixture").resolve()))
                 self.assertEqual(start.call_count, 1)
                 self.assertEqual(start.call_args.kwargs, {"expected_exit_code": 1})
                 popen.assert_not_called()
         self.assertEqual(os.environ.get("CARGO_TARGET_DIR"), original_target)
         self.assertEqual(os.environ.get("CARGO_PROFILE_DEV_PANIC"), original_panic)
 
-    def test_abort_graphics_guard_precedes_server_and_build(self):
+    def test_missing_abort_product_blocks_before_server_or_build(self):
         case = panic_abort.PanicAbortTest()
-        with patch.dict(os.environ, {"WOODPECKER_TEST_RENDERED": "0"}), \
+        with patch.object(Path, "is_file", return_value=False), \
                 patch.object(panic_abort, "start_server") as start, \
                 patch.object(subprocess, "Popen") as popen:
             with self.assertRaises(AssertionError):

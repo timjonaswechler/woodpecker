@@ -22,7 +22,7 @@ def publish(root, generation, *, source_generation=None):
 
 
 class ProductCacheTest(unittest.TestCase):
-    def test_two_source_snapshots_retained_but_a_running_old_program_is_not_deleted(self):
+    def test_current_snapshot_retained_but_a_running_old_program_is_not_deleted(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             first = publish(root, 0)
@@ -34,11 +34,11 @@ class ProductCacheTest(unittest.TestCase):
                 for generation in range(1, 5):
                     latest = publish(root, generation)
                 self.assertTrue(path.is_file(), "live consumer must pin its old executable")
-                self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 3)
+                self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 2)
                 self.assertEqual(_artifacts.load(root / "products-4.json", root=root), latest)
             publish(root, 5)
             self.assertFalse(path.exists())
-            self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 2)
+            self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 1)
             self.assertEqual((foreign / "keep.txt").read_text(), "not a framework product")
             self.assertTrue((root / "products-0.json").is_file(), "historical manifest/evidence is retained")
 
@@ -47,10 +47,10 @@ class ProductCacheTest(unittest.TestCase):
             root = Path(directory)
             for generation in range(6):
                 publish(root, generation, source_generation=0)
-            self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 2)
+            self.assertEqual(len(list((root / "target/test-products").glob("*/program"))), 1)
             index = json.loads((root / "target/test-products/index.json").read_text())
             self.assertEqual(len(index["contexts"]), 1)
-            self.assertEqual(len(index["contexts"][0]["roles"]["bin:woodpecker"]), 2)
+            self.assertEqual(len(index["contexts"][0]["roles"]["bin:woodpecker"]), 1)
 
     def test_changed_inputs_during_preparation_do_not_publish_a_manifest(self):
         with tempfile.TemporaryDirectory() as directory:

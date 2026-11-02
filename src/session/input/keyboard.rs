@@ -10,6 +10,18 @@ use bevy::{
 };
 use std::collections::{HashMap, HashSet};
 
+macro_rules! resolve_keys {
+    ($($variant:ident => ($token:literal, $code:ident, $logical:expr)),+ $(,)?) => {
+        fn resolve_key(key: &Key) -> Option<(KeyCode, LogicalKey)> {
+            match key.as_str() {
+                $($token => Some((KeyCode::$code, $logical)),)+
+                _ => None,
+            }
+        }
+    };
+}
+crate::command::input::keyboard::mapping::keys!(resolve_keys);
+
 #[derive(Default)]
 pub(crate) struct State {
     pressed: HashSet<KeyCode>,
@@ -18,9 +30,8 @@ pub(crate) struct State {
 
 impl State {
     pub(crate) fn key(&mut self, world: &World, key: &Key, down: bool) -> Result<(), Diagnostic> {
-        let (key_code, logical_key) = key
-            .resolve()
-            .ok_or_else(|| Diagnostic::new("invalid_key", key.as_str()))?;
+        let (key_code, logical_key) =
+            resolve_key(key).ok_or_else(|| Diagnostic::new("invalid_key", key.as_str()))?;
         let window = super::primary_window(world)
             .map(|(entity, _)| entity)
             .ok_or_else(|| {

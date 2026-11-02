@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use std::fs;
 use woodpecker::{
     command::input::keyboard,
@@ -8,6 +8,13 @@ use woodpecker::{
 
 #[test]
 fn report_snapshot_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(report_snapshot_contract)
+    )) {
+        return;
+    }
     support::rendered();
     let path = support::artifacts("rust-report-snapshot");
     let project = path.join("project");

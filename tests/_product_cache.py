@@ -1,4 +1,4 @@
-"""Bound prepared products to two source snapshots; running consumers hold read leases."""
+"""Keep one current prepared product per role; running consumers hold read leases."""
 import contextlib
 import fcntl
 import hashlib
@@ -69,7 +69,7 @@ def maintain(root, manifest):
             except (ValueError, KeyError, TypeError):
                 continue
     _include(index, json.loads(Path(manifest).read_text()), root, directory)
-    index["contexts"] = index["contexts"][-2:]
+    index["contexts"] = index["contexts"][-1:]
     retained = {checksum for entry in index["contexts"] for checksum in entry["hashes"]}
     removed = []
     for checksum in sorted(set(index["known"]) - retained):
@@ -115,7 +115,7 @@ def _include(index, data, root, directory):
         if checksum in hashes:
             versions = [value for value in roles.get(role, []) if value != checksum]
             # Mach-O link timestamps can change bytes without changing source inputs.
-            roles[role] = [*versions, checksum][-2:]
+            roles[role] = [*versions, checksum][-1:]
     retained = {value for versions in roles.values() for value in versions}
     index["contexts"].append(dict(key=key, roles=roles, hashes=sorted(retained)))
     index["known"] = sorted(set(index["known"]) | hashes)

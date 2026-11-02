@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import shutil
+import tomllib
 
 from tests import _artifacts
 from tests._support import ROOT
@@ -31,6 +32,8 @@ def sweep(preparation, *, apply=False, root=ROOT):
     _artifacts.load(manifest, root=root)
     directories = [root / "target/debug", root / "target/panic-abort/debug"]
     needed = {directory: set() for directory in directories}
+    current_crates = {directory: set() for directory in directories}
+    build_directories = {directory: set() for directory in directories}
     with contextlib.ExitStack() as locks:
         for directory in directories:
             if directory.is_symlink() or directory.parent.is_symlink():
@@ -43,6 +46,11 @@ def sweep(preparation, *, apply=False, root=ROOT):
                     item = json.loads(line)
                 except ValueError:
                     continue
+                if item.get("reason") == "build-script-executed":
+                    output = Path(item["out_dir"]).resolve()
+                    for directory in directories:
+                        if output.parent.parent == directory / "build":
+                            build_directories[directory].add(output.parent.name)
                 if item.get("reason") != "compiler-artifact":
                     continue
                 executable = Path(item["executable"]).resolve() if item.get("executable") else None
@@ -51,13 +59,20 @@ def sweep(preparation, *, apply=False, root=ROOT):
                         # Cargo JSON names the public binary, but its reusable cache copy
                         # lives in deps/<target>-<fingerprint>. Keep those counterparts too.
                         target = item["target"]["name"]
-                        for fingerprint in (directory / ".fingerprint").glob(f"*/bin-{target}.json"):
+                        current_crates[directory].add(target.replace("-", "_"))
+                        package = (tomllib.loads(Path(item["manifest_path"]).read_text())["package"]["name"]
+                                   if "manifest_path" in item else None)
+                        pattern = f"{package}-*/bin-{target}.json" if package else f"*/bin-{target}.json"
+                        for fingerprint in (directory / ".fingerprint").glob(pattern):
                             suffix = fingerprint.parent.name.rsplit("-", 1)[-1]
                             if re.fullmatch(r"[0-9a-f]{16}", suffix):
-                                needed[directory].add(f"{target}-{suffix}")
+                                needed[directory].add(f"{target.replace('-', '_')}-{suffix}")
                 for name in item["filenames"]:
                     path = Path(name).resolve()
                     for directory in directories:
+                        if path.parent.parent == directory / "build":
+                            build_directories[directory].add(path.parent.name)
+                            current_crates[directory].add(item.get("target", {}).get("name", "").replace("-", "_"))
                         if path.parent != directory / "deps":
                             continue
                         if not path.is_file():
@@ -65,11 +80,19 @@ def sweep(preparation, *, apply=False, root=ROOT):
                         match = ARTIFACT.fullmatch(path.name)
                         if match:
                             prefix = match[1]
+                            crate = item.get("target", {}).get("name", prefix.rsplit("-", 1)[0].removeprefix("lib"))
+                            current_crates[directory].add(crate.replace("-", "_"))
                             needed[directory].update((prefix, prefix[3:] if prefix.startswith("lib") else "lib" + prefix))
         if any(not prefixes for prefixes in needed.values()):
             raise ValueError("Missing runtime/abort compiler dependency graph; refusing partial pruning")
         candidates = []
         for directory, prefixes in needed.items():
+            builds = directory / "build"
+            if builds.is_symlink():
+                raise ValueError("Refusing symlinked Cargo build-script cache")
+            if build_directories[directory] and builds.is_dir():
+                candidates.extend(path for path in builds.iterdir() if path.is_dir() and not path.is_symlink()
+                    and re.fullmatch(r".+-[0-9a-f]{16}", path.name) and path.name not in build_directories[directory])
             deps = directory / "deps"
             if deps.is_symlink():
                 raise ValueError("Refusing symlinked Cargo dependencies")
@@ -87,9 +110,11 @@ def sweep(preparation, *, apply=False, root=ROOT):
             for path in incremental.iterdir() if incremental.is_dir() else ():
                 if path.is_dir() and not path.is_symlink() and re.fullmatch(r"[a-zA-Z0-9_]+-[a-z0-9]+", path.name):
                     groups.setdefault(path.name.rsplit("-", 1)[0], []).append(path)
-            for paths in groups.values():
-                # Keep the two newest compiler configurations per crate; no active build owns the lock.
-                candidates.extend(sorted(paths, key=lambda path: path.stat().st_mtime, reverse=True)[2:])
+            for crate, paths in groups.items():
+                # Retired crates have no current outputs in this complete compiler graph.
+                # Otherwise retain two configurations for subsequent source edits.
+                retained = 2 if crate in current_crates[directory] else 0
+                candidates.extend(sorted(paths, key=lambda path: path.stat().st_mtime, reverse=True)[retained:])
         result = dict(apply=apply, files=len(candidates), bytes=sum(allocated(path) for path in candidates),
                       paths=[str(path) for path in sorted(candidates)])
         if apply:

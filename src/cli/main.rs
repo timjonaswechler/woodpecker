@@ -1,5 +1,5 @@
 fn main() -> std::process::ExitCode {
-    match woodpecker::cli::run() {
+    match woodpecker_host::cli::run() {
         Ok(()) => std::process::ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("{}", serde_json::json!({"error":error.to_string()}));

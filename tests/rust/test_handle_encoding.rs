@@ -1,3 +1,4 @@
+use crate::support;
 use bevy::ecs::entity::Entity;
 use woodpecker::{
     command::{Command, inspect},
@@ -6,6 +7,9 @@ use woodpecker::{
 
 #[test]
 fn handle_encoding_contract() {
+    if !support::isolated(concat!(module_path!(), "::handle_encoding_contract")) {
+        return;
+    }
     // R0: no Session, App, World, renderer, process or graphical permission.
     let values = [0, 1, 0x7fff_ffff, 0x8000_0000, 0xffff_fffe, u32::MAX];
     for index in values {

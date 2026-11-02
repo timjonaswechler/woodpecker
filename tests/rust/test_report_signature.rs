@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use woodpecker::{
     report::{Failure, Location, Report},
     session::Session,
@@ -6,6 +6,13 @@ use woodpecker::{
 
 #[test]
 fn report_signature_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(report_signature_contract)
+    )) {
+        return;
+    }
     support::rendered();
     let path = support::artifacts("rust-report-signature");
     let config = support::config(&path);

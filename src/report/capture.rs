@@ -12,7 +12,7 @@ use tracing::{
 };
 use tracing_subscriber::{Layer, layer::Context};
 
-pub(crate) fn install_hook() {
+pub fn install_hook() {
     static INSTALLED: Once = Once::new();
     INSTALLED.call_once(|| {
         let previous = std::panic::take_hook();
@@ -42,14 +42,12 @@ pub(crate) fn install_hook() {
     });
 }
 
-/// Register through `LogPlugin::custom_layer`. Compose explicitly with other custom layers.
-/// This observes dispatched errors only and never changes the application's filters.
-pub fn tracing_error_layer(_app: &mut bevy::app::App) -> Option<bevy::log::BoxedLayer> {
+pub fn error_layer() -> Option<Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>> {
     (std::env::var("WOODPECKER_TRACING_ERRORS").as_deref() == Ok("1"))
-        .then(|| Box::new(ErrorLayer) as bevy::log::BoxedLayer)
+        .then(|| Box::new(ErrorLayer) as Box<dyn Layer<tracing_subscriber::Registry> + Send + Sync>)
 }
 
-pub(crate) fn layer_status() {
+pub fn layer_status() {
     let installed = tracing::dispatcher::get_default(|dispatcher| {
         dispatcher.downcast_ref::<ErrorLayer>().is_some()
     });

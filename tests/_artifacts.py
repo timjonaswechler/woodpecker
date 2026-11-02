@@ -27,9 +27,9 @@ def inputs(root=ROOT):
         for name in sorted(files):
             path = Path(directory) / name
             relative = path.relative_to(root)
-            if ((path.suffix == ".rs" and relative.parts[0] in ("src", "test_app", "test_zoo", "tests"))
+            if ((path.suffix == ".rs" and relative.parts[0] in ("src", "crates", "test_app", "test_zoo", "tests"))
                     or name in ("Cargo.toml", "Cargo.lock", "build.rs")
-                    or str(relative) in ("tests/_builds.py", "tests/_artifacts.py")
+                    or str(relative) in ("tests/_builds.py", "tests/_artifacts.py", "tests/_audits.py")
                     or relative.parts[:2] == ("test_app", "asset") or relative.parts[0] == ".cargo"):
                 result[str(relative)] = digest(path)
     configs = [Path.home() / ".cargo/config", Path.home() / ".cargo/config.toml"]
@@ -69,22 +69,24 @@ def collect(logs):
     return products
 
 
-def publish(logs, destination, *, root=ROOT, feature_matrix=False, expected_inputs=None):
+def publish(logs, destination, *, root=ROOT, feature_matrix=False, expected_inputs=None, roles=None):
     from tests import _product_cache
     with _product_cache.locked(root):
         products = _publish(logs, destination, root=root, feature_matrix=feature_matrix,
-                            expected_inputs=expected_inputs)
+                            expected_inputs=expected_inputs, roles=roles)
         _product_cache.maintain(root, destination)
         return products
 
 
-def _publish(logs, destination, *, root, feature_matrix, expected_inputs):
+def _publish(logs, destination, *, root, feature_matrix, expected_inputs, roles):
     root = Path(root).resolve()
     prepared_inputs = inputs(root)
     if expected_inputs is not None and prepared_inputs != expected_inputs:
         raise ValueError("Build inputs changed during preparation; no manifest published")
     products = {}
     for role, source in collect(logs).items():
+        if roles is not None and role not in roles:
+            continue
         checksum = digest(source)
         directory = root / "target/test-products" / checksum
         if directory.is_symlink():
@@ -115,6 +117,8 @@ def _publish(logs, destination, *, root, feature_matrix, expected_inputs):
             if symbols.is_symlink() or not (symbols / "Contents/Resources/DWARF" / source.name).is_file():
                 raise ValueError(f"Incomplete prepared debug symbols: {symbols}")
         products[role] = dict(path=str(prepared), sha256=checksum)
+    if roles is not None and roles - products.keys():
+        raise ValueError(f"Missing prepared product roles: {sorted(roles - products.keys())}")
     if not products:
         raise ValueError("No executable Cargo products found")
     if inputs(root) != prepared_inputs:
@@ -150,7 +154,7 @@ def required(rows):
     if any(row["graphics"] and row.get("module") != "tests.reports.panic_abort" for row in rows):
         roles.add("bin:test_app")
     if any(row.get("module") == "tests.reports.panic_abort" for row in rows):
-        roles.add("bin:test_app:abort")
+        roles.add("bin:woodpecker-abort-fixture")
     if any(row.get("module") == "tests.providers.github_live" for row in rows):
         roles.add("bin:github-live-driver")
     for row in rows:

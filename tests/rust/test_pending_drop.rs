@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use std::time::{Duration, Instant};
 use woodpecker::{
     command::{Command, recording, tick::warp},
@@ -7,6 +7,13 @@ use woodpecker::{
 
 #[test]
 fn pending_drop_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(pending_drop_contract)
+    )) {
+        return;
+    }
     assert_eq!(
         std::env::var("WOODPECKER_TEST_RENDERED").as_deref(),
         Ok("1"),

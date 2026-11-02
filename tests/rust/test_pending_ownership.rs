@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use woodpecker::{
     command::{Command, tick::warp},
     session::{Error, Session},
@@ -6,6 +6,13 @@ use woodpecker::{
 
 #[test]
 fn pending_ownership_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(pending_ownership_contract)
+    )) {
+        return;
+    }
     assert_eq!(
         std::env::var("WOODPECKER_TEST_RENDERED").as_deref(),
         Ok("1"),

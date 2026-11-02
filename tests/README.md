@@ -196,11 +196,14 @@ Jeder Lauf meldet seinen Ordner unter `target/test-runs/`:
 
 Normale Builds verwenden `target/`; der echte `panic=abort`-Fall zusätzlich
 `target/panic-abort` mit `CARGO_PROFILE_DEV_PANIC=abort`. Das ist ein eigener
-wiederverwendbarer Cache, kein anderes normales Buildprofil. Der erste Build
-braucht entsprechend Platz. Der Runner führt kein `cargo clean` aus und löscht
-weder diese wiederverwendbaren Cargo-Caches noch frühere Belege.
-Vorbereitete Programme behalten dagegen nur die beiden zuletzt vorbereiteten
-Quellstände mit höchstens zwei Programmversionen je Rolle und Quellstand;
+wiederverwendbarer Cache, kein anderes normales Buildprofil. Die kleine enginefreie
+Abort-Fixture verwendet das Produktionsprotokoll und echte Panic-Hooks. Feature-
+Audits bauen in eigenen temporären Bäumen; ihre vollständigen Logs bleiben erhalten,
+ihre Compilerbäume nicht. Unveränderte Audits dürfen ihren inhaltgeprüften Nachweis
+wiederverwenden. CLI, Spiel und Rust-Verträge verwenden gemeinsam aufgelöste
+Dependency-Features statt dauerhaft mehrfacher Renderer-Varianten.
+Vorbereitete Programme behalten nur den neuesten vorbereiteten
+Quellstand mit einer Programmversion je Rolle;
 auch erneutes Linken desselben Codes darf nicht unbegrenzt Kopien erzeugen.
 Gleiche Inhalte werden geteilt. Lese-Leases schützen Programme
 laufender Test-Hosts und Runner auch über diese Grenze hinaus. Alte Manifeste und
@@ -233,14 +236,47 @@ python3 -m tests._cargo_cache --preparation SUMMARY --apply  # geplante Rust-Aus
 ```
 
 Sie behält sämtliche in diesen Compilerlogs referenzierten Dependency-Ausgaben,
-zwei neueste Incremental-Konfigurationen je Crate und die vorbereiteten Programme
-mit Debug-Symbolen. Die von Cargo nicht im JSON genannten gehashten Cachekopien
+zwei neueste Incremental-Konfigurationen je noch benötigter Crate und die
+vorbereiteten Programme mit Debug-Symbolen. Incremental-Caches nicht mehr im
+aktuellen Compilergraph enthaltenen Crates werden vollständig entfernt. Die von Cargo nicht im JSON genannten gehashten Cachekopien
 benötigter Binärtargets bleiben konservativ ebenfalls erhalten, damit der nächste
 Prepare-Lauf nicht unnötig neu linkt. Sie greift nicht auf Quellcode, Testbelege,
 andere Worktrees oder den globalen Cargo-Cache zu und lehnt aktive Builds in
 diesen Debugcaches ab. Andere, nicht
 in der Vorbereitung enthaltene Buildkonfigurationen müssen später gegebenenfalls
 neu kompilieren. Für alle Aufrufe dieselbe Toolchain und Profile verwenden.
+
+### 5-GB-Ruhebudget ohne Compileränderungen
+
+```sh
+RUSTUP_TOOLCHAIN=1.97.1 python3 -m tests.acceptance --build-only --compact
+# Danach Programme über das ausgegebene products.json direkt verwenden:
+RUSTUP_TOOLCHAIN=1.97.1 python3 -m tests.acceptance --category cli --artifacts MANIFEST
+```
+
+`--compact` bereinigt bei vollständiger Vorbereitung belegbar obsolete Compiler-
+Varianten und packt die verbleibenden Cargo-Ausgaben verlustfrei. Es zählt danach
+**das gesamte `target/` einschließlich früherer Belege** mit `du -sk`; mehr als
+5.000.000.000 Bytes sind ein fehlgeschlagenes Speicherbudget. Programme und
+macOS-Symbole bleiben unverpackt, laufende Verbraucher behalten ihre Leases.
+Weder Profile noch Compilerflags werden dafür umgestellt. Der gemessene Ruhebestand
+liegt nach freigegebener Bereinigung alter Logs unter dieser Grenze; den genauen
+Stand dokumentiert der [Testsuite-Plan](../docs/testing-plan.md#aktuelle-erweiterung-vorbereitete-programme-und-kleinerer-buildgraph).
+
+Das ist **kein 5-GB-Spitzenlimit beim Bauen**. Vor neuem Kompilieren braucht der
+Cache seinen normalen entpackten Platz. Die Vorbereitung stellt ihn automatisch
+wieder her; vor direktem `cargo build/check/test/clippy` ist ausdrücklich auszuführen:
+
+```sh
+python3 -m tests._compiler_cache --restore
+```
+
+Bytes, Dateimodi und Nanosekunden-Mtimes werden wiederhergestellt, damit unveränderte
+Dependencies frisch bleiben. Prüfsummen und Cargo-Sperren schützen das Packen und
+Wiederherstellen. Ein beschädigter Checkpoint wird weder verwendet noch gelöscht.
+Die absichtlich selbst kompilierenden Snapshot-/Dateilimit-Verträge stellen den
+Cache bei Bedarf vor ihrem Fall wieder her; nach sicherem Cleanup packt der
+Runner ihn erneut. Normale vorbereitete Fälle benötigen diesen Schritt nicht.
 
 Activity-Beobachtung nutzt fortlaufende Cursor und hält korrelierte, noch nicht
 abgeholte Ergebnisse separat. Dadurch kopiert ein langer gemeinsamer Lauf nicht
@@ -254,14 +290,14 @@ oder einen konkreten Dateinamen verwenden; `-t .` hält den Repository-Root als
 Importwurzel. Tests importieren gemeinsame Hilfen, keine anderen ausführbaren Fälle.
 
 ```sh
-cargo build --locked --features cli --bin woodpecker
+cargo build --locked -p woodpecker_cli --bin woodpecker
 
 # Eine Datei ohne Spielfenster.
 python3 -m unittest -v tests.cli.command_errors
 python3 -m unittest discover -s tests/session -t . -p 'invalid_launch_config.py' -v
 
 # Öffentlicher Rust-Vertrag ohne Session oder Fenster.
-cargo test --locked --test handle_encoding -- --nocapture
+cargo test --locked --features cli --test contracts handle_encoding::handle_encoding_contract -- --exact --nocapture
 
 # Alle neun internen Owner-Tests ohne Spielfenster.
 cargo test --locked --features cli,ui,screenshot --lib -- --nocapture --test-threads=1
@@ -277,7 +313,7 @@ WOODPECKER_TEST_RENDERED=1 python3 -m unittest -v tests.keyboard.movement
 
 # Ein Manual-Fenster, keine Ticks/Inputs, nur lokaler Provider.
 WOODPECKER_TEST_RENDERED=1 cargo test --locked --features cli,ui,screenshot \
-  --test local_provider -- --nocapture --test-threads=1
+  --test contracts local_provider::local_provider_contract -- --exact --nocapture --test-threads=1
 ```
 
 `SessionReady` bedeutet Steuerungsbereitschaft, nicht fertig geladenes Spiel.
@@ -347,10 +383,12 @@ und die Buildauswahl kommen aus `acceptance.py --list`, nicht aus Laufchroniken.
 | [shutdown](shutdown/) | 6 | Vorbedingungen, aktive Arbeit, Starting, Mehrsession, Frist und Signale; 4.58–4.63 |
 | [providers](providers/) | 1 | Echter GitHub-Nachweis 4.81, ausschließlich separat |
 
-[`rust/`](rust/) enthält zehn explizite Cargo-Targets mit je einem öffentlichen
-Test: `local_provider`, `github_provider`, `report_snapshot`, `report_signature`,
+[`rust/`](rust/) enthält ein Cargo-Target `contracts` mit zehn öffentlichen
+Tests: `local_provider`, `github_provider`, `report_snapshot`, `report_signature`,
 `pending_ownership`, `pending_drop`, `session_shutdown`, `history`, `event_overflow`,
-`handle_encoding`. Nur der letzte läuft ohne Spielfenster; Rust-Ownership,
+`handle_encoding`. Jeder Fall läuft auch bei `cargo test` in einem eigenen,
+seriell gestarteten Prozess; globale Hooks und Lifecycle-Zustand werden nicht
+geteilt. Nur der letzte läuft ohne Spielfenster; Rust-Ownership,
 Pending-Drop und direkte Session-Lebensdauer sind keine doppelten CLI-Tests.
 
 Die neun internen Tests liegen bei ihren tatsächlichen Ownern unter `src/`

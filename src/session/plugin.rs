@@ -25,6 +25,11 @@ use std::{
 #[derive(Default)]
 pub struct Plugin;
 
+/// Register through `LogPlugin::custom_layer`; preserve the application's filters.
+pub fn tracing_error_layer(_app: &mut App) -> Option<bevy::log::BoxedLayer> {
+    crate::report::capture::error_layer()
+}
+
 #[derive(Resource)]
 struct ResetInputs;
 

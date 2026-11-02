@@ -1,4 +1,4 @@
-mod support;
+use crate::support;
 use std::time::Duration;
 use woodpecker::{
     command::{input::keyboard, tick::warp},
@@ -8,6 +8,13 @@ use woodpecker::{
 
 #[test]
 fn event_overflow_contract() {
+    if !support::isolated(concat!(
+        module_path!(),
+        "::",
+        stringify!(event_overflow_contract)
+    )) {
+        return;
+    }
     assert_eq!(
         std::env::var("WOODPECKER_TEST_RENDERED").as_deref(),
         Ok("1"),
