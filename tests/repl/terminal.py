@@ -13,7 +13,7 @@ import time
 import unicodedata
 import unittest
 
-from tests._support import CLI, ROOT, start_server
+from tests._support import app_binary, base_config, CLI, ROOT, start_server
 from tests.repl import ReplIO, tty_settings
 
 
@@ -25,9 +25,9 @@ class ReplTerminalTest(unittest.TestCase):
                          "Unicode/editing/help/pending bytes and one external read-only query. "
                          "No desktop input/resizing or virtual game input. Permission required: "
                          "WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "repl-terminal")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)

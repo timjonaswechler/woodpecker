@@ -1,32 +1,18 @@
 """Scroll reaches Bevy in signed line units, accumulates once and clears on idle."""
 import os
-import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._shared import game
 from tests.pointer import MOUSE, TICKS, pointer_states
 
 
 class PointerScrollTest(unittest.TestCase):
     def test_signed_horizontal_vertical_zero_and_batched_scroll_are_line_deltas(self):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "One manual-startup window, exactly six ticks. Pointer at [720,850], "
-                         "positive/negative horizontal/vertical and zero line scrolling, "
-                         "two queued scrolls accumulated, then idle. No OS input. "
-                         "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "pointer-scroll")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
-        deadline = time.monotonic() + 30
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "SessionReady":
-                break
-            self.assertEqual(detail["state"], "Starting", detail)
-            if time.monotonic() >= deadline:
-                self.fail("SessionReady deadline exceeded")
-            time.sleep(0.05)
+                         "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+                         "then F9 and three reset ticks. This case uses 6 action ticks. "
+                         "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
+        server, session_id = game(self, "pointer-scroll")
         scroll_type = "bevy_input::mouse::AccumulatedMouseScroll"
         zero = {"unit": "Line", "delta": [0.0, 0.0]}
         before_ticks = server.read_resource(session_id, TICKS)["ticks"]
@@ -68,5 +54,3 @@ class PointerScrollTest(unittest.TestCase):
         self.assertEqual(server.read_resource(session_id, scroll_type), zero)
         self.assertEqual(server.read_resource(session_id, TICKS)["ticks"] - before_ticks, 6)
         server.record(["observation", "pointer-scroll"], phases=observations, idle=zero, action_ticks=6)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)

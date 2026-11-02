@@ -238,6 +238,62 @@ fn native_input_cannot_enter_controlled_ticks_or_release_virtual_holds() {
             .pressed(LogicalKey::Shift)
     );
 
+    // An application reset must clear both physical/logical state and the updater's
+    // retained physical-to-logical map, without leaving a stale Shift hold.
+    keyboard::reset(app.world_mut());
+    virtual_keys = keyboard::State::default();
+    assert!(
+        app.world()
+            .resource::<ButtonInput<KeyCode>>()
+            .get_pressed()
+            .next()
+            .is_none()
+    );
+    assert!(
+        app.world()
+            .resource::<ButtonInput<LogicalKey>>()
+            .get_pressed()
+            .next()
+            .is_none()
+    );
+    virtual_keys
+        .key(app.world(), &Key::ShiftRight, true)
+        .unwrap();
+    virtual_keys.flush(app.world_mut());
+    app.update();
+    virtual_keys
+        .key(app.world(), &Key::ShiftRight, false)
+        .unwrap();
+    virtual_keys.flush(app.world_mut());
+    app.update();
+    assert!(
+        !app.world()
+            .resource::<ButtonInput<LogicalKey>>()
+            .pressed(LogicalKey::Shift)
+    );
+
+    // Reset also invalidates cached picking hits, not just the visible cursor.
+    // Otherwise a previous case's UI targets remain in the next tick's hover history.
+    let mut hover = bevy::picking::hover::HoverMap::default();
+    hover.0.insert(pointer::ID, default());
+    app.insert_resource(hover);
+    let mut previous = bevy::picking::hover::PreviousHoverMap::default();
+    previous.0.insert(pointer::ID, default());
+    app.insert_resource(previous);
+    super::reset(app.world_mut());
+    assert!(
+        !app.world()
+            .resource::<bevy::picking::hover::HoverMap>()
+            .0
+            .contains_key(&pointer::ID)
+    );
+    assert!(
+        !app.world()
+            .resource::<bevy::picking::hover::PreviousHoverMap>()
+            .0
+            .contains_key(&pointer::ID)
+    );
+
     // Independent native baseline: no Woodpecker installation or Gate.
     let mut native = App::new();
     native.add_plugins(InputPlugin);

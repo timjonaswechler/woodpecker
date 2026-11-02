@@ -3,7 +3,7 @@ import os
 import time
 import unittest
 
-from tests._support import load_config, start_server, write_config
+from tests._support import load_config, start_server, write_app_config
 from tests.reports import audit_local_files, failures, observe, reports
 
 
@@ -18,7 +18,7 @@ class ProcessExitTest(unittest.TestCase):
             configuration = load_config()
             configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-report-action", f"exit-{code}"]
             path = server.artifacts / "config.toml"
-            write_config(path, configuration)
+            write_app_config(path, configuration)
             session_id = server.cli("session", "create", "--config", str(path))["id"]
             deadline = time.monotonic() + 30
             while True:

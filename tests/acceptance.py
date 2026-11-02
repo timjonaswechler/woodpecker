@@ -16,8 +16,9 @@ import time
 import tomllib
 import unittest
 
-from tests._support import ROOT, force_owned_tree
-from tests._builds import commands, executables, rust_source_tests
+from tests._support import ROOT, force_owned_tree, use_products
+from tests import _artifacts, _shared
+from tests._builds import ABORT_TARGET, commands, executables, rust_source_tests
 
 PILOT_MODULES = (
     "tests.session.server_lifecycle", "tests.session.session_lifecycle",
@@ -154,21 +155,41 @@ def logged(command, path, *, timeout=900, env=None):
     return code
 
 
-def main(argv=None):
+def main(argv=None, *, shared_game=None, should_stop=None):
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
     for flag in ("non-graphical", "pilot", "negative-control", "external-github"):
         group.add_argument("--" + flag, action="store_true")
+    group.add_argument("--test", action="append", dest="tests", metavar="ID",
+                       help="select an exact inventory ID or Python test module; repeatable")
+    group.add_argument("--category", action="append", dest="categories", metavar="NAME",
+                       help="select a Python category, rust, or internal; repeatable")
     parser.add_argument("--list", action="store_true", help="planning only; no processes, builds or tests")
-    parser.add_argument("--build-only", action="store_true")
+    parser.add_argument("--build-only", action="store_true", help="prepare products and write an executable manifest")
+    parser.add_argument("--artifacts", type=Path, metavar="MANIFEST", help="reuse prepared executables; never build")
     parser.add_argument("--feature-matrix", action="store_true",
                         help="also check all library feature variants and the normal app; automatic for full-local")
     parser.add_argument("--rendered", action="store_true", help="technical confirmation after fresh scoped graphics approval")
     args = parser.parse_args(argv)
+    if args.build_only and args.artifacts:
+        parser.error("--build-only and --artifacts are mutually exclusive")
     rows, objects, _, errors = inventory()
     selection = "non-graphical" if args.non_graphical else "pilot" if args.pilot else (
-        "negative-control" if args.negative_control else "external-github" if args.external_github else "full-local")
+        "negative-control" if args.negative_control else "external-github" if args.external_github else
+        "tests" if args.tests else "categories" if args.categories else "full-local")
+    def category(row):
+        return row["module"].split(".")[1] if row["kind"] in ("python", "control") else row["kind"]
+    for value in args.tests or []:
+        if not any(value in (key, row.get("module")) for key, row in rows.items()):
+            errors.append(f"Unknown test: {value}")
+    for value in args.categories or []:
+        if value not in {category(row) for row in rows.values()}:
+            errors.append(f"Unknown category: {value}")
     def selected(key, row):
+        if args.tests:
+            return (key in args.tests or (row["kind"] != "control" and row.get("module") in args.tests)) and not row["external"]
+        if args.categories:
+            return category(row) in args.categories and row["kind"] != "control" and not row["external"]
         if args.negative_control:
             return key == CONTROL
         if args.external_github:
@@ -177,16 +198,21 @@ def main(argv=None):
             return row["kind"] == "python" and row["module"] in PILOT_MODULES
         return not row["external"] and (not args.non_graphical or not row["graphics"])
     keys = [key for key, row in rows.items() if selected(key, row)]
-    # Windowless Rust first, then independent windowless Python, then graphics.
-    # Keep command-shape rejection checks after the other windowless cases.
-    keys.sort(key=lambda key: (rows[key]["graphics"], rows[key]["kind"] in ("python", "control"),
+    # Keep compatible games together so the warm process ends before isolated cases.
+    keys.sort(key=lambda key: (rows[key]["graphics"],
+                               rows[key].get("module") not in _shared.MODULES,
+                               rows[key]["kind"] in ("python", "control"),
                                rows[key].get("module") == "tests.cli.command_errors", key))
+    if not keys and not errors:
+        errors.append("Selection contains no runnable tests; external GitHub cases require --external-github")
     feature_matrix = args.feature_matrix or selection == "full-local"
-    build_commands = commands([rows[key] for key in keys], feature_matrix=feature_matrix)
+    build_commands = [] if args.artifacts else commands([rows[key] for key in keys], feature_matrix=feature_matrix)
     if args.list:
         print(json.dumps({"action": "planning only; not acceptance", "selection": selection,
                           "selected": {key: rows[key] for key in keys}, "inventory_errors": errors,
                           "feature_matrix": feature_matrix,
+                          "prepared_manifest": str(args.artifacts) if args.artifacts else None,
+                          "shared_application": [key for key in keys if rows[key].get("module") in _shared.MODULES],
                           "builds": [dict(name=name, command=command) for name, command in build_commands]}, indent=2))
         return 1 if errors else 0
     started = time.monotonic()
@@ -205,7 +231,7 @@ def main(argv=None):
     if not args.build_only and any(rows[key]["graphics"] for key in keys):
         if not args.rendered or os.environ.get("WOODPECKER_TEST_RENDERED") != "1":
             preflight.append("Fresh scoped graphics approval required, then --rendered and WOODPECKER_TEST_RENDERED=1. Flags alone grant no permission.")
-        if not args.negative_control and not args.external_github:
+        if any(rows[key].get("module") in ("tests.screenshot.capture", "tests.screenshot.overwrite") for key in keys):
             try:
                 importlib.import_module("PIL.Image")
             except ImportError:
@@ -215,6 +241,11 @@ def main(argv=None):
         if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo) or os.environ.get("WOODPECKER_TEST_GITHUB_CLEANUP") != "close":
             preflight.append("Separate approval for named GitHub test repository, one issue and closing it required; set repository/cleanup guards afterward.")
     old_target = os.environ.get("CARGO_TARGET_DIR")
+    product_scope = contextlib.ExitStack()
+    owns_game = shared_game is None
+    shared_game = shared_game or _shared.SharedGame()
+    shared_remaining = {key for key in keys if rows[key].get("module") in _shared.MODULES}
+    report["shared_application"] = []
     try:
         if not preflight and not errors:
             os.environ["CARGO_TARGET_DIR"] = str(ROOT / "target")
@@ -227,16 +258,44 @@ def main(argv=None):
             report["metadata"]["settings_seed"] = json.loads((ROOT / "tests/settings.json").read_text())
             binaries = {}
             environment = {**os.environ, "CARGO_TARGET_DIR": str(ROOT / "target")}
+            products = {}
+            build_logs = []
+            build_inputs = _artifacts.inputs(root=ROOT) if args.build_only else None
+            if args.artifacts:
+                products = _artifacts.load(args.artifacts, root=ROOT)
+                missing = _artifacts.required(rows[key] for key in keys) - products.keys()
+                if missing:
+                    raise ValueError(f"Prepared manifest is missing products: {sorted(missing)}")
+                manifest_data = json.loads(args.artifacts.read_text())
+                if feature_matrix and not manifest_data.get("feature_matrix"):
+                    raise ValueError("Prepared manifest does not prove the requested feature matrix")
+                report["products_manifest"] = str(args.artifacts.resolve())
+                report["builds"].append(dict(name="prepared-artifacts", status="Bestanden", compiled=False))
+                binaries = {(role.split(":")[1], tuple(role.split(":")[2].split(","))): str(path)
+                            for role, path in products.items() if role.startswith("test:")}
             for index, (name, command) in enumerate(build_commands):
+                if args.build_only and "--message-format=json" not in command:
+                    command = [*command, "--message-format=json"]
                 path = artifacts / f"build-{index:02}-{name}.log"
                 row = dict(name=name, command=command, log=str(path), status="Fehlgeschlagen")
                 report["builds"].append(row)
-                code = logged(command, path, env=environment)
+                build_environment = ({**environment, "CARGO_TARGET_DIR": str(ABORT_TARGET),
+                                      "CARGO_PROFILE_DEV_PANIC": "abort"} if name == "app-abort" else environment)
+                code = logged(command, path, env=build_environment, timeout=1800 if name == "app-abort" else 900)
                 if code:
                     raise RuntimeError(f"Build {name} exited {code}: {path}")
                 row["status"] = "Bestanden"
                 if name == "rust-tests":
                     binaries = executables(path)
+                build_logs.append((name, path))
+            if args.build_only:
+                manifest = artifacts / "products.json"
+                products = _artifacts.publish(build_logs, manifest, root=ROOT, feature_matrix=feature_matrix,
+                                             expected_inputs=build_inputs)
+                report["products_manifest"] = str(manifest)
+            product_scope.enter_context(use_products(products))
+            environment.update({key: value for key, value in os.environ.items() if key in
+                                ("WOODPECKER_TEST_APP", "WOODPECKER_TEST_ABORT_APP")})
             # Enumerate only selected test binaries; absent, unselected targets are not required.
             if any(rows[key]["kind"] == "internal" for key in keys):
                 lib = binaries[("woodpecker", ("lib",))]
@@ -263,9 +322,14 @@ def main(argv=None):
                 unittest.installHandler()
                 try:
                     for index, key in enumerate(keys):
+                        if should_stop is not None and should_stop():
+                            preflight.append("Client disconnected; no further cases started.")
+                            break
                         row = rows[key]
                         if row["kind"] in ("python", "control"):
                             case = objects[key]
+                            if key in shared_remaining:
+                                case.shared_game = shared_game
                             def make_result(*arguments):
                                 result = RecordingResult(*arguments)
                                 result.row = row
@@ -276,6 +340,13 @@ def main(argv=None):
                                     # Do not confuse that failfast stop with a real interrupt.
                                     result = unittest.TextTestRunner(stream=stream, verbosity=2, failfast=key != CONTROL,
                                         resultclass=make_result).run(unittest.TestSuite([case]))
+                            if hasattr(case, "shared_app_observation"):
+                                row["application"] = case.shared_app_observation
+                                report["shared_application"].append(row["application"])
+                            if key in shared_remaining:
+                                shared_remaining.remove(key)
+                                if not shared_remaining and owns_game:
+                                    shared_game.close()
                             if key == CONTROL:
                                 from tests.inspect.resource_value import ExpectationControlFailure
                                 confirmed = (result.testsRun == 1 and len(result.failures) == 1 and
@@ -296,6 +367,8 @@ def main(argv=None):
                             preflight.append("Interrupted after active test cleanup.")
                             break
                         if row["status"] != "Bestanden":
+                            if row.get("module") in _shared.MODULES:
+                                shared_game.failed = True
                             break  # Never start another game after failure/unsafe cleanup/skip.
                 finally:
                     unittest.removeHandler()
@@ -312,6 +385,12 @@ def main(argv=None):
                 except BaseException as error:
                     rows[key]["status"] = "Fehlgeschlagen"
                     errors.append(f"Cleanup {key}: {error}")
+    if owns_game:
+        try:
+            shared_game.close()
+        except BaseException as error:
+            errors.append(f"Shared application cleanup: {type(error).__name__}: {error}")
+    product_scope.close()
     if old_target is None:
         os.environ.pop("CARGO_TARGET_DIR", None)
     else:
@@ -339,6 +418,8 @@ def main(argv=None):
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
     print(f"Auswahl {selection}: {report['selection_status']}; lokale Gesamtabnahme: {report['status']}; GitHub: {report['external_github']}")
     print(f"Artefakte: {path}")
+    if report.get("products_manifest"):
+        print(f"Produkte: {report['products_manifest']}")
     for message in [*preflight, *errors]:
         print(message)
     return {"Bestanden": 0, "Fehlgeschlagen": 1, "Unvollständig": 2}[report["exit_status"]]

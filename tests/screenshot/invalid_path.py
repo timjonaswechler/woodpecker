@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import app_binary, ROOT, load_config, start_server, write_app_config
 from tests.screenshot import snapshot_tree
 
 TICKS = "test_app::woodpecker::SimulationTicks"
@@ -18,12 +18,12 @@ class InvalidScreenshotPathTest(unittest.TestCase):
                          "then zero ticks/inputs and 12 expected invalid_screenshot_path rejections. "
                          "Only test-owned files and two escaping symlinks are prepared. "
                          "No foreign target, capture retry or OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "screenshot-invalid-path")
         config = server.artifacts / "engine.toml"
         configuration = load_config()
         configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 90
         while True:

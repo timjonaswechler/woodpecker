@@ -247,6 +247,15 @@ Absichtlich beendete Spielprozesse oder Startvorgänge sind keine Spielfehler-Re
 
 ## Direkte Session und Bevy-Integration
 
+### Anwendungsseitiger Input-Reset
+
+Ein ausdrücklicher Reset der Anwendung kann mit
+`session::Plugin::reset_inputs_after_tick(world)` auch akzeptierte und angewendete
+Keyboard-, Pointer- und Textzustände nach dem aktuellen Simulationstick verwerfen.
+Der Aufruf gehört in das Reset-System der kontrollierten Anwendung. Er erzeugt
+keinen Tick und verändert weder Session-Lebenszyklus noch Uhr, Tickzähler oder
+Recording-/Replay-Zustand. Spielzustand und Fokus bleiben Verantwortung der Anwendung.
+
 ### Start und Pfade
 
 `session::Config` legt Spielstart (`launch`), Artefaktordner (`artifact_dir`),
@@ -257,13 +266,19 @@ Die vollständige [CLI-Beispielkonfiguration](../../examples/game_tests/app.toml
 verwendet eine feste Uhr und Engine-Startup für Signalstation.
 
 `launch::Config` nennt verpflichtend Manifest, nicht leeres Package sowie genau ein benanntes
-Binary oder Example. `features` aktiviert Cargo-Features, `arguments` wird hinter `--`
-unverändert an die Anwendung übergeben.
+Binary oder Example. `features` aktiviert Cargo-Features, `arguments` wird unverändert an die Anwendung
+übergeben. Das optionale `executable` wählt eine bereits gebaute ausführbare Datei
+anstelle von `cargo run`; relative Pfade gelten ab dem Manifest-Elternordner.
+Ein leerer Wert ist intrinsisch ungültig, eine fehlende Datei ein Startfehler.
+Es gibt keinen Build-Fallback. Package, Features und Version müssen zum vorbereiteten
+Programm passen; diese Zuordnung verantwortet der Aufrufer.
 
 `session::launch` löst einen relativen Manifestpfad gegen das Arbeitsverzeichnis des
 aufrufenden Prozesses auf, verlangt eine reguläre Datei und kanonisiert sie. Ihr Elternordner
 ist der unveränderliche `project_dir`. `cargo metadata --format-version 1 --no-deps` und
-`cargo run` erhalten `--manifest-path`; `cargo run` arbeitet in `project_dir`.
+`cargo run` erhalten `--manifest-path`; Launcher und vorbereitetes Programm arbeiten
+in `project_dir`. Auch mit `executable` bleibt die Manifest-/Metadatenauflösung erhalten,
+sie kompiliert aber nichts.
 Das ausgewählte Package und seine Version müssen eindeutig auflösbar sein.
 Ein nicht reguläres Manifest ergibt beim direkten Einstieg `InvalidConfig`, eine
 fehlgeschlagene Cargo-Auflösung `Launch`. Beim Server bestimmt die Erstellungsgrenze,

@@ -26,7 +26,8 @@ Produktsuite oder Gesamtabnahme.
 - Einige Fälle erzeugen absichtlich Panics, Abort, Exit, Prozesssignale,
   Dateigrößenfehler und Symlinkwechsel. Nur testeigene Prozesse und Dateien
   betroffen; normale Läufe veröffentlichen keine echten GitHub-Issues.
-- Keine versteckten Starts, Inputs, Ticks, Resets oder Aktionswiederholungen.
+- Starts, Inputs, Ticks und Resets erfolgen nur als ausdrücklich dokumentierte
+  Test- oder Fixture-Aktionen und werden protokolliert; keine Aktionswiederholungen.
   Tests laufen seriell; eine fehlende Voraussetzung oder ein Skip ist kein Grün.
 
 ## Einstieg
@@ -62,11 +63,102 @@ WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --pilot --rendered
 WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --negative-control --rendered
 ```
 
-Der vollständige lokale Lauf baut elf Schritte einschließlich Feature-Matrix.
+Der vollständige lokale Lauf bereitet zwölf Schritte einschließlich Feature-Matrix
+und separatem Abort-Build vor.
 Teilumfänge bauen nur ihre benötigten Abhängigkeiten; `--feature-matrix` ergänzt
 explizit die Library-Kombinationen und die normale App. `--list` und `--build-only`
 lassen sich mit den Auswahlflags kombinieren. Der externe Driver wird nur für
 `--external-github` gebaut, nie im lokalen Standard.
+
+### Einzeltest, Kategorie und vorbereitete Programme
+
+`--test` akzeptiert eine exakte Inventar-ID oder einen Python-Modulnamen.
+`--category` akzeptiert einen Python-Ordnernamen sowie `rust` oder `internal`.
+Beide Optionen sind jeweils wiederholbar; unbekannte oder leere Auswahlen sind
+Fehler. Echte GitHub-Fälle bleiben ausschließlich unter `--external-github`.
+
+```sh
+python3 -m tests.acceptance --test tests.keyboard.movement --list
+python3 -m tests.acceptance --category keyboard --category pointer --list
+
+# Einmal vorbereiten, ohne Spielfenster; erwarteter Exit 2.
+python3 -m tests.acceptance --category keyboard --category pointer --category text --build-only
+```
+
+Build-only meldet zusätzlich `Produkte: …/products.json`. Diesen konkreten Pfad
+anstelle von `MANIFEST` verwenden; grafische Ausführung weiterhin zuerst freigeben:
+
+```sh
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance \
+  --category keyboard --category pointer --category text --rendered --artifacts MANIFEST
+
+# Derselbe vorbereitete Stand, nur ein Test, ohne Buildphase.
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance \
+  --test tests.keyboard.movement --rendered --artifacts MANIFEST
+```
+
+Ohne Auswahlflag gilt die gesamte lokale Suite. Ein dafür vorbereitetes Manifest
+muss sämtliche benötigten Programme und die Feature-Matrix abdecken. `--artifacts`
+prüft kompilierte Quellen und Assets einschließlich uncommitteter Dateien,
+Manifeste/Lockfiles, Build-Rezepte, Toolchain, Plattform und relevante
+Build-Einstellungen sowie Programm-Hashes.
+Fehlende, veränderte oder veraltete Produkte ergeben einen Fehler, keinen Neubuild.
+Die Programme liegen inhaltadressiert unter `target/test-products/`; gleiche
+Programme werden nicht pro Test kopiert. Auf macOS werden die zugehörigen
+Debug-Symbole beim Vorbereiten gesichert. Der Projektcheckout bleibt für Assets
+und Cargo-Metadaten erforderlich; Metadaten-/Versionsabfragen sind keine Builds.
+
+### Gemeinsame laufende Anwendung
+
+Die zehn Keyboard-, Pointer- und Textfälle teilen im Runner eine App und Session.
+Für mehrere aufeinanderfolgende Aufrufe hält [`interactive.py`](interactive.py)
+diese App offen; ohne Auswahl laufen dort genau diese zehn Fälle, nicht die Gesamtsuite:
+
+```sh
+# Erster Aufruf: vorbereitete Programme verwenden, eine App starten und offen lassen.
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.interactive --artifacts MANIFEST --category keyboard
+
+# Weitere Aufrufe verwenden dieselbe App-PID; keine Builds oder neuen Fenster.
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.interactive --test tests.pointer.relative_motion
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.interactive --category text
+python3 -m tests.interactive --status
+python3 -m tests.interactive --stop
+```
+
+Der Host serialisiert die Aufrufe und beendet die App nur bei explizitem Stop
+oder Hostende. Ein fehlgeschlagener Fall sperrt weitere Fälle; die App bleibt zur
+Untersuchung offen. Veraltete Programme, geänderter Python-Code oder eine andere
+Konfiguration erfordern einen ausdrücklich veranlassten Stop/Neustart, niemals
+einen versteckten Ersatzprozess oder Neubuild. Isolierte Fälle werden vor jedem
+Appstart abgelehnt. Ein Clientabbruch lässt den aktiven Fall abschließen, startet
+aber keinen weiteren Fall. Erfolgreiche Teilläufe behalten Exit **2**.
+
+Ein direkter `unittest`-Einzellauf verwendet dieselbe Fixture mit eigener Lebensdauer.
+Der normale `tests.acceptance`-Runner beendet seine gemeinsame App weiterhin,
+bevor er andere grafische Fälle startet.
+Diese Fälle prüfen Eingaben und Spielverhalten, nicht kalten GPU-Startup:
+Manual-Handshake, höchstens 120 ausdrücklich angeforderte Spielbereitschaftsticks
+innerhalb von zehn Sekunden,
+danach vor jedem Fall F9 und drei Reset-/Aufbereitungsticks. Die Aktionsticks des
+jeweiligen Tests kommen zusätzlich hinzu. Es gibt keine OS-Eingaben.
+
+F9 wirkt nur mit `--woodpecker-diagnostics --woodpecker-test-fixture`.
+Die Fixture stellt Spielzustand, Settings, Textfelder, Fokus und virtuelle Inputs
+wieder her; Zeit und Tickzähler laufen weiter. Der Kamera-Reset setzt Pose und
+Projektionsgröße sofort zurück, statt alte Karten-/Zoom-Interpolation fortzusetzen.
+Vor jedem Test werden Prozess-PID, Reset-Generation, leere Inputs und die
+ursprüngliche Spieler-/View-/Settings-Baseline einschließlich echter Kameratransforms und Projektionen
+überprüft. Ein Fehler stoppt die Gruppe. PID, Session und Falllogs stehen in
+`summary.json/shared_application`; jeder Fall hat einen eigenen Logordner.
+Der gemeinsame Session-Workspace ist ausdrücklich kein Nachweis von Dateisolation.
+
+Andere Fälle bleiben isoliert: insbesondere Startup-/Shutdown-/Crash-, Mehrsession-,
+Datei-/Recording-/Replay- und spezielle Diagnosekonfigurationen. Sie starten im
+Normalfall dieselbe vorbereitete App-Binary erneut, nicht erneut den Compiler.
+Panic-Abort wird in der Vorbereitung separat gebaut. Die Report-Snapshot-Fixture
+ändert absichtlich die Package-Version und baut deshalb weiterhin ihren eigenen
+Quellstand; der Dateilimit-Test benötigt seinen isolierten Cargo-Launcher zum
+Wiederherstellen der Prozesslimits. Mutationstests bleiben separat.
 
 ### Ergebnisse und Exitcodes
 
@@ -106,7 +198,15 @@ Normale Builds verwenden `target/`; der echte `panic=abort`-Fall zusätzlich
 `target/panic-abort` mit `CARGO_PROFILE_DEV_PANIC=abort`. Das ist ein eigener
 wiederverwendbarer Cache, kein anderes normales Buildprofil. Der erste Build
 braucht entsprechend Platz. Der Runner führt kein `cargo clean` aus und löscht
-weder diese wiederverwendbaren Caches noch frühere Belege. Die isolierten
+weder diese wiederverwendbaren Cargo-Caches noch frühere Belege.
+Vorbereitete Programme behalten dagegen nur die beiden zuletzt vorbereiteten
+Quellstände mit höchstens zwei Programmversionen je Rolle und Quellstand;
+auch erneutes Linken desselben Codes darf nicht unbegrenzt Kopien erzeugen.
+Gleiche Inhalte werden geteilt. Lese-Leases schützen Programme
+laufender Test-Hosts und Runner auch über diese Grenze hinaus. Alte Manifeste und
+Testbelege bleiben erhalten; deren nicht mehr vorgehaltene Programme sind kein
+wieder ausführbares Archiv. Nicht durch eigene Manifeste bekannte Cacheeinträge
+werden nicht automatisch gelöscht. Die isolierten
 Einmal-Caches der [Mutationsprüfung](mutations.md#isolation-und-belege) werden
 hingegen nach gesicherten Belegen entfernt. Laufartefakte sind lokal, nicht versioniert.
 
@@ -122,6 +222,30 @@ Normale Worktree-Caches bleiben getrennt: ein gemeinsames `target/` kann bei
 parallelen Builds App-Binaries überschreiben. Nach der Profilumstellung bleiben
 alte Artefakte zunächst liegen. Nur bei Bedarf einmal bereinigen; ein regelmäßiges
 `cargo clean` würde den kompletten Neuaufbau immer wieder erzwingen.
+
+Für angesammelte ältere Compiler-/Profilvarianten gibt es eine explizite,
+selektive Bereinigung auf Basis einer erfolgreichen vollständigen Vorbereitung:
+
+```sh
+# SUMMARY ist die summary.json eines vollständigen --build-only-Laufs.
+python3 -m tests._cargo_cache --preparation SUMMARY          # nur Löschplan
+python3 -m tests._cargo_cache --preparation SUMMARY --apply  # geplante Rust-Ausgaben entfernen
+```
+
+Sie behält sämtliche in diesen Compilerlogs referenzierten Dependency-Ausgaben,
+zwei neueste Incremental-Konfigurationen je Crate und die vorbereiteten Programme
+mit Debug-Symbolen. Die von Cargo nicht im JSON genannten gehashten Cachekopien
+benötigter Binärtargets bleiben konservativ ebenfalls erhalten, damit der nächste
+Prepare-Lauf nicht unnötig neu linkt. Sie greift nicht auf Quellcode, Testbelege,
+andere Worktrees oder den globalen Cargo-Cache zu und lehnt aktive Builds in
+diesen Debugcaches ab. Andere, nicht
+in der Vorbereitung enthaltene Buildkonfigurationen müssen später gegebenenfalls
+neu kompilieren. Für alle Aufrufe dieselbe Toolchain und Profile verwenden.
+
+Activity-Beobachtung nutzt fortlaufende Cursor und hält korrelierte, noch nicht
+abgeholte Ergebnisse separat. Dadurch kopiert ein langer gemeinsamer Lauf nicht
+bei jedem Command seine gesamte bisherige Activity erneut in die Falllogs.
+Explizite Cursor und Gap-Fehler werden weiterhin unverändert respektiert.
 
 ## Einzeltests
 
@@ -148,7 +272,7 @@ cargo test --locked --features cli,ui,screenshot --lib -- --nocapture --test-thr
 ```sh
 cargo build --locked --manifest-path test_app/Cargo.toml --features automation --bin test_app
 
-# Ein Fenster; begrenzte Engine-/Spielvorbereitung, danach acht Aktionsticks.
+# Eigene Fixture: Spielbereitschaft, F9/3 Reset-Ticks, danach acht Aktionsticks.
 WOODPECKER_TEST_RENDERED=1 python3 -m unittest -v tests.keyboard.movement
 
 # Ein Manual-Fenster, keine Ticks/Inputs, nur lokaler Provider.
@@ -244,6 +368,8 @@ keine Winit-/GPU-Abnahme oder neue öffentliche API.
   Gap-Recovery. `call` sendet genau den angegebenen Command, `read_resource`
   genau eine lesende Query. Starts und Spielaktionen bleiben im Test sichtbar.
 - [`_builds.py`](_builds.py): Standard-Cargo-Aufrufe, Compilerartefakte und Testlisten;
+  [`_artifacts.py`](_artifacts.py): vorbereitete, inhaltgeprüfte Programme;
+  [`_shared.py`](_shared.py): ausdrücklich begrenzte gemeinsame App-Fixture;
   [`acceptance.py`](acceptance.py): Discovery, sichere Auswahl und ehrliche Ergebnisse.
 - Feature-`__init__.py`: nur gemeinsame Abfragen, Artefaktkodierung und explizites
   Prozess-/Transportmanagement. Keine versteckten Fokus-, Input- oder Tick-Aktionen.
@@ -260,7 +386,9 @@ keine Winit-/GPU-Abnahme oder neue öffentliche API.
   Testwerkzeug, kein öffentliches Woodpecker-Binary.
 - [`app.toml`](app.toml)/[`settings.json`](settings.json): Manual-Startup und fester
   Settings-Seed statt persönlicher Werte. Varianten nur in Laufartefakten über
-  `load_config`/`write_config`; Pfade gelten vom Repository-Root bzw. beim Seed
+  `load_config`/`write_app_config`; letzteres wählt für die Standard-App eine
+  vorbereitete Binary, lässt eigene Launch-Fixtures unverändert. Pfade gelten
+  vom Repository-Root bzw. beim Seed
   vom App-Projektverzeichnis. Gleiche Features vor direkten Appstarts bauen.
 
 `owned_process` prüft lebende Abstammung und separate Gruppe; `wait_process_gone`

@@ -32,6 +32,9 @@ def commands(selected, *, feature_matrix=False):
     if any(row["graphics"] and row.get("module") != "tests.reports.panic_abort" for row in selected):
         rows.append(("app-automation", ["cargo", "build", "--locked", "--manifest-path", "test_app/Cargo.toml",
                                        "--features", "automation", "--bin", "test_app"]))
+    if any(row.get("module") == "tests.reports.panic_abort" for row in selected):
+        rows.append(("app-abort", ["cargo", "build", "--locked", "--manifest-path", "test_app/Cargo.toml",
+                                   "--features", "automation", "--bin", "test_app"]))
     if internal or targets:
         rows.append(("rust-tests", ["cargo", "test", "--locked", "--features", FEATURES,
                                     *(["--lib"] if internal else []),

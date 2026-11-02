@@ -4,7 +4,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._support import app_binary, base_config, ROOT, start_server
 
 
 class ExactTicksTest(unittest.TestCase):
@@ -15,7 +15,7 @@ class ExactTicksTest(unittest.TestCase):
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -23,7 +23,7 @@ class ExactTicksTest(unittest.TestCase):
 
         # Manual startup keeps preparation free of implicit simulation ticks.
         session_id = server.cli(
-            "session", "create", "--config", str(ROOT / "tests/app.toml"),
+            "session", "create", "--config", str(base_config(server)),
         )["id"]
         deadline = time.monotonic() + 30
         while True:

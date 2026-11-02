@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use crate::{
     app::settings::Settings, input::InputMode, level::definition, level::ground, player::Player,
 };
@@ -59,10 +62,13 @@ pub struct ViewState {
     mode: ViewMode,
     pitch: f32,
     eye: Option<Transform>,
+    #[reflect(ignore)]
+    snap: bool,
 }
 impl ViewState {
     pub fn reset(&mut self) {
         *self = Self::default();
+        self.snap = true;
     }
 
     pub fn new(mode: ViewMode) -> Self {
@@ -201,7 +207,8 @@ pub fn update_camera(
             (ground(player.position, 1.), 32.)
         };
         let blend = 1. - (-8. * time.delta_secs()).exp();
-        let extent = if let Projection::Orthographic(current) = &**projection
+        let extent = if !view.snap
+            && let Projection::Orthographic(current) = &**projection
             && let bevy::camera::ScalingMode::FixedVertical { viewport_height } =
                 current.scaling_mode
         {
@@ -217,7 +224,7 @@ pub fn update_camera(
         });
         let desired = Transform::from_translation(target + Vec3::new(12., 40., 32.))
             .looking_at(target, Vec3::Y);
-        if *previous_fpv {
+        if *previous_fpv || view.snap {
             **camera_transform = desired;
         } else {
             camera_transform.translation = camera_transform
@@ -227,4 +234,5 @@ pub fn update_camera(
         }
     }
     *previous_fpv = view.first_person();
+    view.snap = false;
 }

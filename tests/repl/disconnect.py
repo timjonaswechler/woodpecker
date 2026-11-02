@@ -13,7 +13,7 @@ import termios
 import time
 import unittest
 
-from tests._support import CLI, ROOT, load_config, start_server, write_config
+from tests._support import app_binary, base_config, CLI, ROOT, load_config, start_server, write_app_config
 from tests.faults import cleanup_peer, protocol_fixture
 from tests.repl import ReplIO, tty_settings
 
@@ -26,9 +26,9 @@ class ReplDisconnectTest(unittest.TestCase):
                          "A fourth REPL explicitly shuts down the game. One additional external "
                          "peer then ends unexpectedly (zero game ticks, declared server/REPL exits 1). "
                          "No desktop input or retries. Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "repl-disconnect")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)
@@ -131,7 +131,7 @@ class ReplDisconnectTest(unittest.TestCase):
         configuration["launch"].update(manifest_path=str(manifest), package="woodpecker-protocol-fixture",
                                        target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=["recording-end"])
         config = broken.artifacts / "peer.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         self.assertEqual(load_config(config)["launch"], configuration["launch"])
         self.assertEqual(configuration["launch"]["package"], "woodpecker-protocol-fixture")
         created = broken.cli("session", "create", "--config", str(config))

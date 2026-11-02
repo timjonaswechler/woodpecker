@@ -40,6 +40,11 @@ pub fn config(path: &Path) -> session::Config {
     let mut file: File =
         toml::from_str(&std::fs::read_to_string(root().join("tests/app.toml")).unwrap()).unwrap();
     file.launch.manifest_path = root().join(file.launch.manifest_path);
+    file.launch.executable = Some(
+        std::env::var_os("WOODPECKER_TEST_APP")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| root().join("target/debug/test_app")),
+    );
     session::Config {
         launch: file.launch,
         tick: file.tick,

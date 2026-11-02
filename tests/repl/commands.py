@@ -6,7 +6,7 @@ import subprocess
 import time
 import unittest
 
-from tests._support import CLI, ROOT, start_server
+from tests._support import app_binary, base_config, CLI, ROOT, start_server
 from tests.recording import read_jsonl, write_jsonl
 from tests.repl import ReplIO
 
@@ -24,9 +24,9 @@ class ReplCommandsTest(unittest.TestCase):
                          "Piped REPL help/pending, local malformed JSON/UTF-8, Inspect/Tick/"
                          "Recording/Replay forms and an empty replay. No OS input or retries. "
                          "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "repl-commands")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)

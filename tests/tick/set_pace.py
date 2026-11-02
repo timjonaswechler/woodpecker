@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server, load_config, read_tick_probe, write_config
+from tests._support import app_binary, ROOT, start_server, load_config, read_tick_probe, write_app_config
 
 
 def pace_bounds(target, first, last, capacity):
@@ -28,13 +28,13 @@ class SetPaceTest(unittest.TestCase):
             "8 completed). No input. Permission for this run is required: "
             "WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "set-pace")
         config = server.artifacts / "engine.toml"
         configuration = load_config()
         configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 90
         while True:

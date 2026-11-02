@@ -6,7 +6,7 @@ import time
 import unittest
 
 from tests._support import (load_config, owned_process, start_server,
-                            wait_process_gone, write_config)
+                            wait_process_gone, write_app_config)
 from tests.recording import read_jsonl
 from tests.shutdown import no_failures
 
@@ -21,7 +21,7 @@ class ShutdownCommandTest(unittest.TestCase):
         configuration = load_config()
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
         config = server.artifacts / "config.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 30
         while True:

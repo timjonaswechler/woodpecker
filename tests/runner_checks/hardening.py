@@ -143,8 +143,7 @@ class HardeningHelpersTest(unittest.TestCase):
                 server.read_resource, server.call = resource, call
                 case = movement.KeyboardMovementTest()
                 with patch.dict(movement.os.environ, {"WOODPECKER_TEST_RENDERED": "1"}), \
-                        patch.object(movement, "start_server", return_value=server), \
-                        patch.object(Path, "is_file", return_value=True):
+                        patch.object(movement, "game", return_value=(server, "owned")):
                     if lost:
                         with self.assertRaisesRegex(AssertionError, "Held key lost on action tick 3"):
                             case.test_press_hold_and_release_control_player_movement()
@@ -154,9 +153,9 @@ class HardeningHelpersTest(unittest.TestCase):
 
     def test_stop_classification_never_skips_a_partial_or_ignored_stop(self):
         for mode in ("active", "natural", "lost", "ignored"):
-            with self.subTest(mode=mode):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 state = {"ticks": 0, "running": False}
-                server = SimpleNamespace(artifacts=Path("unused"), record=Mock(), process=Mock())
+                server = SimpleNamespace(artifacts=Path(directory), record=Mock(), process=Mock())
                 server.process.wait.return_value = 0
 
                 def cli(*args, **kwargs):

@@ -44,6 +44,69 @@ pub(super) fn install(app: &mut App) {
     ui::install(app);
 }
 
+pub(super) fn reset(world: &mut World) {
+    use bevy::{
+        input::mouse::{AccumulatedMouseMotion, AccumulatedMouseScroll},
+        picking::{
+            events::PointerState,
+            pointer::{PointerId, PointerInteraction, PointerLocation, PointerPressState},
+        },
+    };
+    keyboard::reset(world);
+    world.resource_mut::<ButtonInput<MouseButton>>().reset_all();
+    world.resource_mut::<AccumulatedMouseMotion>().delta = Vec2::ZERO;
+    *world.resource_mut::<AccumulatedMouseScroll>() = default();
+    if let Some(mut state) = world.get_resource_mut::<PointerState>() {
+        state.clear(pointer::ID);
+    }
+    if let Some(mut hover) = world.get_resource_mut::<bevy::picking::hover::HoverMap>() {
+        hover.0.remove(&pointer::ID);
+    }
+    if let Some(mut hover) = world.get_resource_mut::<bevy::picking::hover::PreviousHoverMap>() {
+        hover.0.remove(&pointer::ID);
+    }
+    for (id, mut location, mut pressed, mut interaction) in world
+        .query::<(
+            &PointerId,
+            &mut PointerLocation,
+            &mut PointerPressState,
+            &mut PointerInteraction,
+        )>()
+        .iter_mut(world)
+    {
+        if *id == pointer::ID {
+            *location = default();
+            *pressed = default();
+            *interaction = default();
+        }
+    }
+    #[cfg(feature = "ui")]
+    {
+        for mut interaction in world
+            .query::<&mut bevy::ui::DeprecatedInteraction>()
+            .iter_mut(world)
+        {
+            *interaction = bevy::ui::DeprecatedInteraction::None;
+        }
+        let hovered: Vec<_> = world
+            .query_filtered::<Entity, With<bevy::picking::hover::Hovered>>()
+            .iter(world)
+            .collect();
+        for entity in hovered {
+            world
+                .entity_mut(entity)
+                .insert(bevy::picking::hover::Hovered(false));
+        }
+        let pressed: Vec<_> = world
+            .query_filtered::<Entity, With<bevy::ui::Pressed>>()
+            .iter(world)
+            .collect();
+        for entity in pressed {
+            world.entity_mut(entity).remove::<bevy::ui::Pressed>();
+        }
+    }
+}
+
 /// Keep platform window events separate from messages consumed during simulation.
 /// This preserves resize/close notifications and their message cursors while dropping
 /// native input, including during long idle periods without message-update schedules.

@@ -1,51 +1,19 @@
 """UTF-8 transport limits are separate from focus requirements and widget length rules."""
 import json
 import os
-import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._shared import game
 from tests.text import BUTTON, FOCUS, SETTINGS, TEXT_INPUT, TICKS, layout_target
 
 
 class TextInputLimitsTest(unittest.TestCase):
     def test_focus_empty_text_utf8_byte_boundary_and_widget_limit_are_distinct(self):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "One window, up to 3600 engine ticks/60 s and 120 readiness ticks/10 s; "
-                         "18 action ticks. Pointer-focus notes/name through real UI. Empty text, "
-                         "16384 UTF-8 bytes, 16385-byte rejection, and widget-only 25-character "
-                         "rejection. Three expected SDK rejections; 4 MiB Activity, no OS input. "
-                         "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "text-input-limits", activity_bytes=4 * 1024 * 1024)
-        config = server.artifacts / "engine.toml"
-        configuration = load_config()
-        configuration["startup"] = {"kind": "engine", "timeout_seconds": 60, "max_ticks": 3600}
-        write_config(config, configuration)
-        session_id = server.cli("session", "create", "--config", str(config))["id"]
-        deadline = time.monotonic() + 90
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "EngineReady":
-                break
-            self.assertIn(detail["state"], ("Starting", "SessionReady"), detail)
-            if time.monotonic() >= deadline:
-                self.fail("EngineReady deadline exceeded")
-            time.sleep(0.05)
-        startup_ticks = server.read_resource(session_id, TICKS)["ticks"]
-        deadline = time.monotonic() + 10
-        for additional in range(121):
-            load = server.read_resource(session_id, "test_app::level::LevelLoad")
-            if load == "Ready":
-                break
-            self.assertEqual(load, "Loading")
-            if additional == 120 or time.monotonic() >= deadline:
-                self.fail("Game readiness budget exceeded")
-            self.assertEqual(server.call(session_id, {
-                "command": "tick.warp.start", "arguments": {"ticks": 1},
-            }), {"requested_ticks": 1, "executed_ticks": 1, "outcome": "completed"})
-        server.record(["preparation", "game-ready"], startup_ticks=startup_ticks, additional_ticks=additional)
+                         "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+                         "then F9 and three reset ticks. This case uses 18 action ticks. "
+                         "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
+        server, session_id = game(self, "text-input-limits")
         seed = server.read_resource(session_id, SETTINGS)
         self.assertEqual(seed["notes"], "")
         before_ticks = server.read_resource(session_id, TICKS)["ticks"]
@@ -131,5 +99,3 @@ class TextInputLimitsTest(unittest.TestCase):
         server.record(["observation", "text-limits"], accepted_characters=8192, accepted_bytes=16384,
                       rejected_characters=8193, rejected_bytes=16385, rejections=rejected,
                       widget_input_bytes=25, widget_unchanged=True, action_ticks=18)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)

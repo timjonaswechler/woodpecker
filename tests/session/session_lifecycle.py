@@ -3,7 +3,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, load_config, owned_process, start_server, wait_process_gone, write_config
+from tests._support import app_binary, ROOT, load_config, owned_process, start_server, wait_process_gone, write_app_config
 
 
 class SessionLifecycleTest(unittest.TestCase):
@@ -14,7 +14,7 @@ class SessionLifecycleTest(unittest.TestCase):
             "WOODPECKER_TEST_RENDERED=1",
         )
         self.assertTrue(
-            (ROOT / "target/debug/test_app").is_file(),
+            app_binary().is_file(),
             "Build first: cargo build --locked --manifest-path test_app/Cargo.toml "
             "--features automation --bin test_app",
         )
@@ -24,7 +24,7 @@ class SessionLifecycleTest(unittest.TestCase):
         configuration = load_config()
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe"]
         config = server.artifacts / "config.toml"
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         created = server.cli("session", "create", "--config", str(config))
         session_id = created["id"]
         self.assertEqual(created["state"], "Starting")

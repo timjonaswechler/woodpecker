@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._support import app_binary, base_config, ROOT, start_server
 from tests.recording import read_jsonl
 
 
@@ -18,9 +18,9 @@ class ScriptPipelineTest(unittest.TestCase):
                          "rejection, one final tick, Recording Stop and normal Shutdown. Maximum "
                          "63 ticks; no accepted input or OS input. Permission required: "
                          "WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "cli-script-pipeline")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             detail = server.cli("session", "inspect", session_id)

@@ -1,4 +1,7 @@
 """Configuration files, process ownership, CLI transport and logs; no app actions or ticks."""
+from collections import OrderedDict
+import contextlib
+import copy
 import json
 import os
 from pathlib import Path
@@ -11,6 +14,47 @@ import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = ROOT / "target/debug/woodpecker"
+PRODUCTS = {}
+
+
+def product_binary(name):
+    return PRODUCTS.get("bin:" + name, ROOT / "target/debug" / name)
+
+
+def app_binary():
+    return product_binary("test_app")
+
+
+@contextlib.contextmanager
+def _use_products(products):
+    global CLI, PRODUCTS
+    previous_cli, previous_products = CLI, PRODUCTS
+    previous_app = os.environ.get("WOODPECKER_TEST_APP")
+    previous_abort = os.environ.get("WOODPECKER_TEST_ABORT_APP")
+    PRODUCTS = dict(products)
+    CLI = PRODUCTS.get("bin:woodpecker", CLI)
+    for role, variable in (("bin:test_app", "WOODPECKER_TEST_APP"),
+                           ("bin:test_app:abort", "WOODPECKER_TEST_ABORT_APP")):
+        if role in PRODUCTS:
+            os.environ[variable] = str(PRODUCTS[role])
+    try:
+        yield
+    finally:
+        CLI, PRODUCTS = previous_cli, previous_products
+        for variable, value in (("WOODPECKER_TEST_APP", previous_app), ("WOODPECKER_TEST_ABORT_APP", previous_abort)):
+            if value is None:
+                os.environ.pop(variable, None)
+            else:
+                os.environ[variable] = value
+
+
+@contextlib.contextmanager
+def use_products(products):
+    from tests._product_cache import lease
+    with lease(products), _use_products(products):
+        yield
+
+
 # Initial desktop positions in physical pixels; shared by the two-session tests.
 WINDOW_POSITIONS = ((640, 400), (800, 500))
 
@@ -54,6 +98,26 @@ def write_config(path, configuration):
     if json.dumps(parsed, sort_keys=True) != json.dumps(configuration, sort_keys=True):
         raise ValueError("Written TOML does not preserve the requested configuration")
     Path(path).write_text(text, encoding="utf-8")
+
+
+def write_app_config(path, configuration):
+    """Select the prepared app only for the standard fixture, preserving custom launches."""
+    configuration = copy.deepcopy(configuration)
+    launch = configuration.get("launch", {})
+    manifest = launch.get("manifest_path") if isinstance(launch, dict) else None
+    standard_manifest = (isinstance(manifest, str) and "\x00" not in manifest
+                         and ROOT / manifest == ROOT / "test_app/Cargo.toml")
+    if (standard_manifest
+            and launch.get("package") == "test_app" and launch.get("target") == {"kind": "binary", "name": "test_app"}
+            and launch.get("features") == ["automation"] and "executable" not in launch):
+        launch["executable"] = str(app_binary().resolve())
+    write_config(path, configuration)
+
+
+def base_config(server, *, prebuilt=True):
+    path = server.artifacts / "app.toml"
+    (write_app_config if prebuilt else write_config)(path, load_config())
+    return path
 
 
 def _process_snapshot():
@@ -156,6 +220,7 @@ class Server:
         self.ready = {}
         self.address = None
         self.owned_processes = []
+        self.activity = {"cursors": {}, "pending": {}, "recent": OrderedDict()}
 
     def record(self, arguments, **result):
         with (self.artifacts / "commands.jsonl").open("a", encoding="utf-8") as journal:
@@ -186,6 +251,16 @@ class Server:
             raise ValueError(f"Expected a pending reply, got {pending}")
         request_id = pending["request_id"]
         command = pending["command"]
+        key = (session_id, request_id)
+        remember = cursor is None
+        if remember:
+            cached = self.activity["pending"].pop(key, None) or self.activity["recent"].get(key)
+            if cached is not None:
+                if cached["command"] != command:
+                    raise AssertionError(f"Uncorrelated command outcome: {cached}")
+                self._remember_outcome(key, cached)
+                return cached
+            cursor = self.activity["cursors"].get(session_id)
         deadline = time.monotonic() + timeout
         while True:
             remaining = deadline - time.monotonic()
@@ -206,24 +281,40 @@ class Server:
                 cursor is not None and next_cursor["position"] < cursor["position"]
             ):
                 raise AssertionError(f"Uncorrelated activity cursor: {activity}; see {self.artifacts}")
-            ended = None
+            ended = found = None
             for entry in activity["entries"]:
                 if entry["cursor"]["session_id"] != session_id:
                     raise AssertionError(f"Foreign activity entry: {entry}; see {self.artifacts}")
                 event = entry["event"]
+                if remember and event["kind"] in ("completed", "rejected", "failed"):
+                    self.activity["pending"][(session_id, event["request_id"])] = event
                 if event.get("request_id") == request_id:
                     if event.get("command") != command:
                         raise AssertionError(f"Uncorrelated command outcome: {event}")
                     if event["kind"] in ("completed", "rejected", "failed"):
-                        return event
+                        found = event
                 if event.get("kind") == "lifecycle" and event["state"] in ("Ended", "Failed"):
                     ended = event
+            if remember:
+                self.activity["cursors"][session_id] = next_cursor
+            if found is not None:
+                if remember:
+                    self.activity["pending"].pop(key, None)
+                    self._remember_outcome(key, found)
+                return found
             if ended is not None:
                 raise AssertionError(
                     f"Outcome unknown for {session_id}/{request_id} ({command}): "
                     f"{ended}; see {self.artifacts}"
                 )
             cursor = next_cursor
+
+    def _remember_outcome(self, key, event):
+        recent = self.activity["recent"]
+        recent[key] = event
+        recent.move_to_end(key)
+        while len(recent) > 128:
+            recent.popitem(last=False)
 
     def call(self, session_id, command, *, timeout=10):
         """Send exactly the supplied command once and return its completed output."""

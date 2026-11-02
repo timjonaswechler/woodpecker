@@ -69,6 +69,8 @@ fn report_snapshot_contract() {
     )]);
     let mut config = support::config(&path);
     config.launch.manifest_path = project.join("Cargo.toml");
+    // This case deliberately changes the package version: it needs its own build.
+    config.launch.executable = None;
     let index = config
         .launch
         .arguments

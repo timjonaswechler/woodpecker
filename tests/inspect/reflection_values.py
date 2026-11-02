@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 import unittest
 
-from tests._support import ROOT, start_server, load_config, write_config
+from tests._support import app_binary, ROOT, start_server, load_config, write_app_config
 
 
 class ReflectionValuesTest(unittest.TestCase):
@@ -25,12 +25,12 @@ class ReflectionValuesTest(unittest.TestCase):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
                          "One reflection-opt-in Signalstation window, manual startup, no ticks/inputs. "
                          "Permission for this run is required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "reflection-values")
         config = server.artifacts / "reflection.toml"
         configuration = load_config()
         configuration["launch"]["arguments"][:0] = ["--woodpecker-diagnostics", "--woodpecker-reflection"]
-        write_config(config, configuration)
+        write_app_config(config, configuration)
         session_id = server.cli("session", "create", "--config", str(config))["id"]
         deadline = time.monotonic() + 30
         while True:

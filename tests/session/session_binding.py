@@ -4,7 +4,7 @@ import os
 import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._support import app_binary, base_config, ROOT, start_server
 
 
 class SessionBindingTest(unittest.TestCase):
@@ -15,9 +15,9 @@ class SessionBindingTest(unittest.TestCase):
             "and prefix queries, explicit session stop; no ticks or inputs. "
             "Permission for this run is required: WOODPECKER_TEST_RENDERED=1",
         )
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
+        self.assertTrue(app_binary().is_file(), "Build the automation app first")
         server = start_server(self, "session-binding")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
+        session_id = server.cli("session", "create", "--config", str(base_config(server)))["id"]
         deadline = time.monotonic() + 30
         while True:
             ready = server.cli("session", "inspect", session_id)

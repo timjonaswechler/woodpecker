@@ -6,7 +6,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, load_config, start_server, write_config
+from tests._support import ROOT, load_config, start_server, write_app_config
 from tests.providers import gh_fixture
 from tests.reports import observe, reports
 
@@ -31,7 +31,7 @@ class SlowProviderTest(unittest.TestCase):
         configuration["report"].update(tracing_errors=True, provider={"kind": "github"})
         configuration["launch"]["arguments"] += ["--woodpecker-diagnostics"]
         path = server.artifacts / "config.toml"
-        write_config(path, configuration)
+        write_app_config(path, configuration)
         session_id = server.cli("session", "create", "--config", str(path))["id"]
         deadline = time.monotonic() + 30
         while True:

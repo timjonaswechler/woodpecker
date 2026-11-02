@@ -636,6 +636,7 @@ mod session {
             pub target: Target,
             pub features: Vec<String>,
             pub arguments: Vec<String>,
+            pub executable: Option<std::path::PathBuf>,
         }
 
         pub enum Target {

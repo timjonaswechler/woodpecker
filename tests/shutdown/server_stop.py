@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, WINDOW_POSITIONS, load_config, owned_process, start_server, write_config
+from tests._support import base_config, ROOT, WINDOW_POSITIONS, load_config, owned_process, start_server, write_app_config
 from tests.providers import gh_fixture
 from tests.recording import read_jsonl
 from tests.reports import observe, reports
@@ -39,7 +39,7 @@ class ServerStopTest(unittest.TestCase):
                 "--window-position", f"{WINDOW_POSITIONS[index][0]},{WINDOW_POSITIONS[index][1]}"]
             configuration["report"].update(tracing_errors=index == 1, provider={"kind": "github" if index == 1 else "local"})
             config = server.artifacts / f"session-{index}.toml"
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             created = server.cli("session", "create", "--config", str(config))
             detail = wait_state(server, created["id"], "SessionReady", timeout=30)
             sessions.append((created["id"], Path(detail["artifact_dir"])))
@@ -69,7 +69,7 @@ class ServerStopTest(unittest.TestCase):
         self.assertEqual(server.cli("server", "stop"), {"state": "Stopping"})
         stop_interval = (stop_before, time.monotonic())
         require_observation_budget(self, server, stop_interval, 20, provider=provider)
-        new_session = server.run_cli("session", "create", "--config", str(ROOT / "tests/app.toml"))
+        new_session = server.run_cli("session", "create", "--config", str(base_config(server)))
         self.assertEqual(new_session.returncode, 1)
         self.assertIn("server_stopping", new_session.stderr)
         for session_id in (a, b):

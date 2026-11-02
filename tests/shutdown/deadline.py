@@ -7,7 +7,7 @@ import tempfile
 import time
 import unittest
 
-from tests._support import ROOT, WINDOW_POSITIONS, load_config, owned_process, start_server, write_config
+from tests._support import ROOT, WINDOW_POSITIONS, load_config, owned_process, start_server, write_app_config
 from tests.providers import gh_fixture
 from tests.recording import read_jsonl
 from tests.shutdown import owned_game, progress, require_observation_budget, thaw, wait_state
@@ -38,7 +38,7 @@ class ShutdownDeadlineTest(unittest.TestCase):
                 "--window-position", f"{WINDOW_POSITIONS[index][0]},{WINDOW_POSITIONS[index][1]}"]
             configuration["report"].update(tracing_errors=index == 1, provider={"kind": "github" if index == 1 else "local"})
             config = server.artifacts / f"session-{index}.toml"
-            write_config(config, configuration)
+            write_app_config(config, configuration)
             created = server.cli("session", "create", "--config", str(config))
             detail = wait_state(server, created["id"], "SessionReady", timeout=30)
             sessions.append((created["id"], Path(detail["artifact_dir"])))

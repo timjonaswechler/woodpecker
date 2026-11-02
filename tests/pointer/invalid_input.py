@@ -1,34 +1,19 @@
 """Pointer rejections preserve accepted queued work and the applied pointer state."""
 import json
 import os
-import time
 import unittest
 
-from tests._support import ROOT, start_server
+from tests._shared import game
 from tests.pointer import MOUSE, TICKS, pointer_states
 
 
 class InvalidPointerInputTest(unittest.TestCase):
     def test_bad_positions_buttons_and_transitions_do_not_damage_queued_or_applied_state(self):
         self.assertEqual(os.environ.get("WOODPECKER_TEST_RENDERED"), "1",
-                         "One manual-startup window, exactly four ticks. Nineteen intentional "
-                         "pointer rejections: missing position, four window-bound violations, "
-                         "unknown buttons and duplicate/unmatched transitions while queued/held. "
-                         "Valid middle press/release and two absolute positions. No OS input. "
-                         "Permission required: WOODPECKER_TEST_RENDERED=1")
-        self.assertTrue((ROOT / "target/debug/test_app").is_file(), "Build the automation app first")
-        server = start_server(self, "pointer-invalid-input")
-        session_id = server.cli("session", "create", "--config", str(ROOT / "tests/app.toml"))["id"]
-        deadline = time.monotonic() + 30
-        while True:
-            detail = server.cli("session", "inspect", session_id)
-            self.assertIsNone(detail["error"], detail)
-            if detail["state"] == "SessionReady":
-                break
-            self.assertEqual(detail["state"], "Starting", detail)
-            if time.monotonic() >= deadline:
-                self.fail("SessionReady deadline exceeded")
-            time.sleep(0.05)
+                         "Prepared shared-or-standalone Signalstation fixture: up to 120 readiness ticks/10 s, "
+                         "then F9 and three reset ticks. This case uses 4 action ticks. "
+                         "Virtual inputs only, no OS input. Permission required: WOODPECKER_TEST_RENDERED=1")
+        server, session_id = game(self, "pointer-invalid-input")
         before_ticks = server.read_resource(session_id, TICKS)["ticks"]
         before = pointer_states(server, session_id)
         self.assertTrue(before)
@@ -115,5 +100,3 @@ class InvalidPointerInputTest(unittest.TestCase):
         self.assertEqual(server.read_resource(session_id, TICKS)["ticks"] - before_ticks, 4)
         self.assertEqual(server.cli("session", "inspect", session_id)["state"], "SessionReady")
         server.record(["observation", "invalid-pointer"], rejections=rejections, final=final, action_ticks=4)
-        server.cli("server", "stop")
-        self.assertEqual(server.process.wait(timeout=5), 0)
