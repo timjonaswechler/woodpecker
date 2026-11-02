@@ -4,6 +4,9 @@ version = "0.0.0"
 edition = "2024"
 publish = false
 [workspace]
+[profile.dev]
+opt-level = 1
+debug = "line-tables-only"
 [dependencies]
 woodpecker = { path = "../../.." }
 serde = { version = "1", features = ["derive"] }

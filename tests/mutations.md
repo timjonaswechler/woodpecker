@@ -91,4 +91,12 @@ bereits fehlender Dateien und die beiden ursprünglichen Binaries. Die eigenen
 Mutationsstellen werden ebenfalls unverändert nachgewiesen. Prozessausgaben,
 Build-/Runtime-Status, Patches, Quellhashes, Wire-Artefakte und PID-/Gruppenabwesenheit
 werden ohne Cache/Binaries in den gemeldeten dauerhaften Beweisordner kopiert.
-Große Quell-/Cachekopien verbleiben nur im ignorierten eigenen Laufordner.
+Erst nach erfolgreicher Beweiskopie wird der eigene Laufordner einschließlich
+Quellkopie und privatem Cargo-Cache entfernt, auch nach fehlgeschlagenen Builds.
+`workspace_removed` bestätigt das im dauerhaften Bericht; vorher bleibt `complete`
+false. Scheitert die Beweiskopie, bleibt der Laufordner zur Wiederherstellung
+bestehen. Scheitert das Entfernen, meldet der Bericht den Cleanup-Fehler und Exit 2.
+Parent-Cache, frühere Laufordner und dauerhafte Belege bleiben unangetastet.
+Absolute Pfade in den aufgezeichneten Commands, Logs und Patch-Verweisen beschreiben
+den ursprünglichen Lauf. Nach Cleanup liegen die Belegdateien mit derselben relativen
+Struktur neben der dauerhaften `summary.json`, nicht mehr an diesen temporären Pfaden.

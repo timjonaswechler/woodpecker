@@ -25,10 +25,9 @@ fn report_snapshot_contract() {
     manifest["package"]["version"] = toml::Value::String("0.56.1".into());
     let tables = manifest.as_table_mut().unwrap();
     tables.insert("workspace".into(), toml::Value::Table(Default::default()));
-    tables.insert(
-        "profile".into(),
-        toml::from_str::<toml::Value>("[dev]\nopt-level = 1\n").unwrap(),
-    );
+    let workspace: toml::Value =
+        toml::from_str(&fs::read_to_string(support::root().join("Cargo.toml")).unwrap()).unwrap();
+    tables.insert("profile".into(), workspace["profile"].clone());
     fs::write(
         project.join("Cargo.toml"),
         toml::to_string(&manifest).unwrap(),

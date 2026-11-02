@@ -11,8 +11,9 @@ rust-version = "1.97.1"
 exclude = ["test_app/**", "test_zoo/**"]
 
 [profile.dev]
-# Keep debug checks while making the rendered automation workflow practical.
+# Keep runtime checks and backtrace locations without full type/variable debug data.
 opt-level = 1
+debug = "line-tables-only"
 
 [features]
 default = []
