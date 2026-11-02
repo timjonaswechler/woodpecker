@@ -109,9 +109,9 @@ def host(manifest):
                                 response = dict(ok=True, **state, contaminated=game.failed,
                                                 server_exit=game.server.process.poll())
                             elif operation == "stop":
+                                stop = True
                                 with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                                     game.close()
-                                stop = True
                                 response = dict(ok=True, stopped=True, app_pid=game.identity["pid"])
                             elif operation == "run":
                                 if message.get("implementation") != identity:

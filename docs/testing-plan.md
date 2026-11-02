@@ -15,7 +15,7 @@ zusammengefasste prozessisolierte Rust-Verträge, kleine echte Abort-Fixture und
 wiederverwendbare Programme umgesetzt. Kein neues Compilerprofil und keine
 zusätzliche Debuginfo-/Compilerflag-Optimierung gehören zu diesem Umbau.
 
-- 76 Harness-, zehn Planungs- und 19 Spieltests sowie Workspace-Clippy mit allen
+- 81 Harness-, zehn Planungs- und 19 Spieltests sowie Workspace-Clippy mit allen
   Features/Targets und `-D warnings` bestanden.
 - Die vollständige grafische lokale Abnahme bestand: **93 Produkttests plus
   typisierte Negativkontrolle**, keine fehlenden lokalen Belege oder Cleanup-Fehler.
@@ -54,6 +54,12 @@ zusätzliche Debuginfo-/Compilerflag-Optimierung gehören zu diesem Umbau.
   `target/` bereits geleert; der noch laufende Diagnosehost wurde identitätsgeprüft
   beendet. Sein Serverexit 1 bleibt ein fehlgeschlagener Cleanup-Nachweis und wird
   nicht nachträglich als erfolgreich gewertet.
+
+Das unabhängige Abschlussreview fand drei Harness-Regressionsrisiken: importierte
+CLI-Pfadsnapshots, veraltete Mutationstargets/Archivierung und einen nach fehlgeschlagenem
+Stop weiterlaufenden Diagnosehost. Alle drei sind mit vorher roten Regressionen
+korrigiert; reale Offline-Workspace-Auflösung und der echte isolierte Rust-Worker
+werden nun zusätzlich geprüft.
 
 Ein neuer echter GitHub-Provider-Lauf wurde nicht ausgeführt. Das Ruhebudget und
 die lokale Abnahme sind belegt. Der Nutzer hat anschließend auch diese Arbeit
