@@ -35,6 +35,7 @@ class SharedGame:
         self.identity = None
         self.baseline = None
         self.failed = False
+        self.cleanup_error = None
         self.cases = []
 
     def _start(self):
@@ -121,7 +122,14 @@ class SharedGame:
             raise
 
     def close(self):
-        self.owner.stack.close()
+        if self.cleanup_error is not None:
+            raise RuntimeError(f"Previous shared app cleanup failed: {self.cleanup_error}")
+        try:
+            self.owner.stack.close()
+        except BaseException as error:
+            self.failed = True
+            self.cleanup_error = f"{type(error).__name__}: {error}"
+            raise
 
 
 def cameras(server, session_id):

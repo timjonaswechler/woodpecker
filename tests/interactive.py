@@ -133,6 +133,9 @@ def host(manifest):
                         except Exception as error:
                             response = dict(ok=False, error=f"{type(error).__name__}: {error}")
                             print(response["error"], file=log, flush=True)
+                            if game.cleanup_error is not None:
+                                state["cleanup_error"] = game.cleanup_error
+                                STATE.write_text(json.dumps(state, indent=2) + "\n")
                         try:
                             connection.sendall((json.dumps(response) + "\n").encode())
                         except OSError:
@@ -144,7 +147,8 @@ def host(manifest):
                     with contextlib.redirect_stdout(log), contextlib.redirect_stderr(log):
                         game.close()
                 finally:
-                    if STATE.is_file() and json.loads(STATE.read_text()).get("instance") == instance:
+                    if (game.cleanup_error is None and STATE.is_file()
+                            and json.loads(STATE.read_text()).get("instance") == instance):
                         STATE.unlink()
 
 

@@ -24,6 +24,17 @@ class InteractiveTest(unittest.TestCase):
                     interactive.plan(arguments)
             process.assert_not_called()
 
+    def test_failed_cleanup_cannot_become_successful_by_repeating_close(self):
+        game = interactive._shared.SharedGame()
+        def failure():
+            raise AssertionError("owned server exited 1")
+        game.owner.stack.callback(failure)
+        with self.assertRaisesRegex(AssertionError, "owned server"):
+            game.close()
+        self.assertTrue(game.failed)
+        with self.assertRaisesRegex(RuntimeError, "Previous shared app cleanup failed"):
+            game.close()
+
     def test_existing_state_is_not_automatically_replaced_after_connection_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             state = Path(directory) / "state.json"
