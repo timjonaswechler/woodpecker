@@ -39,7 +39,7 @@ python3 -m tests.acceptance --list
 # Vollständigen lokalen Umfang nur bauen; keine Spielfenster. Erwarteter Exit: 2.
 python3 -m tests.acceptance --build-only
 
-# Fensterlos: 15 Python-, neun interne Rust- und ein öffentlicher Rust-Fall.
+# Fensterlos: 15 Python-, zehn interne Rust- und ein öffentlicher Rust-Fall.
 # Erwarteter Exit auch bei bestandener Auswahl: 2, da lokale Grafiknachweise fehlen.
 python3 -m tests.acceptance --non-graphical
 
@@ -53,7 +53,7 @@ python3 -m unittest discover -s tests/runner_checks -t . -p '*.py'
 **Erst nach passender Grafikfreigabe:**
 
 ```sh
-# Gesamter lokaler Sollumfang: 93 Produkttests plus Kontrolle 3.18, kein echtes gh.
+# Gesamter lokaler Sollumfang: 94 Produkttests plus Kontrolle 3.18, kein echtes gh.
 WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --rendered
 
 # Pilot: 16 Produkttests, keine Gesamtabnahme.
@@ -299,7 +299,7 @@ python3 -m unittest discover -s tests/session -t . -p 'invalid_launch_config.py'
 # Öffentlicher Rust-Vertrag ohne Session oder Fenster.
 cargo test --locked --features cli --test contracts handle_encoding::handle_encoding_contract -- --exact --nocapture
 
-# Alle neun internen Owner-Tests ohne Spielfenster.
+# Alle zehn internen Owner-Tests ohne Spielfenster.
 cargo test --locked --features cli,ui,screenshot --lib -- --nocapture --test-threads=1
 ```
 
@@ -360,8 +360,8 @@ baut nur Driver und Automation-App ohne GitHub-Anfrage oder Spielstart.
 
 ## Inventar und Zuständigkeiten
 
-94 Produkttests: **75 Python + zehn öffentliche Rust + neun interne Rust**.
-93 sind lokal, einer extern. Mit Kontrolle 3.18 enthält das Inventar 95 Einträge;
+95 Produkttests: **75 Python + zehn öffentliche Rust + zehn interne Rust**.
+94 sind lokal, einer extern. Mit Kontrolle 3.18 enthält das Inventar 96 Einträge;
 `runner_checks/` gehört nicht zu den Produkttests. Das tatsächliche Inventar
 und die Buildauswahl kommen aus `acceptance.py --list`, nicht aus Laufchroniken.
 
@@ -391,10 +391,11 @@ seriell gestarteten Prozess; globale Hooks und Lifecycle-Zustand werden nicht
 geteilt. Nur der letzte läuft ohne Spielfenster; Rust-Ownership,
 Pending-Drop und direkte Session-Lebensdauer sind keine doppelten CLI-Tests.
 
-Die neun internen Tests liegen bei ihren tatsächlichen Ownern unter `src/`
+Die zehn internen Tests liegen bei ihren tatsächlichen Ownern unter `src/`
 (`cfg(test)`): native Inputs, Textzielbindung, Readback-Lebensdauer, Screenshot-
 und Recording-/Replay-Pfadaustausch, Session-Identität, Request-ID-Erschöpfung,
-Übergangsrennen und Reportabschluss (4.71–4.78, 4.82). Sie steuern reale
+Übergangsrennen, Reportabschluss (4.71–4.78, 4.82) und die getrennten Asset-
+Nachrichtenströme für Tick und Renderframe. Sie steuern reale
 World-/Datei-/Koordinatorgrenzen instanzlokal, keine nachgebaute Produktlogik,
 keine Winit-/GPU-Abnahme oder neue öffentliche API.
 

@@ -81,7 +81,9 @@ pub(super) fn install(app: &mut App) {
             };
             render.resource_mut::<FrozenShadows>().0 = shadows;
             last_tick = Some(tick);
+            super::super::throughput::begin_extract(main);
             extract(main, render);
+            super::super::throughput::end_extract(main);
         }
     });
     render.add_systems(Bootstrap, move |world: &mut World| {

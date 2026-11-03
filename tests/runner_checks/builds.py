@@ -65,7 +65,7 @@ class BuildSelectionTest(unittest.TestCase):
     def test_product_inventory_excludes_runner_self_checks(self):
         rows, _, targets, errors = acceptance.inventory()
         self.assertEqual(errors, [])
-        self.assertEqual(len(rows), 95)
+        self.assertEqual(len(rows), 96)
         self.assertEqual(sum(row["kind"] == "python" for row in rows.values()), 75)
         self.assertEqual(len(targets), 10)
         self.assertFalse(any(row.get("module", "").startswith("tests.runner_checks.") for row in rows.values()))

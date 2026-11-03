@@ -33,6 +33,11 @@ pub fn install(app: &mut App, options: &Options, log_plugin: bevy::log::LogPlugi
                     primary_window: Some(Window {
                         title: "Signalstation | Räume und Entdeckungen".into(),
                         focused: !options.start_unfocused,
+                        present_mode: if options.uncapped {
+                            bevy::window::PresentMode::AutoNoVsync
+                        } else {
+                            bevy::window::PresentMode::default()
+                        },
                         position: options.window_position.map_or(
                             bevy::window::WindowPosition::Automatic,
                             bevy::window::WindowPosition::At,

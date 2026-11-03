@@ -27,7 +27,7 @@ jobs:
         run: cargo check --locked --workspace --all-features --all-targets
       - name: Common acceptance entry (no games or real GitHub)
         # Request the feature matrix explicitly; otherwise only selected dependencies build.
-        # Runs 9 module tests, R0 integration and 15 Python cases, not full local acceptance.
+        # Runs 10 module tests, R0 integration and 15 Python cases, not full local acceptance.
         # Exit 2 is expected only with a fully passing selection and missing graphics/GitHub.
         run: |
           mkdir -p target/test-runs
