@@ -33,7 +33,27 @@ pub fn tracing_error_layer(_app: &mut App) -> Option<bevy::log::BoxedLayer> {
 #[derive(Resource)]
 struct ResetInputs;
 
+/// Read-only progress of the currently running Warp; independent of rendered frames.
+#[derive(Clone, Debug)]
+pub struct WarpProgress {
+    pub requested_ticks: u64,
+    pub executed_ticks: u64,
+    pub pace: warp::Pace,
+}
+
 impl Plugin {
+    /// Observe an active Warp without executing schedules, consuming input or advancing time.
+    /// Call between application ticks (for example, during render extraction): the
+    /// bridge is temporarily scoped out of the World while a tick is executing.
+    pub fn warp_progress(world: &World) -> Option<WarpProgress> {
+        let active = world.get_resource::<Bridge>()?.active.as_ref()?;
+        Some(WarpProgress {
+            requested_ticks: active.requested,
+            executed_ticks: active.executed,
+            pace: active.pace.clone(),
+        })
+    }
+
     /// Request that a game's explicit reset also clears controlled keyboard, text and
     /// pointer state after the current simulation tick. Does not execute a tick,
     /// reset time or change the session lifecycle. Call from the application's reset system.
@@ -181,70 +201,85 @@ fn ready(world: &World) {
 
 fn run(world: &mut World) {
     world.resource_scope(|world, mut bridge: Mut<Bridge>| {
-        bridge.input_gate.capture(world);
-        // Bound both command intake and tick execution so neither can starve the other.
-        for _ in 0..64 {
-            let line = bridge.input.lock().unwrap().try_recv();
-            match line {
-                Ok(line) => {
-                    let decoded = protocol::decode(&line);
-                    let response = match decoded {
-                        Ok((id, command))
-                            if bridge.active.as_ref().is_some_and(|a| a.id == id)
-                                || super::screenshot::pending(world, id) =>
-                        {
-                            Some(Message::ProtocolError {
-                                request_id: Some(id),
-                                error: Diagnostic::new("duplicate_request_id", command.name()),
-                            })
+        let frame_budget = Instant::now();
+        loop {
+            bridge.input_gate.capture(world);
+            // Bound both command intake and tick execution so neither can starve the other.
+            for _ in 0..64 {
+                let line = bridge.input.lock().unwrap().try_recv();
+                match line {
+                    Ok(line) => {
+                        let decoded = protocol::decode(&line);
+                        let response = match decoded {
+                            Ok((id, command))
+                                if bridge.active.as_ref().is_some_and(|a| a.id == id)
+                                    || super::screenshot::pending(world, id) =>
+                            {
+                                Some(Message::ProtocolError {
+                                    request_id: Some(id),
+                                    error: Diagnostic::new("duplicate_request_id", command.name()),
+                                })
+                            }
+                            Ok((id, command)) => dispatch(world, &mut bridge, id, command),
+                            Err(message) => Some(message),
+                        };
+                        if let Some(response) = response {
+                            let _ = bridge.output.send((response, None));
                         }
-                        Ok((id, command)) => dispatch(world, &mut bridge, id, command),
-                        Err(message) => Some(message),
-                    };
-                    if let Some(response) = response {
-                        let _ = bridge.output.send((response, None));
+                    }
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        world.write_message(AppExit::Success);
+                        return;
                     }
                 }
-                Err(mpsc::TryRecvError::Empty) => break,
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    world.write_message(AppExit::Success);
-                    return;
-                }
             }
-        }
-        for response in super::screenshot::poll(world) {
-            let _ = bridge.output.send((response, None));
-        }
-        if let Some(message) = super::startup::poll(world, bridge.ticks) {
-            let _ = bridge.output.send((message, None));
-        }
-        if super::startup::needs_tick(world) {
-            run_tick(world, &mut bridge);
-            if let Some(message) = super::startup::after_tick(world, bridge.ticks) {
+            for response in super::screenshot::poll(world) {
+                let _ = bridge.output.send((response, None));
+            }
+            if let Some(message) = super::startup::poll(world, bridge.ticks) {
                 let _ = bridge.output.send((message, None));
             }
-        }
-        let budget = Instant::now();
-        for _ in 0..64 {
-            let Some(active) = bridge.active.as_ref() else {
-                break;
-            };
-            if let warp::Pace::TicksPerSecond { target } = active.pace
-                && active
-                    .last_tick
-                    .is_some_and(|t| t.elapsed().as_secs_f64() < 1.0 / target as f64)
+            if super::startup::needs_tick(world) {
+                run_tick(world, &mut bridge);
+                if let Some(message) = super::startup::after_tick(world, bridge.ticks) {
+                    let _ = bridge.output.send((message, None));
+                }
+            }
+            let budget = Instant::now();
+            for _ in 0..64 {
+                let Some(active) = bridge.active.as_ref() else {
+                    break;
+                };
+                if let warp::Pace::TicksPerSecond { target } = active.pace
+                    && active
+                        .last_tick
+                        .is_some_and(|t| t.elapsed().as_secs_f64() < 1.0 / target as f64)
+                {
+                    break;
+                }
+                run_tick(world, &mut bridge);
+                let active = bridge.active.as_mut().unwrap();
+                active.executed += 1;
+                active.last_tick = Some(Instant::now());
+                if active.executed == active.requested {
+                    finish(&mut bridge, warp::Outcome::Completed);
+                    break;
+                }
+                if budget.elapsed().as_millis() >= 2 {
+                    break;
+                }
+            }
+            // Throughput sessions poll commands between short batches, but let
+            // several batches share a rendered frame. Other integrations retain
+            // the original scheduling budget until their render assets opt in.
+            if !super::throughput::enabled(world)
+                || frame_budget.elapsed() >= std::time::Duration::from_secs_f64(1.0 / 30.0)
+                || !bridge
+                    .active
+                    .as_ref()
+                    .is_some_and(|active| matches!(active.pace, warp::Pace::AsFastAsPossible))
             {
-                break;
-            }
-            run_tick(world, &mut bridge);
-            let active = bridge.active.as_mut().unwrap();
-            active.executed += 1;
-            active.last_tick = Some(Instant::now());
-            if active.executed == active.requested {
-                finish(&mut bridge, warp::Outcome::Completed);
-                break;
-            }
-            if budget.elapsed().as_millis() >= 2 {
                 break;
             }
         }
@@ -257,6 +292,7 @@ fn run(world: &mut World) {
 }
 
 fn run_tick(world: &mut World, bridge: &mut Bridge) {
+    super::throughput::capture(world);
     bridge.input_gate.capture(world);
     bridge.input_gate.swap_window_events(world);
     bridge.pointer.flush(world);
@@ -266,6 +302,7 @@ fn run_tick(world: &mut World, bridge: &mut Bridge) {
     for label in &bridge.schedules {
         let _ = world.try_run_schedule(*label);
     }
+    super::throughput::capture(world);
     bridge.input_gate.swap_window_events(world);
     if world.remove_resource::<ResetInputs>().is_some() {
         bridge.keyboard = default();

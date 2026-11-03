@@ -13,5 +13,12 @@ fn main() {
     app::install(&mut app, &options, log_plugin);
     #[cfg(feature = "automation")]
     woodpecker::install(&mut app);
+    let controlled = std::env::var_os("WOODPECKER_ARTIFACT_DIR").is_some();
+    test_app::performance::install(
+        &mut app,
+        options.performance_overlay,
+        options.performance_log,
+        controlled,
+    );
     app.run();
 }

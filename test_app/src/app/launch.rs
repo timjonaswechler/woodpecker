@@ -3,6 +3,9 @@ use bevy::prelude::IVec2;
 
 pub struct Options {
     pub fixed_window: bool,
+    pub uncapped: bool,
+    pub performance_overlay: bool,
+    pub performance_log: bool,
     pub start_unfocused: bool,
     pub scale_factor: Option<f32>,
     pub window_position: Option<IVec2>,
@@ -17,6 +20,9 @@ impl Options {
         );
         Self {
             fixed_window: std::env::args().any(|arg| arg == "--fixed-window"),
+            uncapped: std::env::args().any(|arg| arg == "--uncapped"),
+            performance_overlay: std::env::args().any(|arg| arg == "--performance-overlay"),
+            performance_log: std::env::args().any(|arg| arg == "--performance-log"),
             start_unfocused: std::env::args().any(|arg| arg == "--start-unfocused"),
             scale_factor,
             window_position: value::<String>("--window-position").map(|position| {

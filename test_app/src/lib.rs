@@ -4,6 +4,7 @@ pub mod app;
 mod diagnostics;
 mod input;
 pub mod level;
+pub mod performance;
 mod player;
 mod ui;
 #[cfg(feature = "automation")]

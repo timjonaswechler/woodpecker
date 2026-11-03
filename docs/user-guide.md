@@ -65,6 +65,10 @@ Protokoll, Artefaktordner und Session-Workspace ein.
 Die Integration setzt den kontrollierten Eingabemodus und hält den Winit-Lauf
 auch ohne Fensterfokus ansprechbar. Sie installiert das Session-Plugin nach den
 Spiel-Plugins. Dieses übernimmt die explizite Ausführung der Haupt-Schedules.
+Danach aktiviert Signalstation optionales Tick-Batching mit `ThroughputPlugin`;
+seine GPU-Asset-Typen werden dabei ausdrücklich registriert. Das beschleunigt
+Maximaltempo-Warps, ohne zusätzliche Simulationsticks auszuführen.
+[Performance-Anbindung und Overlay](performance.md) beschreiben diese Ergänzung.
 
 Die vorhandene Eingabeverarbeitung in [input/](../test_app/src/input/mod.rs)
 verarbeitet Bevy-Tastaturzustände und Mausbewegungen. Der

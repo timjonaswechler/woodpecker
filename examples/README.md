@@ -16,6 +16,11 @@ the player stops. Then choose the workflow you need.
 For more detailed automation, [check movement, enter Unicode text or replay
 inputs with the supplied Python programs](game_tests/README.md).
 
+For repeatable rendered Warp measurements and the native FPS check, use
+[`performance.py`](performance.py) with the [performance guide](../docs/performance.md).
+It starts real windows directly through the game protocol, not the server,
+and is separate from acceptance.
+
 ## Before you start
 
 [Build the game and start a local server](game_tests/README.md#prepare-the-game-and-server).

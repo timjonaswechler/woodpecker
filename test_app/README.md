@@ -38,6 +38,25 @@ E verschiebt das jeweilige Hindernis. Die Bewegung wartet, wenn ihr Bewegungsrau
 
 Vor der Entdeckung ist nur der sichtbare Antritt als Klickziel zugänglich. Eine globale Route nutzt den Durchgang erst nach dem Betreten und mit zwei passierbaren Portalen. Übersicht und Gesamtkarte schneiden den bekannten Innenraum nur in der Nähe der Figur auf; unbekannte Nachbarbereiche bleiben geschlossen. In FPV bleiben Wände und Decken sichtbar. Der Schnitt verändert weder Körper-, Interaktions- noch Schussblocker. Backspace erhält den Fortschritt; R setzt Figur, Portale, Erkundung, Funde und Navigation gemeinsam zurück.
 
+## Performance-Anzeige
+
+`--performance-overlay` zeigt FPS, Anwendungsticks pro Sekunde (TPS), den realen
+Simulationsfaktor und Warp-Fortschritt; F8 schaltet die Anzeige um. Die Werte
+werden etwa alle 250 ms aktualisiert, auch wenn die Simulation pausiert.
+In kontrollierten Sessions wirkt nur virtuelles F8 mit einem expliziten Tick.
+`--uncapped` wählt einen PresentMode ohne VSync, soweit das Backend ihn unterstützt;
+ohne Flag bleibt der bisherige VSync-Standard erhalten. Beide Optionen wirken
+unabhängig vom Feature `automation` und verändern keine gespeicherten Settings.
+
+```sh
+cargo run -p test_app -- --uncapped --performance-overlay
+```
+
+Für kontrollierte Sessions gehören die Flags in `launch.arguments`.
+Die Anbindung aktiviert bereits die größeren Warp-Batches und registriert ihre
+zusätzlichen GPU-Assets. [Integration und Messverfahren](../docs/performance.md)
+erklären die Grenzen; FPS und TPS sind unterschiedliche Größen.
+
 ## Steuerung
 
 | Eingabe | Aktion |

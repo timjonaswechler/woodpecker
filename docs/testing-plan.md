@@ -5,10 +5,52 @@ Mutationsprüfungen (Schritte 1–7) ist abgeschlossen. Hier bleiben Abnahmestan
 verbindliche Regeln und offene PR-Aufgaben; keine erledigte Einzelarbeitsliste.
 
 Ausführung und Inventar: [Testanleitung](../tests/README.md).
+Planung zur Fensterwiederverwendung: [thematische Testgruppen](testing-window-groups.md)
+(Bestandsaufnahme, noch keine beschlossene Reihenfolge oder Runner-Änderung).
 Öffentliche Abläufe: [Spieltest-Beispiele](../examples/README.md).
 Fehlersensitivität: [Mutationsanleitung](../tests/mutations.md).
 
-## Aktuelle Erweiterung: vorbereitete Programme und kleinerer Buildgraph
+## Aktuelle Erweiterung: Warp-Durchsatz und Performance-Anzeige
+
+Auf `feat/warp-throughput-overlay` sind opt-in größere Tick-Batches,
+getrennte Asset-Nachrichten für den Renderer und ein unabhängiges FPS-/TPS-Overlay
+umgesetzt. Kein Compilerprofil oder Grafikqualitätsniveau wurde dafür geändert.
+Integration und wiederholbare Messungen stehen in [performance.md](performance.md).
+
+- Inventar: **95 Produkttests**, davon 94 lokal und einer extern; mit der
+  typisierten Negativkontrolle 96 Einträge. Der neue interne Test prüft echte
+  Bevy-Nachrichtenpuffer über mehrere Ticks und getrennte App-/Render-Lesecursor.
+- 81 Harness-, zehn Planungs- und 21 Spieltests, Feature-Matrix, Workspace-Check,
+  Format und Workspace-Clippy mit `-D warnings` bestanden. Die fensterlose
+  Auswahl bestand mit dem erwarteten Exit 2
+  ([Beleg](../target/test-runs/acceptance-7na4ey9e/summary.json)).
+- Die vollständige lokale Abnahme bestand mit **94 Produkttests plus Kontrolle**
+  ([Beleg](../target/test-runs/acceptance-ccdyl68a/summary.json)); echtes GitHub
+  wurde nicht erneut ausgeführt. Ausschließlich test-eigene Spielfenster wurden
+  bei Bedarf nativ aktiviert, ohne OS-Spielinputs, Resize oder zusätzliche Ticks.
+  Der vorherige Lauf scheiterte beim Replay-Startup an `window surface=false`
+  trotz vorbereiteter GPU-Assets. Er bleibt ein fehlgeschlagener Nachweis
+  ([Beleg](../target/test-runs/acceptance-d7s5hzwr/summary.json)); Surface-Prüfungen
+  und Tests wurden nicht abgeschwächt.
+- Der fehlerhafte ungeschützte Batch verlor im direkten Rendernachweis die Szene.
+  Dieser Fall schlägt im Bild-Evaluator fehl. Mit getrenntem Asset-Strom bestehen
+  Bildprüfung, Clock-/Pace-/Stop-Prüfung und der gezielte Nachrichten-Regressionstest.
+- Auf dem lokalen M1 Pro mit internem Display erreichten drei identische
+  600-Tick-Warps im Dev-Profil im Median rund **172 TPS vorher und 549 TPS mit
+  Overlay**. Jede neue Einzelmessung lag über der schnellsten Referenz; die
+  gemessenen Inspect-/Stop-Maxima stiegen nicht
+  ([Referenz](../target/test-runs/performance/resumed/proof-reference/result.json),
+  [Overlay aus](../target/test-runs/performance/resumed/proof-off/result.json),
+  [Overlay an](../target/test-runs/performance/resumed/proof-on/result.json)).
+  Das ist ein lokaler Vergleich, kein Hardware-unabhängiges Leistungsversprechen.
+- Der native Uncapped-Lauf zeigte im festgelegten Messfenster rund **132 FPS
+  im Median**. Verdeckungsbedingte Einbrüche bleiben in den Rohdaten enthalten
+  ([Beleg](../target/test-runs/performance/resumed/proof-native-exposed/result.json)).
+
+Die folgenden Abschnitte dokumentieren frühere Quellstände und behalten deren
+jeweilige Inventarzahlen und Nachweise.
+
+## Frühere Erweiterung: vorbereitete Programme und kleinerer Buildgraph
 
 Auf `feat/shared-application-tests` sind rendererfreier CLI-/Host-Build,
 zusammengefasste prozessisolierte Rust-Verträge, kleine echte Abort-Fixture und

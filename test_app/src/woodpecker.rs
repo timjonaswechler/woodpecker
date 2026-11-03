@@ -61,7 +61,12 @@ pub fn install(app: &mut App) {
             woodpecker::session::VIRTUAL_POINTER_ID,
         ))
         .insert_resource(bevy::winit::WinitSettings::continuous())
-        .add_plugins(woodpecker::session::Plugin);
+        .add_plugins(woodpecker::session::Plugin)
+        .add_plugins(
+            woodpecker::session::ThroughputPlugin::default()
+                .with_asset::<StandardMaterial>()
+                .with_asset::<bevy::gizmos::GizmoAsset>(),
+        );
     crate::diagnostics::install(app);
     if std::env::args().any(|arg| arg == "--woodpecker-diagnostics")
         && std::env::args().any(|arg| arg == "--woodpecker-process-probe")

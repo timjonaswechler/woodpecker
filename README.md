@@ -65,6 +65,10 @@ renderer. It uses Bevy Render types to guard an application-installed RenderApp:
 extraction and rendering begin after the first completed explicit tick, then
 continue while simulation is paused. Startup never runs a hidden warm-up tick.
 
+The optional `session::ThroughputPlugin` retains render-asset notifications across
+larger maximum-speed Warp batches. Register additional GPU asset types explicitly;
+see [Warp throughput and performance diagnostics](docs/performance.md).
+
 | Feature | Entry points |
 | --- | --- |
 | `ui` | Virtual legacy UI interaction and focused text input |
@@ -76,7 +80,7 @@ continue while simulation is paused. Startup never runs a hidden warm-up tick.
 ## Tests
 
 The [acceptance guide](tests/README.md) is the executable entry point. There are
-94 product tests: 93 local cases and one separately authorized real GitHub case.
+95 product tests: 94 local cases and one separately authorized real GitHub case.
 The common local run also checks the existing deliberate negative control and
 the feature/build matrix. Harness checks are separate, not extra product cases.
 
