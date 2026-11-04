@@ -2,7 +2,7 @@
 
 **Technischer Plan R05 · deutsch · Basis 5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4 · keine Implementierung.**
 
-Veröffentlichungsfassung für den Arbeits-PR: Rechte-, CI- und Herkunftsangaben sind an den Folgeauftrag angepasst. Der technische Inhalt der Abschnitte 3–11 bleibt gegenüber R05 unverändert; zwei überzählige Markdown-Codezäune wurden entfernt.
+Veröffentlichungsfassung für den Arbeits-PR: Rechte-, CI- und Herkunftsangaben sind an den Folgeauftrag angepasst. Der technische Inhalt der Abschnitte 3–11 bleibt gegenüber R05 unverändert; zwei überzählige Markdown-Codezäune wurden entfernt. Der nachträglich ergänzte [Abschnitt 15](#15-ergänzung-gemeinsame-testausführung) integriert die Befunde zur gemeinsamen App-Nutzung; er gehört nicht zur historischen R05-Reviewzustimmung.
 
 ## 1. Entscheidung in Kürze
 
@@ -18,7 +18,7 @@ Maßgeblich: [Coverage](COVERAGE.json), [Arbeitsumfang und Herkunft](README.md#a
 
 Der Folgeauftrag erlaubt ausdrücklich, die CI im Quellcode zu deaktivieren und diesen Arbeits-PR mit Branch, Commits und Push anzulegen. Der einzige Workflow wird dafür inhaltlich unverändert nach `.github/disabled-workflows/` verschoben, bevor Remote-Schreibaktionen stattfinden. Repository-/Actions-Einstellungen und Branchschutz bleiben unberührt. Die Pause gilt für diesen Branch, auf `main` erst nach einem gesonderten Merge.
 
-Produktquellen, Assets, Settings, Tests und ADRs bleiben in diesem PR unverändert. Die fremde lokale `docs/testing-window-groups.md` ist nur eine gelesene Quelle, keine eigene Leistung, kein mitveröffentlichtes Artefakt und keine beschlossene Testgruppierung.
+Produktquellen, Assets, Settings, Tests und ADRs bleiben in diesem PR unverändert. Der anschließende dokumentarische Folgeauftrag nimmt die bereits erstellte [Bestandsaufnahme zur Fensterwiederverwendung](../testing-window-groups.md) in die Teststrategie auf. Ihr Inhalt bleibt unverändert; die Kandidaten sind weder eine beschlossene Ausführungsreihenfolge noch bereits gemeinsam validierte Tests. Dieser Zusatz erlaubt noch keinen Runner- oder Produktumbau.
 
 Keine CI-Ausführung, Workflowdispatches/Reruns, echten Provider-/GitHubtests, Tags oder Releases. Die PR-Freigabe ist insbesondere keine Freigabe für P20/G12. Keine lokalen Builds, Spiel-/GUI-/GPUläufe, VMs, Toolchaininstallation, Desktopaktionen oder Beendigung fremder Prozesse. Produktimplementierung und Runtime-Proofs benötigen weiterhin eine passende neue Freigabe; ein PR oder Testflag ist keine Erlaubnis.
 
@@ -402,3 +402,135 @@ Die Planungsanalyse verwendete fünfzehn lokal gepinnte Dependency-Primärquelle
 Dieser Arbeits-PR liefert Plan, Inventar und reversible CI-Pause, keine Headlessimplementierung und keinen Runtimeproof. Die fünf vollständigen Council-Runden mit insgesamt fünfzehn Einzelreviews endeten mit einer bedingten Zustimmung zum Plan; Einzelheiten und Nachweisgrenzen stehen im [Reviewstatus](README.md#reviewstatus). Alle zwölf Runtime-/Entscheidungsgates bleiben offen.
 
 Nächster Produktschritt wäre nach gesonderter Freigabe W00: aktuelle Quell-/Testbaseline, additive Verträge und Proofspecs festlegen. Vor einer Ready-/Readbackfreigabe muss insbesondere der öffentliche, nebenwirkungsfreie GPU-Fehlerbeobachtungshook aus G02/G03/G04/G09 tatsächlich belegt sein. Danach folgt der begrenzte W01–W05-Vertikalslice; UI, Gesamtspiel, Persistenz, Zoo und Plattformqualifikation bleiben spätere eigenständige Pflichtpakete.
+
+## 15. Ergänzung: gemeinsame Testausführung
+
+### 15.1 Zwei getrennte Fragen, eine Testintegration
+
+Auf den nachträglichen dokumentarischen Folgeauftrag hin werden die
+[Fensterbefunde und thematischen Testgruppen](../testing-window-groups.md) in die
+Planung aufgenommen. Die Bestandsaufnahme enthält alle 96 Originaleinträge mit
+Quellverweisen, außerdem die separat gezählten Performance-Messblöcke und
+Anwender-Beispiele. Sie ergänzt die **Ausführungsplanung**, nicht die fachliche
+Disposition aus COVERAGE.json.
+
+Zwei Entscheidungen müssen pro Test getrennt festgehalten werden:
+
+- **Renderanforderung:** rendererfreie Logik, echte Offscreen-Ausgabe oder echter
+  nativer Fenster-/OS-Nachweis. Hierfür bleiben die Dispositionen und
+  Native-Restaussagen aus Abschnitt 10.1/COVERAGE.json maßgeblich.
+- **App-Lebensdauer:** kompatible laufende App weiterverwenden, mehrere Sessions
+  parallel benötigen, einen echten frischen Start verlangen oder eine App
+  endgültig beenden. Headless allein beseitigt weder Startkosten noch
+  Zustandskontamination; ein gemeinsames natives Fenster beweist umgekehrt keine
+  Offscreenfähigkeit.
+
+Ziel ist **möglichst eine App pro kompatiblem Profil und benötigter Lebensdauer**,
+kein neuer Spielprozess pro Test und kein einziges globales Fenster um jeden
+Preis. Das gilt für Native und Offscreen jeweils mit eigenem Ergebnisnachweis.
+Die bisherige R05-Aussage in Abschnitt 10.1 bleibt als Istgrenze richtig: Heute
+teilen nur zehn Eingabetests ihre App. Die zusätzliche Gruppierung wird jetzt
+bei W00/W10 mitgeplant, bleibt aber eine gesondert zu beweisende
+Fixture-/Harness-Änderung und keine Voraussetzung für den frühen W01–W05-Slice.
+
+### 15.2 Quellenbasierte Wiederverwendungskandidaten
+
+Die folgende Kurzzuordnung ist keine Startreihenfolge und keine zugesagte
+Fensterzahl. Die vollständige Zuordnung je Test steht ausschließlich in der
+[Bestandsaufnahme](../testing-window-groups.md); ein Python-Modul bezeichnet dort
+jeweils seinen einzelnen Originalowner.
+
+- **Haupt-App:** 35 Kandidaten einschließlich Nulltick-Startprüfungen, Inspect,
+  Keyboard/Pointer/Text, Ticks/Pace, Screenshots, Recording/Replay, CLI/REPL,
+  Clienttrennung, nichtfatalem Report und typisierter Kontrolle. Heute sind nur
+  die zehn Eingabeowner angeschlossen. Start-, Live- und Abschlussphasen müssen
+  separat erhalten bleiben; diese 35 Fälle sind noch kein bestandener Verbund.
+- **Direktes SDK:** vier Kandidaten für einen gemeinsamen echten Session-Owner.
+  Pending-/History-Verträge nicht durch CLI-Aufrufe ersetzen. Der aktuelle
+  Rust-Prozessisolationsmechanismus muss ausdrücklich berücksichtigt werden;
+  ein anderes Wrapper-Binary allein teilt keine App.
+- **Abweichende Profile:** zehn Einträge mit Engine-/Faultstartup,
+  Applicationclock, Diagnosemodi, Activity-/Dateilimits, Fakeprovider oder eigener
+  Snapshot-Binary. Erfolgreiche Apps innerhalb eines kompatiblen Profils
+  weiterverwenden; echte Startvarianten nicht durch Warmreset ersetzen.
+- **Mehrsession:** acht Einträge. Ein kompatibles Paar darf mehrere
+  nichtterminale Fälle tragen; Datei-/Input-/Requestisolation und ein frischer
+  Replay-Zielkontext bleiben echte Nachweise.
+- **Terminale Fälle:** elf Einträge. Passende zuvor genutzte Apps möglichst hier
+  abschließen; verschiedene Shutdown-/Panic-/Exit-/Drop-Pfade brauchen jedoch
+  verschiedene Lebensdauern. Ein benötigter tick-/commandfreier Start-/Endfall
+  darf nicht unbemerkt zu einer warmen Gameplayprüfung werden.
+- **Ohne natives Spielfenster:** 27 Einträge nicht in die Grafikfixture zwingen.
+  Server-, Peer- und World-Prozessisolation kann trotzdem sinnvoll bleiben.
+- **Echter GitHubfall:** ein separat freizugebender externer Eintrag, weiterhin
+  P20/G12. Weder automatischer Bestandteil einer gemeinsamen App-Gruppe noch
+  Headless-/Grafiknachweis.
+
+### 15.3 Anschluss an Arbeitspakete und Abnahme
+
+Die folgenden Liefergegenstände ergänzen die spätere Ausführung von W00/W10;
+COVERAGE.json, die 22 geplanten Proofs und die zwölf offenen Gates werden dafür
+nicht rückwirkend geändert oder als bestanden markiert.
+
+- **W00 — Testausführungsvertrag:** Jeden Originalowner aus COVERAGE.json mit
+  seiner Ausführungsgruppe verbinden. Bei Python den eindeutigen Modulnamen auf
+  die vollständige Original-ID auflösen; Rust-/Control-IDs exakt übernehmen.
+  Pro Fall Render-/Binary-/Clock-/Providerprofil, direkten SDK- oder Serverowner,
+  benötigte Startphase, explizite Vorbereitung, Reset-/Dateivorbedingungen,
+  terminale Aktion und eventuell verschobene Endassertions festhalten.
+  Noch keine Reihenfolge aus den Tabellenpositionen ableiten.
+- **W07/W08 — Zustands- und Abschlussbeweise:** Gemeinsame Signalstation-Fixture,
+  Mehrsession- und Owner-Lebensdauern bleiben den ursprünglichen Tests zugeordnet.
+  Der heutige F9-Reset stellt weder Zeit/History noch Recording/Replay/Pending,
+  Reportjobs oder alle Dateizustände zurück. F9 kollidiert außerdem mit der
+  ReportProbe. Erweiterungen brauchen explizite Teststeuerung und unabhängige
+  Vor-/Nachbedingungen; kein breiterer Reset darf Fehler verdecken. P10/P11/P12/P22
+  und ihre ursprünglichen Orakel bleiben vollständig.
+- **W10 / P15 / G11 — Runnerintegration:** Einzeltest, thematische Gruppe und
+  Gesamtlauf führen dieselben Originalowner aus. Ein Einzeltest erhält nur seine
+  nötige Vorbereitung, keine ungefragten Vorgängertests. Profile/Phasen bestimmen
+  die Wiederverwendung; ein unverträglicher persistenter Kontext wird sichtbar
+  abgelehnt, nicht still ersetzt. Native-/Offscreen-Ergebnisse und die
+  Prozess-/Fensterzahl des tatsächlich gewählten Laufs werden getrennt belegt.
+- **W10 / P18 — Performance und Beispiele:** Kontrollierte Warps, Pause,
+  Inspect-/Stop-Latenzen und Verify nutzen bereits ein Game je Messaufruf.
+  Native Messung und verschiedene Binaries behalten getrennte Lebensdauern.
+  Eine gemeinsame App mit dem normalen Runner braucht zuerst einen passenden
+  gemeinsamen Owner/Messadapter; niemals zwei Leser derselben Spiel-Pipes oder
+  einen Vergleich von CLI-Gesamtlaufzeit mit bisherigen direkten Warp-Zeiten.
+  Headless-Messadapter, OS-Aufruf-Negativguards und eigene Baselines aus P18
+  bleiben unverändert Pflicht. Beispiele bleiben ohne Suite-Imports nutzbar.
+
+Für die Gruppierung sind bei P15 insbesondere zusätzliche Nachweise einzuplanen:
+
+- Gleiche PID/Session und geprüftes Profil innerhalb einer geteilten Gruppe;
+  zusätzliche Starts nur mit ausgewiesenem Grund. Das gilt für alle geplanten
+  Repeats einer Messung ebenso wie für funktionale Fälle.
+- Zustandsabhängige Fälle nach dokumentierter Vorbereitung auch einzeln und in
+  anderen zulässigen Reihenfolgen; absichtlich stehengebliebene Inputs, Pace,
+  Dateien, Symlinks oder offene Arbeit müssen vor dem nächsten Fall auffallen.
+- Manual-Nulltick- und Before-First-Tick-Capture vor jedem Warm-up/Reset;
+  Engine-Startup mit seinem echten separaten Startvertrag. Keine Zählernullung
+  als Ersatz für eine neue Lebensdauer, wo Frische Teil des Vertrags ist.
+- Activity-/Request-/Dateibelege je Fall abgrenzen; gleiche Reportsignatur darf
+  Created/Existing nicht zufällig von der Testreihenfolge abhängig machen.
+- Dauerhafte Report-/Recording-Dateien und Nicht-Duplizierung erst nach echtem
+  Owner-/Server-Join final bewerten. Ein Test mit aufgeschobener Endassertion ist
+  vorher noch nicht bestanden; sein Fehlschlag wird weiterhin ihm zugeordnet.
+- Unerwarteter Fehler, kontaminierter Zustand oder unbestätigter Cleanup sperrt
+  weitere Nutzung, ohne Retry/Ersatzprozess. Nur die genau erwartete typisierte
+  Negativkontrolle ist kein Appfehler. Exit- und Teilnachweisregeln erhalten.
+
+### 15.4 Planstatus und nächster Entscheidungspunkt
+
+Diese Ergänzung integriert Befunde, **keinen bereits ausgeführten Testumbau**.
+Die fünf historischen Council-Runden gelten dem R05-Kern, nicht diesem neuen
+Abschnitt. R05-Coverage, Review-Rohbelege und frühere Publikationschecks bleiben
+historisch unverändert; eine spätere Prüfung des erweiterten PR-Umfangs muss die
+zusätzlich aufgenommene Bestandsaufnahme ausdrücklich einschließen.
+
+Als Nächstes ist die konkrete Reihenfolge innerhalb der kompatiblen Profile und
+zwischen Start-/Live-/Endphasen gemeinsam festzulegen. Erst anschließend nach
+passender Freigabe die Fixture-/Runneränderungen umsetzen und ihre neuen
+Nachweise ausführen. CI bleibt pausiert; kein Build, App-/GPU-/Providerlauf und
+keine Implementierungsfreigabe entsteht aus dieser Dokumentergänzung.

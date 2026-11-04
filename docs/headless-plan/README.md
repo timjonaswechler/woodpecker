@@ -7,6 +7,8 @@ Readback und den bestehenden Session-, Input-, Recording- und Replayverträgen.
 
 - [Integrationsplan](PLAN.md): Architektur, Lifecycle, Orakel, Pakete W00–W12 und offene Gates.
 - [Coverage](COVERAGE.json): vollständige Zuordnung der Originalowner, zusätzlichen Owner und geplanten Proofs.
+- [Gemeinsame Testausführung](PLAN.md#15-ergänzung-gemeinsame-testausführung): Anschluss der Fensterbefunde an W00/W10, P15/P18 und G11.
+- [Thematische Testgruppen](../testing-window-groups.md): vollständige Bestandsaufnahme mit Wiederverwendungskandidaten und ihren Voraussetzungen; noch keine Ausführungsreihenfolge.
 - [CI-Pause und Reaktivierung](../../.github/disabled-workflows/README.md): unverändert archivierter Workflow; keine Repository-/Actions-Einstellungsänderung.
 
 ## Arbeitsumfang
@@ -16,12 +18,17 @@ Arbeits-PR. Die CI ist **auf diesem Branch** pausiert; `main` übernimmt die Än
 erst durch einen gesonderten Merge. Lokale Builds, App-/GUI-/GPU-Läufe, Installationen,
 Produktimplementierung und echte Provider-/GitHubtests sind damit nicht freigegeben.
 Insbesondere bleibt der Realprovider-Proof P20/G12 ein separater Auftrag.
+Der spätere dokumentarische Folgeauftrag ergänzt die Befunde zur gemeinsamen
+App-Nutzung in der Testplanung. Er erlaubt weder den Runner-Umbau noch neue
+Builds, App-/GPU-Läufe, CI-Ausführung oder Provideraktionen.
 
 Die technische Basis ist Repository-Commit
 [`5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4`](https://github.com/timjonaswechler/woodpecker/tree/5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4).
 `PLAN.md` übernimmt den technischen Inhalt der Abschnitte 3–11 unverändert aus R05;
 zwei überzählige Markdown-Codezäune wurden entfernt. Arbeitsrechte, CI-Status und
 Herkunfts-/Handoffangaben wurden für die Veröffentlichung angepasst.
+Der neue Abschnitt 15 verbindet die anschließend eingebrachten Fensterbefunde
+mit der Testintegration; er ist nicht Teil der historischen R05-Reviewzustimmung.
 `COVERAGE.json` bleibt der unveränderte historische R05-Datensatz. Seine Felder
 `head`, `permissions`, `rubric` sowie Referenzen auf lokale Evaluator-/Pinregister
 beschreiben die Planungsrunde, nicht den aktuellen PR-HEAD oder neue Rechte.
@@ -29,8 +36,11 @@ beschreiben die Planungsrunde, nicht den aktuellen PR-HEAD oder neue Rechte.
 Absolute lokale Pfade, interne Thread-/Taskkennungen und Review-Rohbelege werden
 nicht mitveröffentlicht. Die historischen Rubrik-, Baseline-, Owner-Minimum- und
 Evaluatorbelege bleiben lokal; dieser PR enthält deshalb keine eigenständig
-reproduzierbare historische Evaluator-Prüfkette. Die fremde lokale
-`docs/testing-window-groups.md` bleibt unverändert und außerhalb des PRs.
+reproduzierbare historische Evaluator-Prüfkette. Die zuvor nur lokal gelesene
+`docs/testing-window-groups.md` wird auf den dokumentarischen Folgeauftrag hin
+inhaltlich unverändert als zugehörige Bestandsaufnahme aufgenommen. Die frühere
+Fünf-Dateien-Publikationsprüfung beschreibt nur den ursprünglichen Export;
+sie ist kein Nachweis dieser Ergänzung und wird nicht rückwirkend umgeschrieben.
 
 ## Reviewstatus
 
