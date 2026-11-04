@@ -11,6 +11,21 @@ Readback und den bestehenden Session-, Input-, Recording- und Replayverträgen.
 - [Thematische Testgruppen](../testing-window-groups.md): vollständige Bestandsaufnahme mit Wiederverwendungskandidaten und ihren Voraussetzungen; noch keine Ausführungsreihenfolge.
 - [CI-Pause und Reaktivierung](../../.github/disabled-workflows/README.md): unverändert archivierter Workflow; keine Repository-/Actions-Einstellungsänderung.
 
+## Nachgelagerter empirischer Stand
+
+Der [lokale Renderprüfstand](../../tests/prototypes/headless-render-lab/README.md)
+ergänzt inzwischen echte 2D/Metal-Nachweise: sichtbarer InitTick1, pausiertes
+Rendering/Readback, gesunder öffentlicher Fatal-Wrapper und begrenzte
+Ausgabeketten-/Publikationsfehler. Die kleine Opt-in-Integration ist technisch
+sinnvoll; Produktintegration und umfassende Plattform-/Spielabnahme fehlen noch.
+Der öffentliche `pre_extract`-Hook ist im gepinnten Bevy tatsächlich nutzbar;
+ein neuer privater Fehlerdrain ist nicht grundsätzlich Voraussetzung.
+
+Die folgenden Rechte-, Review- und Gateangaben beschreiben weiterhin die
+historische Planungsphase. Sie werden durch die neuen Proben nicht rückwirkend
+als Runtimefreigabe oder bestandene Gesamtabnahme umgedeutet. Die CI-Pause bleibt
+bestehen; der Prüfstand läuft ausschließlich nach expliziter lokaler Freigabe.
+
 ## Arbeitsumfang
 
 Freigegeben ist jetzt die CI-Pause im Quellcode sowie Branch, Commits, Push und

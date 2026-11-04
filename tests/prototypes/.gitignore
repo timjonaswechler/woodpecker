@@ -1,0 +1,5 @@
+# Local historical archives contain machine paths, internal handoffs and raw logs.
+# The portable, reviewed export lives in headless-render-lab/.
+/headless-render-proof/
+/headless-boundary-study/
+/headless-publication-study/

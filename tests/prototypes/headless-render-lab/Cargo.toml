@@ -1,0 +1,30 @@
+# THIRD THROWAWAY STUDY; original packages and all former evidence remain read-only.
+[workspace]
+resolver = "3"
+
+[package]
+name = "woodpecker-headless-publication-study"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97.1"
+publish = false
+
+[features]
+default = ["product-control"]
+product-control = ["dep:woodpecker"]
+
+[dependencies]
+bevy = { version = "=0.20.0", default-features = false, features = ["std", "async_executor", "multi_threaded", "bevy_asset", "bevy_log", "bevy_window", "bevy_camera", "bevy_color", "bevy_image", "bevy_mesh", "bevy_shader", "bevy_material", "bevy_render", "bevy_core_pipeline", "bevy_sprite", "bevy_sprite_render", "png"] }
+wgpu = { version = "=30.0.1", default-features = false, features = ["std", "metal", "wgsl"] }
+pollster = "=0.4.0"
+image = { version = "=0.25.10", default-features = false, features = ["png"] }
+serde_json = "1"
+sha2 = "0.10"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
+woodpecker = { path = "../../..", optional = true, default-features = false }
+
+[profile.dev]
+opt-level = 0
+debug = 0
+incremental = false
