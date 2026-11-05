@@ -1,5 +1,9 @@
 # Erster Produkt-Slice: explizites Image-Capture
 
+[STATUS.md](STATUS.md) führt den aktuellen Gesamtarbeitsplan und die noch offenen
+Pakete. Diese Datei beschreibt den gelieferten Captureadapter und dessen
+belegten Betriebsumfang, nicht die vollständige Headless-Abnahme.
+
 Der enge 2D-/Basis-3D-Metalpfad ist im **Produkt-Captureowner** angeschlossen, nicht
 nur im Wegwerfprüfstand. Native bleibt unverändert Standard. Dieser Slice ist
 kein fensterloser Umbau der Signalstation und keine Vollspiel-/Plattformabnahme.

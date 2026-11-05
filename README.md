@@ -25,6 +25,7 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 
 - **[User guide: learn integration on the real Signalstation game](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
+- [Headless implementation status and remaining work](docs/headless-plan/STATUS.md)
 - [CLI usage](docs/api/usage.md)
 - [Historical implementation notes](docs/api/implementation-plan.md)
 - [Historical handoff snapshots](docs/api/next-steps.md)
@@ -97,7 +98,7 @@ python3 -m tests.acceptance --non-graphical    # passing subset still exits 2
 ```
 
 The latest complete local run and separate real GitHub verification passed.
-The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints)
+The [test plan](docs/testing-plan.md#aktuelle-erweiterung-warp-durchsatz-und-performance-anzeige)
 records their exact source state, evidence and remaining work; this is not a
 claim that every future run or all possible application behavior is verified.
 Rendered runs require explicit scoped permission, an awake desktop and visible

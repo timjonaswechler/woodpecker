@@ -1,5 +1,13 @@
 # Woodpecker vollständig headless integrieren
 
+> **Historischer Gesamtplan R05, keine aktuelle Statusliste.** Für erledigte,
+> teilweise und offene Arbeit sowie den nächsten Anwendungsslice gilt
+> [STATUS.md](STATUS.md). Nachgelagerte Produktimplementierung und echte 2D-/
+> Basis-3D-Nachweise sind in [SLICE.md](SLICE.md) dokumentiert. Formulierungen wie
+> „keine Implementierung“, „alle Gates offen“ und die damaligen Rechte gelten
+> dem historischen Planungsstand. Der technische Kern unten bleibt als Referenz
+> erhalten, nicht als Auftrag, bereits belegte Machbarkeit erneut zu untersuchen.
+
 **Technischer Plan R05 · deutsch · Basis 5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4 · keine Implementierung.**
 
 Veröffentlichungsfassung für den Arbeits-PR: Rechte-, CI- und Herkunftsangaben sind an den Folgeauftrag angepasst. Der technische Inhalt der Abschnitte 3–11 bleibt gegenüber R05 unverändert; zwei überzählige Markdown-Codezäune wurden entfernt. Der nachträglich ergänzte [Abschnitt 15](#15-ergänzung-gemeinsame-testausführung) integriert die Befunde zur gemeinsamen App-Nutzung; er gehört nicht zur historischen R05-Reviewzustimmung.

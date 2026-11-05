@@ -1,90 +1,83 @@
-# Arbeitsrahmen für echte Headlessintegration
+# Headless: Status und Integrationsplan
 
-Dieser Bereich hält den historischen Integrationsplan und seine nachgelagerten
-Nachweise bereit. Der [erste enge Produkt-Slice](SLICE.md) verbindet inzwischen
-explizites 2D-/Basis-3D-Metal-Image-Capture mit dem bestehenden Screenshotowner. Native bleibt
-Standard; Vollspiel, UI/Input ohne Fenster und weitere Plattformen sind nicht abgenommen.
-Das nachgelagerte 3D-Basisprofil belegt echte PBR-Beleuchtung und Schatten ohne
-neuen Captureadapter; es ersetzt keine allgemeine 3D-/Effektqualifikation.
+**Zum Weiterarbeiten zuerst [STATUS.md](STATUS.md) lesen.** Dort stehen der
+aktuelle Umsetzungsstand, erledigte Slice-Liefergegenstände, teilweise/offene
+Arbeitspakete und der nächste konkrete Signalstation-Anwendungsfall.
 
-- [Integrationsplan](PLAN.md): Architektur, Lifecycle, Orakel, Pakete W00–W12 und offene Gates.
-- [Coverage](COVERAGE.json): vollständige Zuordnung der Originalowner, zusätzlichen Owner und geplanten Proofs.
-- [Gemeinsame Testausführung](PLAN.md#15-ergänzung-gemeinsame-testausführung): Anschluss der Fensterbefunde an W00/W10, P15/P18 und G11.
-- [Thematische Testgruppen](../testing-window-groups.md): vollständige Bestandsaufnahme mit Wiederverwendungskandidaten und ihren Voraussetzungen; noch keine Ausführungsreihenfolge.
-- [CI-Pause und Reaktivierung](../../.github/disabled-workflows/README.md): unverändert archivierter Workflow; keine Repository-/Actions-Einstellungsänderung.
-
-## Nachgelagerter empirischer Stand
-
-Der [lokale Renderprüfstand](../../tests/prototypes/headless-render-lab/README.md)
-ergänzt inzwischen echte 2D/Metal-Nachweise: sichtbarer InitTick1, pausiertes
-Rendering/Readback, gesunder öffentlicher Fatal-Wrapper und begrenzte
-Ausgabeketten-/Publikationsfehler. Die kleine Opt-in-Integration ist technisch
-sinnvoll und als [Image-Capture-Slice](SLICE.md) umgesetzt; umfassende Plattform-/
-Spielabnahme und ein Vollspiel-Headlessmodus fehlen noch.
-Der öffentliche `pre_extract`-Hook ist im gepinnten Bevy tatsächlich nutzbar;
-ein neuer privater Fehlerdrain ist nicht grundsätzlich Voraussetzung.
-
-Die folgenden Rechte-, Review- und Gateangaben beschreiben weiterhin die
-historische Planungsphase. Sie werden durch die neuen Proben nicht rückwirkend
-als Runtimefreigabe oder bestandene Gesamtabnahme umgedeutet. Die CI-Pause bleibt
-bestehen; der Prüfstand läuft ausschließlich nach expliziter lokaler Freigabe.
+| Dokument | Zweck |
+| --- | --- |
+| **[STATUS.md](STATUS.md)** | Aktueller Arbeitsplan: erledigt / teilweise / offen, Quellbelege, Abgleich W00–W12 und G01–G12, nächste Etappe mit Abschlusskriterien. |
+| [SLICE.md](SLICE.md) | Verbindlicher Umfang und Betriebsvertrag des implementierten 2D-/Basis-3D-Metal-Captureadapters; Nachweise und Grenzen. |
+| [PLAN.md](PLAN.md) | Historischer Gesamtplan R05: Architektur, Paket-/Proof-IDs und ursprüngliche Abnahmeanforderungen. Keine aktuelle Erledigt/offen-Liste. |
+| [COVERAGE.json](COVERAGE.json) | Unveränderter historischer R05-Owner-/Proofdatensatz. Seine `planning-only`-/`planned-not-executed`-Felder sind kein heutiger Ausführungsstand. |
+| [Gemeinsame Testausführung](PLAN.md#15-ergänzung-gemeinsame-testausführung) / [Fenster-Testgruppen](../testing-window-groups.md) | Historische Originalowner und Kandidaten für Wiederverwendung. Nicht bereits headless ausgeführte oder als Verbund abgenommene Fälle. |
+| [CI-Pause](../../.github/disabled-workflows/README.md) | Archivierter Workflow und gesonderte Reaktivierung; keine Repository-/Actions-Einstellungsänderung. |
 
 ## Arbeitsumfang
 
-Freigegeben ist jetzt die CI-Pause im Quellcode sowie Branch, Commits, Push und
-Arbeits-PR. Die CI ist **auf diesem Branch** pausiert; `main` übernimmt die Änderung
-erst durch einen gesonderten Merge. Lokale Builds, App-/GUI-/GPU-Läufe, Installationen,
-Produktimplementierung und echte Provider-/GitHubtests sind damit nicht freigegeben.
-Insbesondere bleibt der Realprovider-Proof P20/G12 ein separater Auftrag.
-Der spätere dokumentarische Folgeauftrag ergänzt die Befunde zur gemeinsamen
-App-Nutzung in der Testplanung. Er erlaubt weder den Runner-Umbau noch neue
-Builds, App-/GPU-Läufe, CI-Ausführung oder Provideraktionen.
+Produktbaseline dieses Statusabgleichs ist `5493eb1` auf
+[PR #23](https://github.com/timjonaswechler/woodpecker/pull/23). Der enge
+Image-Capturepfad ist implementiert und mit 2D sowie einfachem PBR/Licht/Schatten
+auf Metal nachgewiesen. Native bleibt Standard. Vollspiel, fensterloses Input/UI,
+Image-EngineReady und zusätzliche Supportprofile sind noch nicht abgenommen.
 
-Die technische Basis ist Repository-Commit
+Der nächste Arbeitsumfang ist ein bleibender echter Anwendungsslice:
+**Signalstation headless starten → kontrolliert bereit werden → realen UIbutton
+per Command betätigen → Zustand und PNG prüfen → sauber beenden.** Die konkreten
+offenen Kopplungen, Paketbeiträge und Abschlusskriterien stehen ausschließlich im
+[aktuellen Statusplan](STATUS.md#nächste-etappe-ein-echter-anwendungsfall-noch-offen).
+Keine neue grundsätzliche Machbarkeitsrunde für den bereits belegten Renderer.
+
+Der öffentliche `pre_extract`-Hook ist im gepinnten Bevy nutzbar; der frühere
+vermutete fehlende öffentliche Fehlerdrain ist kein fortbestehender Blocker.
+Eine zulässige Captureantwort bestätigt einen bezeichneten abgeschlossenen Frame
+und den benannten letzten beobachteten Fatalcheck, keine zukünftige Gerätegesundheit.
+
+CI bleibt auf diesem Branch pausiert. Ein Statusdokument erteilt keine neue
+App-/GPU-/Installations-/Providerfreigabe. Echter GitHub-/Providerlauf bleibt ein
+separater Auftrag und kein lokaler Headlessblocker. Ein Merge, Release oder eine
+CI-Reaktivierung folgt nicht automatisch aus Implementierung oder Teilnachweisen.
+
+## Herkunft und historische Aussagen
+
+Die technische R05-Basis ist
 [`5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4`](https://github.com/timjonaswechler/woodpecker/tree/5d6ccd67321aacf69a3ee6ec9527fe7290af1ed4).
-`PLAN.md` übernimmt den technischen Inhalt der Abschnitte 3–11 unverändert aus R05;
-zwei überzählige Markdown-Codezäune wurden entfernt. Arbeitsrechte, CI-Status und
-Herkunfts-/Handoffangaben wurden für die Veröffentlichung angepasst.
-Der neue Abschnitt 15 verbindet die anschließend eingebrachten Fensterbefunde
-mit der Testintegration; er ist nicht Teil der historischen R05-Reviewzustimmung.
-`COVERAGE.json` bleibt der unveränderte historische R05-Datensatz. Seine Felder
-`head`, `permissions`, `rubric` sowie Referenzen auf lokale Evaluator-/Pinregister
-beschreiben die Planungsrunde, nicht den aktuellen PR-HEAD oder neue Rechte.
+Der technische Inhalt von `PLAN.md` Abschnitten 3–11 bleibt unverändert; zwei
+überzählige Markdown-Codezäune wurden beim ursprünglichen Export entfernt.
+Abschnitt 15 ergänzt die anschließend eingebrachten Fenster-/Gruppenbefunde und
+ist nicht Teil der historischen R05-Reviewzustimmung.
+
+Ursprüngliche Angaben wie „nur Planung“, „keine Produktimplementierung“, „alle
+Gates offen“ oder damalige fehlende Ausführungsrechte beschreiben diese
+Planungsphase. Sie überschreiben weder die späteren expliziten Aufträge noch die
+in `SLICE.md` und `STATUS.md` benannten Implementierungen und echten Nachweise.
+R05-Typnamen, neue Pfade und v2/v4-Versionsvorschläge bleiben Vorschläge; tatsächliche
+heutige Interfaces sind im [Produktvertrag](../api/target.md) und Quellcode beschrieben.
+
+`COVERAGE.json` bleibt der historische Datensatz einschließlich seiner Felder
+`head`, `permissions`, `rubric` und Referenzen auf lokale Evaluator-/Pinregister.
+Aktuelle Testdiscovery und Ausführung kommen aus der [Abnahmesuite](../../tests/README.md),
+nicht aus rückwirkend auf grün gesetzten R05-Zeilen. Alte Fehlbelege, Quellstände
+und ursprüngliche fachliche Testorakel werden nicht überschrieben.
 
 Absolute lokale Pfade, interne Thread-/Taskkennungen und Review-Rohbelege werden
-nicht mitveröffentlicht. Die historischen Rubrik-, Baseline-, Owner-Minimum- und
-Evaluatorbelege bleiben lokal; dieser PR enthält deshalb keine eigenständig
-reproduzierbare historische Evaluator-Prüfkette. Die zuvor nur lokal gelesene
-`docs/testing-window-groups.md` wird auf den dokumentarischen Folgeauftrag hin
-inhaltlich unverändert als zugehörige Bestandsaufnahme aufgenommen. Die frühere
-Fünf-Dateien-Publikationsprüfung beschreibt nur den ursprünglichen Export;
-sie ist kein Nachweis dieser Ergänzung und wird nicht rückwirkend umgeschrieben.
+nicht mitveröffentlicht. Die ursprünglichen Rubrik-/Owner-/Evaluatorbelege bleiben
+lokal; der Export ist keine eigenständig reproduzierbare historische Evaluator-
+Prüfkette. Frühere Fünf-Dateien-Publikationschecks decken spätere Ergänzungen nicht
+rückwirkend ab.
 
 ## Reviewstatus
 
-Die Planung durchlief fünf vollständige Council-Runden mit jeweils drei unabhängig
-ausgeführten Reviews für Architektur, Sicherheit und Tests. Alle verwendeten
-GPT-6.1 Sol in Pi mit `thinking=xhigh`. Die abschließenden subjektiven Bewertungen
-waren 9,2 / 9,3 / 9,1 mit Zustimmung **zum bedingten Plan**, nicht zur Laufzeitfähigkeit.
-Alle zwölf Gates bleiben offen; kein Runtime-Proof wurde ausgeführt.
+**Historischer R05-Review, nicht heutige Laufzeitfreigabe:** fünf vollständige
+Council-Runden mit jeweils drei unabhängig ausgeführten Architektur-/Sicherheits-/
+Testreviews. Alle verwendeten GPT-6.1 Sol in Pi mit `thinking=xhigh`. Die letzten
+subjektiven Bewertungen 9,2 / 9,3 / 9,1 galten dem bedingten Plan. Damals waren alle
+zwölf Gates offen und noch kein Runtime-Proof ausgeführt.
 
-Der historische Offline-Evaluator v5 bestand seine Positivfixture und 30 negative
-Fixtures. Das ist weder ein vollständiges finales Packaging-Audit noch ein
-Produkt-/GPU-Test. Die für die Veröffentlichung neu geprüften Eigenschaften sind
-CI-Pause, unveränderte Workflowdaten, Dokumentlinks, JSON-Struktur, Referenzen und
-unveränderter technischer R05-Inhalt.
-
-## Historischer erster Implementierungsauftrag
-
-Der inzwischen belegte und umgesetzte enge Slice steht in [SLICE.md](SLICE.md).
-Die folgende Reihenfolge bleibt die historische Planung, kein Auftrag zu weiteren
-Machbarkeitsrunden vor diesem Slice.
-
-Nach passender Freigabe mit W00 beginnen: neue Quell-/Testbaseline und additive
-Verträge festlegen. Früh den öffentlichen GPU-Fehlerbeobachtungs-/Publisher-Hook
-für G02/G03/G04/G09 beweisen. Ein Queuecallback allein ist kein GPU-Erfolgsnachweis.
-Erst danach den echten W01–W05-Render-/Readbackslice freigeben; die späteren
-Vollapp-/UI-/Input-/Recording-/Replay-/Zoo-/Plattformnachweise bleiben Pflicht.
+Der damalige Offline-Evaluator v5 bestand seine Positivfixture und 30 negative
+Fixtures. Das ist kein aktueller Produkt-/GPU-Test oder vollständiges finales
+Packaging-Audit. Die heutige Evidenz steht beim jeweiligen
+[Slice](SLICE.md#prüfung-und-wiederholung) und [Statusbeitrag](STATUS.md#bereits-erledigt-im-gelieferten-slice).
 
 ## Sichere Dokumentchecks
 
@@ -92,9 +85,10 @@ Ohne Builds, Appstart oder GPU-Ausführung:
 
 ```sh
 python3 -B -m json.tool docs/headless-plan/COVERAGE.json >/dev/null
-git diff --check upstream/main...HEAD
+git diff --check
 test -z "$(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml')"
 ```
 
-Diese Checks belegen ausschließlich Dokument-/Workflowstruktur, keine
-Implementierungsreife und keine bestandene Gesamtabnahme.
+Diese Checks bestätigen Dokument-/Workflowstruktur, keine neue Runtime-Abnahme.
+Bei einer weiteren Etappe `STATUS.md` fortschreiben und neue Evidenz mit ihrem
+wirklichen Source-/Profilbezug verlinken; historische Dokumente nicht umetikettieren.
