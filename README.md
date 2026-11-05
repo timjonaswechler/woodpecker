@@ -73,7 +73,7 @@ see [Warp throughput and performance diagnostics](docs/performance.md).
 | --- | --- |
 | `ui` | Virtual legacy UI interaction and focused text input |
 | `screenshot` | GPU readback and sandboxed PNG output in rendered applications |
-| `offscreen` | Explicit image-target capture on the qualified 2D/Metal path; includes `screenshot` |
+| `offscreen` | Explicit image-target capture on qualified 2D and basic 3D/Metal paths; includes `screenshot` |
 | `server` | Local session management and HTTP/WebSocket serving |
 | `client` | Network management and fixed-session access |
 | `cli` | The `woodpecker` executable |
@@ -86,7 +86,7 @@ path isolation and explicit ticks; it does not turn the full game into a headles
 
 The [acceptance guide](tests/README.md) is the executable entry point. There are
 98 product tests: 97 local cases and one separately authorized real GitHub case.
-The separate [four-case offscreen SDK proof](tests/fixtures/offscreen/README.md)
+The separate [eight-case offscreen SDK proof](tests/fixtures/offscreen/README.md)
 requires explicit local GPU permission and is not an automatic acceptance/CI run.
 The common local run also checks the existing deliberate negative control and
 the feature/build matrix. Harness checks are separate, not extra product cases.

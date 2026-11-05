@@ -1,6 +1,6 @@
 # Erster Produkt-Slice: explizites Image-Capture
 
-Der enge 2D/Metal-Pfad ist jetzt im **Produkt-Captureowner** angeschlossen, nicht
+Der enge 2D-/Basis-3D-Metalpfad ist im **Produkt-Captureowner** angeschlossen, nicht
 nur im Wegwerfprüfstand. Native bleibt unverändert Standard. Dieser Slice ist
 kein fensterloser Umbau der Signalstation und keine Vollspiel-/Plattformabnahme.
 
@@ -11,8 +11,9 @@ kein fensterloser Umbau der Signalstation und keine Vollspiel-/Plattformabnahme.
    Window/Surface, kein Winit-Plugin, kein PipelinedRenderingPlugin. Das Resource-
    Opt-in erzeugt und deaktiviert selbst keine Fenster oder Renderer.
 3. Ein single-sampled D2-Image mit `Rgba8UnormSrgb`, positiver Größe,
-   RENDER_ATTACHMENT- und COPY_SRC-Usage erzeugen. Eine aktive Camera2d darauf
-   richten, MSAA ausschalten und das Image während der Aufnahme nicht ersetzen.
+   RENDER_ATTACHMENT- und COPY_SRC-Usage erzeugen. Eine aktive Camera2d oder
+   einfache Camera3d darauf richten, MSAA ausschalten und das Image während der
+   Aufnahme nicht ersetzen. Das 3D-Basisprofil nutzt asynchrone Pipelinekompilierung.
 4. **Vor** `session::Plugin` das ausgewählte Handle als Resource einsetzen:
 
 ```rust
@@ -83,10 +84,12 @@ Screenshot-Cancelcommand eingeführt.
 ## Prüfung und Wiederholung
 
 Die [Fixture-Anleitung](../../tests/fixtures/offscreen/README.md) beschreibt
-explizite lokale Builds und vier begrenzte GPUfälle über die echte öffentliche
+explizite lokale Builds und acht begrenzte GPUfälle über die echte öffentliche
 `Session`: RGB/Geometrie, alle Uhren während Pause, Tick2-Änderung, Overwrite,
 Pfadfehler, später und früher eigener logischer DeviceLost sowie unveränderte
-native Auswahl ohne Imagefallback. Kein natives Fenster oder OS-Input.
+native Auswahl ohne Imagefallback sowie vier 3D-Fälle mit Perspektivkamera,
+StandardMaterial, DirectionalLight und tatsächlichem Schattenwurf. Kein natives
+Fenster oder OS-Input.
 
 Der Gerätverlust-Gegenfall wurde zuerst mit generischem `Ended` reproduziert;
 der terminale Unwindpfad schließt diese konkret beobachtete Lücke. Die früheren
@@ -96,8 +99,29 @@ Terminalguards und unveränderte native Ready-Serialisierung. Drei neue interne
 Ownerfälle sind im vorhandenen Acceptance-Inventar registriert; kein Runner-
 Schedulingumbau oder automatischer GPUlauf.
 
-Geprüft: Apple M1 Pro/Metal, macOS27.2, Bevy0.20.0, wgpu30.0.1, 65×49, Camera2d,
-prozedurale Meshes/ColorMaterial, nicht-pipelined, MSAA aus. Andere Größen,
-PBR/3D, UI/Text, Async-Spielassets, Linux/Softwareadapter, Input ohne Fenster,
-Engine-Startup und Vollspiel bleiben separat zu qualifizieren. Das ist fehlende
-Abdeckung, kein Nachweis ihrer Unmöglichkeit. CI bleibt pausiert.
+### Zusätzlich qualifiziertes 3D-Basisprofil
+
+Die [3D-Fixture](../../tests/fixtures/offscreen/src/scene3d.rs) verwendet
+Perspective-Camera3d, einen bewegten Cuboid mit StandardMaterial, eine Bodenfläche,
+ein DirectionalLight und einen512px-Schattenatlas mit einer Kaskade. HDR-
+Zwischenziel, Tonemapping::None, feste Exposure, MSAA/Dither/TAA aus; Ausgabe
+weiterhin RGB8-PNG. Licht-aus und Schatten-aus sind separate echte Renderläufe:
+Der Vergleich belegt Lichtabhängigkeit und27 tatsächlich abgedunkelte Bodenpixel,
+nicht nur gesetzte Komponentenflags. Pause erhält Bild und sämtliche Uhren;
+Tick2 verschiebt den Würfel nach rechts und ändert sein Material auf grün.
+Ein eigener logischer DeviceLost wird auch nach gesundem 3D-Capture typisiert
+beendet, ohne fehlgeschlagene Zieldatei.
+
+Dafür war kein anderer Produkt-Capturepfad nötig. Ein erster synchron
+kompilierender PBR-Lauf überschritt die35-s-Beobachtungsfrist; er bleibt als
+Fehlbeleg erhalten. Qualifiziert ist die danach explizit gewählte asynchrone
+Pipelinekonfiguration, nicht synchroner oder kalter Startup jeder 3D-Anwendung.
+Keine Frist wurde verlängert, kein Warm-up-/Reparaturtick hinzugefügt und kein
+System-/Treiber-Shadercache gelöscht. Die Läufe sind kein Kaltcache-Performancevergleich.
+
+Geprüft: Apple M1 Pro/Metal, macOS27.2, Bevy0.20.0, wgpu30.0.1,65×49, Camera2d/
+ColorMaterial und das beschriebene Camera3d-/StandardMaterial-Basisprofil,
+nicht-pipelined. Andere Größen, weitere PBR-/Posteffekte, UI/Text, Async-Spielassets,
+Linux/Softwareadapter, Input ohne Fenster, Engine-Startup und Vollspiel bleiben
+separat zu qualifizieren. Das ist fehlende Abdeckung, kein Nachweis ihrer
+Unmöglichkeit. CI bleibt pausiert.

@@ -17,8 +17,10 @@ ROOT = SOURCE.parents[2]
 ARTIFACTS = ROOT / "target/headless-product-proof"
 BUILD = Path(os.environ.get("CARGO_TARGET_DIR", ARTIFACTS / "build")).resolve()
 BINARY = BUILD / "debug/woodpecker-offscreen-fixture"
-CASES = ("healthy", "device-loss", "early-loss", "native-default")
-EXECUTION_SOURCES = ("Cargo.toml", "Cargo.lock", "src/main.rs")
+BASE_CASES = ("healthy", "device-loss", "early-loss", "native-default")
+THREE_D_CASES = ("healthy-3d", "shadow-off-3d", "light-off-3d", "device-loss-3d")
+CASES = BASE_CASES + THREE_D_CASES
+EXECUTION_SOURCES = ("Cargo.toml", "Cargo.lock", "src/main.rs", "src/scene3d.rs")
 
 
 def sha(path):
@@ -82,10 +84,12 @@ def bounded(argv, log, seconds, case_root=None):
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("plan", help="list fixed cases; no writes, build or GPU")
+    plan = commands.add_parser("plan", help="list fixed cases; no writes, build or GPU")
+    plan.add_argument("--profile", choices=("all", "2d", "3d"), default="all")
     build = commands.add_parser("build", help="bounded isolated Cargo build; no app execution")
     build.add_argument("--online", action="store_true", help="explicitly permit ordinary Cargo downloads")
-    run = commands.add_parser("run", help="execute the fixed four-case local Metal campaign")
+    run = commands.add_parser("run", help="execute fixed local Metal cases and output oracles")
+    run.add_argument("--profile", choices=("all", "2d", "3d"), default="all")
     run.add_argument("--allow-gpu", action="store_true", help="requires prior explicit local GPU authorization")
     run.add_argument("--name", required=True, help="new artifact directory name; never overwritten")
     run.add_argument("--deadline-utc", help="optional shorter ISO UTC deadline, never longer than two hours")
@@ -102,8 +106,10 @@ def parse_args(argv=None):
 
 def main(argv=None):
     args = parse_args(argv)
+    profile = getattr(args, "profile", "all")
+    cases = {"all": CASES, "2d": BASE_CASES, "3d": THREE_D_CASES}[profile]
     if args.command == "plan":
-        for number, case in enumerate(CASES, 1):
+        for number, case in enumerate(cases, 1):
             print(f"{number:02d} {case}")
         return 0
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
@@ -142,10 +148,10 @@ def main(argv=None):
     ledger = []
     (folder / "RUN.json").write_text(json.dumps({
         "deadline_utc": deadline.isoformat(), "case_limit_seconds": 120,
-         "planned_cases": list(CASES),
+        "planned_cases": list(cases), "profile": profile,
         "binary_sha256": sha(BINARY),
     }, indent=2) + "\n")
-    for number, case in enumerate(CASES, 1):
+    for number, case in enumerate(cases, 1):
         if dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=120) >= deadline - dt.timedelta(minutes=5):
             raise SystemExit("campaign budget exhausted; no retry or additional case")
         case_root = folder / f"{number:02d}-{case}"
@@ -163,6 +169,16 @@ def main(argv=None):
         print(json.dumps(result), flush=True)
         if result["exit_code"] != 0:
             return 2  # retain evidence; never retry or silently replace a failed process
+    if set(THREE_D_CASES).issubset(cases):
+        def frame(case):
+            return folder / f"{cases.index(case)+1:02d}-{case}" / "session/a.png"
+        result = bounded([str(BINARY), "audit-3d", str(frame("healthy-3d")),
+                          str(frame("shadow-off-3d")), str(frame("light-off-3d"))],
+                         folder / "3d-effects.log", 30)
+        (folder / "3D_EFFECTS.json").write_text(json.dumps(result, indent=2) + "\n")
+        print(json.dumps(result), flush=True)
+        if result["exit_code"] != 0:
+            return 2
     return 0
 
 

@@ -25,26 +25,33 @@ struct Counts {
     updates: u64,
     fixed: u64,
 }
+mod scene3d;
+
+#[derive(Resource)]
+struct FaultTick(u64);
+
 #[derive(Resource)]
 struct Scene {
     moving: Entity,
     material: Handle<ColorMaterial>,
-    fault_tick: u64,
 }
 fn update(
     mut counts: ResMut<Counts>,
-    scene: Res<Scene>,
+    scene: Option<Res<Scene>>,
+    fault: Res<FaultTick>,
     mut transforms: Query<&mut Transform>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     device: Res<RenderDevice>,
 ) {
     counts.updates += 1;
-    if counts.updates == 2 {
+    if counts.updates == 2
+        && let Some(scene) = scene
+    {
         transforms.get_mut(scene.moving).unwrap().translation.x = 12.0;
         materials.get_mut(&scene.material).unwrap().color = Color::srgb_u8(0, 255, 0);
     }
-    if counts.updates == scene.fault_tick {
-        if scene.fault_tick == 2 {
+    if counts.updates == fault.0 {
+        if fault.0 == 2 {
             let marker = PathBuf::from(std::env::var_os("WOODPECKER_ARTIFACT_DIR").unwrap())
                 .join("fault-ready");
             let end = Instant::now() + Duration::from_secs(5);
@@ -110,7 +117,7 @@ fn app(mode: &str) {
             })
             .set(RenderPlugin {
                 render_creation: creation,
-                synchronous_pipeline_compilation: true,
+                synchronous_pipeline_compilation: !mode.ends_with("-3d"),
                 ..default()
             })
             .set(bevy::log::LogPlugin {
@@ -125,6 +132,47 @@ fn app(mode: &str) {
     if mode != "native-default" {
         app.insert_resource(session::OffscreenTarget(image.clone()));
     }
+    if mode.ends_with("-3d") {
+        scene3d::install(&mut app, image, mode);
+    } else {
+        install_2d(&mut app, image);
+    }
+    app.insert_resource(ClearColor(Color::BLACK))
+        .init_resource::<Counts>()
+        .insert_resource(FaultTick(match mode {
+            "early-loss" => 1,
+            "device-loss" | "device-loss-3d" => 2,
+            _ => u64::MAX,
+        }))
+        .add_systems(Update, update)
+        .add_systems(FixedUpdate, fixed)
+        .add_plugins(session::Plugin);
+    app.finish();
+    app.cleanup();
+    let root = PathBuf::from(std::env::var_os("WOODPECKER_ARTIFACT_DIR").unwrap());
+    let end = Instant::now() + Duration::from_secs(100);
+    let mut previous = serde_json::Value::Null;
+    loop {
+        assert!(Instant::now() < end, "fixture watchdog; no retries");
+        app.update();
+        let world = app.world();
+        let c = world.resource::<Counts>();
+        let snapshot = serde_json::json!({"updates":c.updates,"fixed":c.fixed,
+            "real_ns":world.resource::<Time<Real>>().elapsed().as_nanos(),
+            "virtual_ns":world.resource::<Time<Virtual>>().elapsed().as_nanos(),
+            "fixed_ns":world.resource::<Time<Fixed>>().elapsed().as_nanos()});
+        if snapshot != previous {
+            std::fs::write(root.join("snapshot.json"), snapshot.to_string()).unwrap();
+            previous = snapshot;
+        }
+        if app.should_exit().is_some() {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(1));
+    }
+}
+
+fn install_2d(app: &mut App, image: Handle<Image>) {
     app.world_mut().spawn((
         Camera2d,
         RenderTarget::Image(image.into()),
@@ -174,43 +222,7 @@ fn app(mode: &str) {
             Transform::from_xyz(x, y, 0.0),
         ));
     }
-    app.insert_resource(ClearColor(Color::BLACK))
-        .init_resource::<Counts>()
-        .insert_resource(Scene {
-            moving,
-            material,
-            fault_tick: match mode {
-                "early-loss" => 1,
-                "device-loss" => 2,
-                _ => u64::MAX,
-            },
-        })
-        .add_systems(Update, update)
-        .add_systems(FixedUpdate, fixed)
-        .add_plugins(session::Plugin);
-    app.finish();
-    app.cleanup();
-    let root = PathBuf::from(std::env::var_os("WOODPECKER_ARTIFACT_DIR").unwrap());
-    let end = Instant::now() + Duration::from_secs(100);
-    let mut previous = serde_json::Value::Null;
-    loop {
-        assert!(Instant::now() < end, "fixture watchdog; no retries");
-        app.update();
-        let world = app.world();
-        let c = world.resource::<Counts>();
-        let snapshot = serde_json::json!({"updates":c.updates,"fixed":c.fixed,
-            "real_ns":world.resource::<Time<Real>>().elapsed().as_nanos(),
-            "virtual_ns":world.resource::<Time<Virtual>>().elapsed().as_nanos(),
-            "fixed_ns":world.resource::<Time<Fixed>>().elapsed().as_nanos()});
-        if snapshot != previous {
-            std::fs::write(root.join("snapshot.json"), snapshot.to_string()).unwrap();
-            previous = snapshot;
-        }
-        if app.should_exit().is_some() {
-            break;
-        }
-        std::thread::sleep(Duration::from_millis(1));
-    }
+    app.insert_resource(Scene { moving, material });
 }
 
 fn outcome<T: serde::de::DeserializeOwned>(
@@ -285,6 +297,10 @@ fn driver(mode: &str, root: PathBuf) {
     let mut session = Session::start(config).unwrap();
     assert!(session.capabilities().screenshot);
     assert_eq!(session.capabilities().offscreen, mode != "native-default");
+    if mode.ends_with("-3d") {
+        scene3d::verify(&mut session, &root, mode);
+        return;
+    }
     if mode == "native-default" {
         let pending = session
             .send(screenshot::Capture::new("no-fallback.png"))
@@ -388,6 +404,10 @@ fn driver(mode: &str, root: PathBuf) {
             "{error:?}"
         );
     }
+    render_end(&mut session, &root, mode);
+}
+
+fn render_end(session: &mut Session, root: &Path, mode: &str) {
     let end = Instant::now() + Duration::from_secs(10);
     loop {
         if let Some(session::Event::Ended { reason }) = session.try_receive_event().unwrap() {
@@ -412,6 +432,11 @@ fn main() {
     match args.get(1).map(String::as_str) {
         Some("app") => app(&args[2]),
         Some("verify") => driver(&args[2], PathBuf::from(&args[3])),
+        Some("audit-3d") => scene3d::controls(
+            Path::new(&args[2]),
+            Path::new(&args[3]),
+            Path::new(&args[4]),
+        ),
         _ => panic!("explicit app/verify mode required; see tests/headless/README.md"),
     }
 }

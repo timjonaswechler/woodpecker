@@ -649,14 +649,16 @@ Fixtures gegen Bevy 0.19.1 sichern den Vertrag bei Upgrades.
 ### Screenshot
 
 `Capture { path }` nimmt standardmäßig genau das primäre gerenderte Spielfenster auf.
-Der explizite [2D/Metal-Imageadapter](../headless-plan/SLICE.md) wählt mit Feature
+Der explizite [2D-/Basis-3D-Metal-Imageadapter](../headless-plan/SLICE.md) wählt mit Feature
 `offscreen` und Resource `session::OffscreenTarget` stattdessen ein Imageziel.
 Die Response wartet
 auf Renderdurchlauf, asynchronen GPU-Readback und erfolgreiches PNG-Schreiben.
 Simulationsticks und simulierte Zeit bleiben unverändert.
 Ohne vollständige Unterstützung oder das gewählte Ziel wird der Command abgelehnt.
 Der enge Imagepfad erfordert Manual-Startup, Metal-Hardware, nicht-pipelined,
-RGBA8-sRGB und eine vorbereitete Camera2d. Vor InitTick1 folgt dort
+RGBA8-sRGB und eine vorbereitete Camera2d oder einfache Camera3d. Für das
+geprüfte 3D-Profil wird asynchrone Pipelinekompilierung verwendet; komplexe
+PBR-/Posteffekte sind nicht mitqualifiziert. Vor InitTick1 folgt dort
 `render_initial_tick_required`; native Fenster verwenden weiterhin den folgenden Vertrag.
 
 Vor dem ersten vollständig ausgeführten expliziten Tick bleiben Render-Extraction

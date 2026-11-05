@@ -30,9 +30,10 @@ use std::{
 /// Opt into image capture instead of primary-window capture with the `offscreen` feature.
 /// Insert before [`super::Plugin`]. The application owns the image and camera setup:
 /// no window/surface, Metal hardware, non-pipelined renderer, an active Camera2d
-/// targeting this image, single-sampled D2 Rgba8UnormSrgb with COPY_SRC usage.
+/// or basic Camera3d targeting this image, single-sampled D2 Rgba8UnormSrgb with
+/// COPY_SRC usage. The qualified 3D profile uses asynchronous pipeline compilation.
 /// Rendering starts only after the first explicitly counted tick. This is not
-/// engine-startup readiness or general 3D/UI/asset-loading support.
+/// engine-startup readiness or general 3D-effects/UI/asset-loading support.
 #[derive(Resource, Clone)]
 pub struct OffscreenTarget(pub Handle<Image>);
 

@@ -2,8 +2,10 @@
 
 Dieser Bereich hält den historischen Integrationsplan und seine nachgelagerten
 Nachweise bereit. Der [erste enge Produkt-Slice](SLICE.md) verbindet inzwischen
-explizites 2D/Metal-Image-Capture mit dem bestehenden Screenshotowner. Native bleibt
+explizites 2D-/Basis-3D-Metal-Image-Capture mit dem bestehenden Screenshotowner. Native bleibt
 Standard; Vollspiel, UI/Input ohne Fenster und weitere Plattformen sind nicht abgenommen.
+Das nachgelagerte 3D-Basisprofil belegt echte PBR-Beleuchtung und Schatten ohne
+neuen Captureadapter; es ersetzt keine allgemeine 3D-/Effektqualifikation.
 
 - [Integrationsplan](PLAN.md): Architektur, Lifecycle, Orakel, Pakete W00–W12 und offene Gates.
 - [Coverage](COVERAGE.json): vollständige Zuordnung der Originalowner, zusätzlichen Owner und geplanten Proofs.
