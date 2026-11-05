@@ -38,7 +38,7 @@ fn extract(service: Extract<Res<Service>>, mut frame: ResMut<Frame>) {
     *frame = service
         .active
         .as_ref()
-        .filter(|active| active.surface.get().is_none())
+        .filter(|active| active.job.window != Entity::PLACEHOLDER && active.surface.get().is_none())
         .map(|active| Frame::new(active.job.window, active.surface.clone()))
         .unwrap_or_default();
 }

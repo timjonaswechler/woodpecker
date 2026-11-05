@@ -11,6 +11,7 @@ pub enum Error {
     RequestIdExhausted,
     ShutdownBlocked { code: String, message: String },
     Rejected { code: String, message: String },
+    Render { code: String, message: String },
     Protocol { code: String, message: String },
     Ended,
 }
@@ -34,6 +35,7 @@ impl Error {
                     message,
                 }
             }
+            code if code.starts_with("render_") => Self::Render { code: code.into(), message },
             _ => Self::Rejected {
                 code: code.into(),
                 message,
@@ -56,6 +58,7 @@ impl Error {
             Self::InvalidPending { .. } => "invalid_pending",
             Self::RequestIdExhausted => "request_id_exhausted",
             Self::ShutdownBlocked { code, .. }
+            | Self::Render { code, .. }
             | Self::Rejected { code, .. }
             | Self::Protocol { code, .. } => code,
             Self::Ended => "ended",
@@ -68,6 +71,7 @@ impl Error {
             | Self::Io { message }
             | Self::InvalidPending { message }
             | Self::ShutdownBlocked { message, .. }
+            | Self::Render { message, .. }
             | Self::Rejected { message, .. }
             | Self::Protocol { message, .. } => message,
             Self::RequestIdExhausted => "normal request IDs exhausted",

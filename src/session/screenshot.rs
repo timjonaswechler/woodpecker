@@ -14,6 +14,13 @@ pub(super) fn install(app: &mut App, root: &std::path::Path) {
 }
 
 pub(super) fn available(world: &World) -> bool {
+    #[cfg(feature = "offscreen")]
+    if world
+        .get_resource::<super::offscreen::Status>()
+        .is_some_and(|s| s.error().is_some())
+    {
+        return false;
+    }
     #[cfg(feature = "screenshot")]
     return world.contains_resource::<capture::Service>();
     #[cfg(not(feature = "screenshot"))]
@@ -40,6 +47,13 @@ pub(super) fn start(world: &mut World, id: u64, path: String) -> Result<(), Diag
     #[cfg(feature = "screenshot")]
     {
         if available(world) && super::plugin::render_waiting(world) {
+            #[cfg(feature = "offscreen")]
+            if world.contains_resource::<super::offscreen::OffscreenTarget>() {
+                return Err(Diagnostic::new(
+                    "render_initial_tick_required",
+                    "offscreen capture requires one explicit initialization tick",
+                ));
+            }
             return Err(Diagnostic::new(
                 "screenshot_window_unavailable",
                 "primary window has no rendered surface before the first explicit tick",

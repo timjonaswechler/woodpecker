@@ -40,6 +40,16 @@ struct Ready(bool);
 struct Bootstrap;
 
 pub(super) fn install(app: &mut App) {
+    #[cfg(feature = "offscreen")]
+    let pre_extract = app
+        .world()
+        .contains_resource::<super::super::offscreen::OffscreenTarget>()
+        .then(|| {
+            app.get_added_plugins::<bevy::render::extract_plugin::ExtractPlugin<RenderApp>>()
+                .first()
+                .map(|plugin| plugin.pre_extract)
+        })
+        .flatten();
     let Some(render) = app.get_sub_app_mut(RenderApp) else {
         return;
     };
@@ -59,6 +69,22 @@ pub(super) fn install(app: &mut App) {
         let ready = main.resource::<Installed>().0;
         render.resource_mut::<Ready>().0 = ready;
         if ready && let Some(extract) = extract.as_mut() {
+            #[cfg(feature = "offscreen")]
+            if let Some(pre_extract) = pre_extract {
+                super::super::offscreen::protect(
+                    main.get_resource::<super::super::offscreen::Status>()
+                        .cloned(),
+                    || pre_extract(main, render),
+                );
+                if main
+                    .get_resource::<super::super::offscreen::Status>()
+                    .is_some_and(|s| s.error().is_some())
+                {
+                    render.resource_mut::<Ready>().0 = false;
+                    return;
+                }
+                super::super::offscreen::shaders(main, render);
+            }
             let tick = main.resource::<super::Bridge>().ticks;
             let shadows = if last_tick == Some(tick) {
                 render
@@ -90,6 +116,14 @@ pub(super) fn install(app: &mut App) {
         if world.resource::<Ready>().0
             && let Some(schedule) = schedule
         {
+            #[cfg(feature = "offscreen")]
+            super::super::offscreen::protect(
+                world
+                    .get_resource::<super::super::offscreen::Status>()
+                    .cloned(),
+                || world.run_schedule(schedule),
+            );
+            #[cfg(not(feature = "offscreen"))]
             world.run_schedule(schedule);
         }
     });

@@ -73,14 +73,21 @@ see [Warp throughput and performance diagnostics](docs/performance.md).
 | --- | --- |
 | `ui` | Virtual legacy UI interaction and focused text input |
 | `screenshot` | GPU readback and sandboxed PNG output in rendered applications |
+| `offscreen` | Explicit image-target capture on the qualified 2D/Metal path; includes `screenshot` |
 | `server` | Local session management and HTTP/WebSocket serving |
 | `client` | Network management and fixed-session access |
 | `cli` | The `woodpecker` executable |
 
+The opt-in [`session::OffscreenTarget` adapter](docs/headless-plan/SLICE.md) selects
+an application-owned image instead of the primary window. It preserves RGB PNGs,
+path isolation and explicit ticks; it does not turn the full game into a headless app.
+
 ## Tests
 
 The [acceptance guide](tests/README.md) is the executable entry point. There are
-95 product tests: 94 local cases and one separately authorized real GitHub case.
+98 product tests: 97 local cases and one separately authorized real GitHub case.
+The separate [four-case offscreen SDK proof](tests/fixtures/offscreen/README.md)
+requires explicit local GPU permission and is not an automatic acceptance/CI run.
 The common local run also checks the existing deliberate negative control and
 the feature/build matrix. Harness checks are separate, not extra product cases.
 

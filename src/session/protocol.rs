@@ -9,6 +9,9 @@ pub const VERSION: u32 = 3;
 #[serde(deny_unknown_fields)]
 pub struct Capabilities {
     pub screenshot: bool,
+    /// Opt-in image capture and RenderFailed transport; absent for native sessions.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub offscreen: bool,
     /// The bridge accepted this session's requested fixed Bevy clock.
     /// Omitted for application time, preserving the existing Ready envelope.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
@@ -36,6 +39,9 @@ impl Diagnostic {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "status", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Message {
+    RenderFailed {
+        error: Diagnostic,
+    },
     EngineReady {
         ticks: u64,
     },
@@ -70,7 +76,10 @@ impl Message {
                 Some(*request_id)
             }
             Self::ProtocolError { request_id, .. } => *request_id,
-            Self::Ready { .. } | Self::EngineReady { .. } | Self::StartupFailed { .. } => None,
+            Self::Ready { .. }
+            | Self::EngineReady { .. }
+            | Self::StartupFailed { .. }
+            | Self::RenderFailed { .. } => None,
         }
     }
 }
@@ -110,6 +119,10 @@ pub fn decode(line: &str) -> Result<(u64, Command), Message> {
     })?;
     Ok((envelope.request_id, command))
 }
+
+#[cfg(test)]
+#[path = "tests/test_render_protocol.rs"]
+mod test_render_protocol;
 
 pub fn completed(id: u64, command: &str, output: impl Serialize) -> Message {
     Message::Completed {

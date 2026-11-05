@@ -106,8 +106,8 @@ def inventory():
         rows["internal::" + names[0]] = dict(kind="internal", function=names[0],
             source=str(path.relative_to(ROOT)), graphics=False, external=False,
             status="Nicht ausgeführt", seconds=None, artifacts=[])
-    if len(internal) != 10:
-        errors.append("Expected ten internal Rust tests.")
+    if len(internal) != 13:
+        errors.append("Expected thirteen internal Rust tests.")
     resource = next((case for case in cases if case.__class__.__module__ == "tests.inspect.resource_value"), None)
     if resource:
         control = type(resource)(resource._testMethodName)

@@ -6107,6 +6107,7 @@ dependencies = [
  "tungstenite",
  "unicode-width",
  "ureq",
+ "wgpu",
 ]
 
 [[package]]

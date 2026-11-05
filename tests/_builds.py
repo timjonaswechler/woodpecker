@@ -5,10 +5,10 @@ from pathlib import Path
 from tests._support import ROOT
 
 
-FEATURES = "cli,ui,screenshot"
+FEATURES = "cli,ui,screenshot,offscreen"
 ABORT_TARGET = ROOT / "target/panic-abort"
 CANONICAL = ["-p", "woodpecker", "-p", "test_app", "-p", "woodpecker_cli",
-             "--features", "woodpecker/cli,woodpecker/ui,woodpecker/screenshot,test_app/automation"]
+             "--features", "woodpecker/cli,woodpecker/ui,woodpecker/screenshot,woodpecker/offscreen,test_app/automation"]
 
 
 def commands(selected, *, feature_matrix=False):
@@ -20,7 +20,7 @@ def commands(selected, *, feature_matrix=False):
     engine_graph = internal or bool(targets) or any(row["graphics"] for row in selected)
     rows = []
     if feature_matrix:
-        for features in (None, "ui", "screenshot", "ui,screenshot", "server", "client", "cli"):
+        for features in (None, "ui", "screenshot", "ui,screenshot", "offscreen", "server", "client", "cli"):
             command = ["cargo", "check", "--locked", "--no-default-features", "--lib"]
             if features:
                 command += ["--features", features]

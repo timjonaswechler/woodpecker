@@ -1,9 +1,12 @@
 # Lokaler Headless-Renderprüfstand
 
 **Ergebnis: Der enge 2D/Metal-Pfad ist technisch umsetzbar und ausreichend belegt,
-um eine kleine Produktintegration anzugehen.** Dieser Prüfstand ist noch nicht
-diese Integration. Native Defaults, Root-Manifeste, Produktcode und CI bleiben
-unverändert. Die Crate hat einen eigenen Workspace und ein eigenes Lockfile.
+um eine kleine Produktintegration anzugehen.** Dieser historische Prüfstand ist
+nicht die Integration. Sein dokumentierter Ausführungsstand basiert auf Produkt-
+Commit `100cc683`; die inzwischen ergänzte [Produktintegration](../../../docs/headless-plan/SLICE.md)
+hat eine eigene SDK-Fixture. Die historische Probe/Lockfiles bleiben erhalten;
+sie sind keine Behauptung, dass der inzwischen geänderte Produkt-HEAD dieselbe
+Baseline ist. Native Defaults und die CI-Pause bleiben bestehen.
 
 ## Was belegt ist
 
@@ -70,8 +73,12 @@ Publikationsverpackung entstanden danach; kein neuer GPUlauf wird behauptet.
 
 ## Später ausdrücklich genehmigte lokale Wiederholung
 
-**Nur mit neuer ausdrücklicher lokaler GPUfreigabe.** Der Schalter erteilt selbst
-keine Rechte. Keine CI-/Workspace-Autoruns oder stillen Builds/Fallbacks.
+**Nur mit neuer ausdrücklicher lokaler GPUfreigabe.** Historische Wiederholung
+setzt Export-Commit `3c431d9` mit unveränderter Produktbaseline `100cc683` voraus;
+der Runner wechselt den Checkout nicht selbst. Für den aktuellen Produkt-HEAD
+stattdessen die [SDK-Fixture](../../fixtures/offscreen/README.md) verwenden.
+Der Schalter erteilt selbst keine Rechte. Keine CI-/Workspace-Autoruns oder
+stillen Builds/Fallbacks.
 
 ```sh
 python3 -B tests/prototypes/headless-render-lab/run.py build
@@ -94,7 +101,10 @@ python3 -B tests/prototypes/headless-render-lab/audit.py \
   das eigene logische Gerät werden in bezeichneten Negativfällen zerstört; keine
   OOM-, Hardware-/Treiberreset- oder fremden Prozessversuche.
 
-## Kleinster nächster Produktschritt
+## Inzwischen angeschlossener Produktschritt
+
+Der nachfolgend beschriebene Slice ist jetzt als [Produktadapter](../../../docs/headless-plan/SLICE.md)
+mit eigener Fixture implementiert. Die ursprüngliche Empfehlung lautete:
 
 Separat freizugeben ist ein expliziter 2D/Metal-Imageziel-/Readback-Adapter am
 bestehenden Captureowner: InitTick1, öffentlicher früher Fatal-Shortcircuit,

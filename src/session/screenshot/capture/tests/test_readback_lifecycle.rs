@@ -42,6 +42,8 @@ fn failed_or_expired_readbacks_never_write_or_complete_a_new_request() {
                 id,
                 path: filename.clone(),
                 window: Entity::PLACEHOLDER,
+                #[cfg(feature = "offscreen")]
+                image: None,
             },
             entity,
             since: if expired {
@@ -84,6 +86,8 @@ fn failed_or_expired_readbacks_never_write_or_complete_a_new_request() {
                 id: b_id,
                 path: b_path.clone(),
                 window: Entity::PLACEHOLDER,
+                #[cfg(feature = "offscreen")]
+                image: None,
             },
             entity: b,
             since: Instant::now(),
@@ -134,6 +138,73 @@ fn failed_or_expired_readbacks_never_write_or_complete_a_new_request() {
         assert_eq!(
             std::fs::read(path.join(&filename)).unwrap(),
             b"owned old bytes"
+        );
+    }
+    #[cfg(feature = "offscreen")]
+    {
+        use crate::session::offscreen::Status;
+        world.init_resource::<Status>();
+        let filename = "committed-before-deadline.png";
+        let image = Image::new_fill(
+            Extent3d {
+                width: 3,
+                height: 2,
+                depth_or_array_layers: 1,
+            },
+            TextureDimension::D2,
+            &[17, 34, 51, 255],
+            TextureFormat::Rgba8UnormSrgb,
+            RenderAssetUsages::MAIN_WORLD,
+        );
+        // Real encoding/rename completes while its final guard is healthy.
+        let output = encode(
+            &root,
+            filename.into(),
+            image,
+            Some(world.resource::<Status>().guard(Instant::now())),
+        )
+        .unwrap();
+        let entity = world.spawn_empty().id();
+        world.despawn(entity);
+        let flag = Arc::new(OnceLock::new());
+        flag.set(true).unwrap();
+        world.resource_mut::<Service>().active = Some(Active {
+            job: Job {
+                id: 800,
+                path: filename.into(),
+                window: Entity::PLACEHOLDER,
+                image: Some(Handle::default()),
+            },
+            entity,
+            // Model delayed Control consumption AFTER the successful publication,
+            // not a write that exceeded its final pre-rename deadline.
+            since: Instant::now() - Duration::from_secs(31),
+            writing: true,
+            surface: flag,
+        });
+        world
+            .resource::<Service>()
+            .sender
+            .send((entity, Ok(output)))
+            .unwrap();
+        let responses = poll(&mut world);
+        assert!(
+            matches!(
+                responses.as_slice(),
+                [Message::Completed {
+                    request_id: 800,
+                    ..
+                }]
+            ),
+            "{responses:?}"
+        );
+        assert_eq!(
+            image::open(path.join(filename))
+                .unwrap()
+                .to_rgb8()
+                .get_pixel(0, 0)
+                .0,
+            [17, 34, 51]
         );
     }
     assert_eq!(

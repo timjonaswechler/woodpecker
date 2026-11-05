@@ -395,7 +395,8 @@ Die aktive Command-Tabelle bleibt davon getrennt; aus der History verdrängte Co
 bleiben empfangbar und für Recording und Shutdown relevant.
 
 History-Outcomes sind `Completed { output }`, `Rejected { code, message }`,
-`ProtocolFailed { code, message }`, `IoFailed { message }` und `Unanswered`.
+`ProtocolFailed { code, message }`, `RenderFailed { code, message }`,
+`IoFailed { message }` und `Unanswered`.
 Sie enthalten keine Request-IDs. Die öffentliche History-Darstellung erscheint im Report-Kontext.
 
 Die Session puffert 256 normale Events und reserviert einen zusätzlichen Platz für `Ended`.
@@ -412,7 +413,12 @@ Die Session puffert 256 normale Events und reserviert einen zusätzlichen Platz 
 - `Ended { reason }`.
 
 Endgründe sind `ProcessExit { status }`, `TransportClosed { channel }`,
-`TransportFailed { channel, message }` und `EventQueueOverflow { capacity, dropped_events }`.
+`TransportFailed { channel, message }`, `RenderFailed { error }` und
+`EventQueueOverflow { capacity, dropped_events }`.
+Im Opt-in-Imagepfad liefert ein beobachteter Rendererfatal beziehungsweise ein
+abgefangener Render-Unwind `RenderFailed` mit Diagnose; offene Spielcommands
+(einschließlich zurückgestellter Requests während Recordingtransitionen) erhalten
+`Error::Render`, ihre History `RenderFailed`, ohne weiteren Simulationtick.
 Transportkanäle sind stdin, stdout und stderr. Bei `TransportFailed` bezeichnet
 `startup` zusätzlich einen gescheiterten technischen Startup, keine eigene Pipe.
 Auch ein unerwarteter Exit-Status 0 ist ein Prozessende.
@@ -453,6 +459,7 @@ mangels Produzent nicht garantiert.
 | `ShutdownBlocked` | Kein Shutdown angenommen; Zustand unverändert |
 | `Rejected` | Nur der angenommene Command fachlich abgelehnt |
 | `Protocol` | Zugeordneter Aufruf ohne gültiges Protokollergebnis; beim Handshake Startfehler |
+| `Render` | Technischer Image-Capture-/Renderfehler; terminal bei `EndReason::RenderFailed`, nicht schon beim fehlenden InitTick1 |
 | `Ended` | Prozess, benötigter Transport oder Koordinator terminal |
 
 Ein Datei-I/O-Fehler beendet nicht automatisch die Session. Ein I/O-Fehler auf einer benötigten
@@ -641,10 +648,16 @@ Fixtures gegen Bevy 0.19.1 sichern den Vertrag bei Upgrades.
 
 ### Screenshot
 
-`Capture { path }` nimmt genau das primäre gerenderte Spielfenster auf. Die Response wartet
+`Capture { path }` nimmt standardmäßig genau das primäre gerenderte Spielfenster auf.
+Der explizite [2D/Metal-Imageadapter](../headless-plan/SLICE.md) wählt mit Feature
+`offscreen` und Resource `session::OffscreenTarget` stattdessen ein Imageziel.
+Die Response wartet
 auf Renderdurchlauf, asynchronen GPU-Readback und erfolgreiches PNG-Schreiben.
 Simulationsticks und simulierte Zeit bleiben unverändert.
-Ohne vollständige Unterstützung oder eindeutiges Fenster wird der Command abgelehnt.
+Ohne vollständige Unterstützung oder das gewählte Ziel wird der Command abgelehnt.
+Der enge Imagepfad erfordert Manual-Startup, Metal-Hardware, nicht-pipelined,
+RGBA8-sRGB und eine vorbereitete Camera2d. Vor InitTick1 folgt dort
+`render_initial_tick_required`; native Fenster verwenden weiterhin den folgenden Vertrag.
 
 Vor dem ersten vollständig ausgeführten expliziten Tick bleiben Render-Extraction
 und Render-Schedule angehalten, damit unvorbereitete Startup-Kamera-/Lichtdaten nicht
@@ -671,8 +684,13 @@ abgeschlossen, auch wenn bereits ein Bild im Kanal liegt. Späte Antworten dürf
 weder Dateien schreiben noch einen anderen Request abschließen. Bereits gestartetes
 Encoding und Schreiben fallen nicht unter diese Readback-Frist. Die Prüfung erfolgt
 kooperativ im Poll, nicht durch einen Echtzeit-Timer; daraus folgt keine harte
-30-Sekunden-Garantie für die Zustellung einer Response. Capture erzeugt auch beim
-Warten oder bei einem Timeout keine Simulationsticks.
+30-Sekunden-Garantie für die Zustellung einer Response. Im Opt-in-Imagepfad umfasst
+die Frist zusätzlich Encoding/Schreiben: nach Tempdatei/Sync wird unmittelbar vor
+Rename nochmals auf Deadline, beobachteten Fatal und Sessionende geprüft. Der
+native Fristumfang bleibt unverändert. Nach erfolgreichem Rename ist dessen
+Resultat verbindlich; spätere Controlzustellung lässt es nicht rückwirkend
+ablaufen. Capture erzeugt auch beim Warten oder bei
+einem Timeout keine Simulationsticks.
 
 Aufnahmen vollständig verdeckter Fenster sind im aktuellen Umfang nicht zugesichert.
 Fehlt die Renderoberfläche im Capture-Frame, folgt `screenshot_window_unavailable`
@@ -999,7 +1017,8 @@ ist ein Ready-Handshake, beispielsweise:
 
 `version` muss 3 sein, `capabilities.screenshot` ein boolescher Wert. Die optionalen
 booleschen Felder `fixed_clock` und `engine_startup` bestätigen die gewählte feste
-Uhr bzw. den Engine-Startup. Ohne diese Felder gilt jeweils `false`. Bestätigt die
+Uhr bzw. den Engine-Startup. `offscreen:true` bezeichnet den expliziten Imagepfad
+mit technischem `render_failed`-Transport; es fehlt im nativen Handshake. Ohne diese Felder gilt jeweils `false`. Bestätigt die
 Spielseite eine angeforderte Funktion nicht, scheitert der Start mit `InvalidConfig`
 und dem öffentlich ausgegebenen Code `invalid_config`.
 
@@ -1032,6 +1051,19 @@ erzeugt der Session-Koordinator selbst `StartupFailed` mit unbekannter Tickzahl.
 Input, Tick und Inspect gehören fest zur Version. `screenshot` bestätigt vollständige
 optionale Installation samt Renderer, nicht Erfolg jedes konkreten Aufrufs.
 Die Anwendung bestimmt ihre Bevy-Zusammensetzung; das Plugin installiert keinen Renderer.
+Der optierte Imagepfad kann ohne weitere Tickanforderung terminal melden:
+
+```json
+{"status":"render_failed","error":{"code":"render_device_lost","message":"..."}}
+```
+
+Die Nachricht hat keine Request-ID und setzt Ready mit `offscreen:true` voraus.
+Vor Ready folgt `invalid_ready`, ohne Capability ein nicht fatales
+`unexpected_render_failure`-Protokollevent.
+Sie beendet die Session typisiert und macht
+bereits vorher abgeschlossene Frameergebnisse nicht rückwirkend ungültig. Ein
+alter Host mit strikter Ready-Validierung lehnt die zusätzliche `offscreen`-
+Capability ab, statt den neuen Fehlertransport still zu übergehen.
 
 ```jsonl
 {"request_id":17,"command":"input.keyboard.press","arguments":{"key":"a"}}
@@ -1132,6 +1164,7 @@ Aufrufers; technische Details bleiben in `message`.
 | Warp-SetPace | `invalid_pace` |
 | Inspect | `unknown_type_path`, `entity_not_found` |
 | Screenshot | `invalid_screenshot_path`, `screenshot_window_unavailable`, `screenshot_unavailable`, `screenshot_failed` |
+| Opt-in-Imagepfad | `render_initial_tick_required`, `render_target_unavailable`, `render_profile_unsupported`, `render_device_lost`, `render_validation`, `render_out_of_memory`, `render_internal`, `render_pipeline_failed`, `render_map_failed`, `render_panicked`, `screenshot_cancelled` |
 
 Fensterfehler umfassen fehlende oder nicht eindeutige benötigte Fenster.
 `screenshot_window_unavailable` umfasst auch eine im Capture-Frame nicht verfügbare

@@ -1,9 +1,9 @@
 # Arbeitsrahmen für echte Headlessintegration
 
-Dieser PR hält den Integrationsplan bereit, auf dessen Branch später implementiert
-werden kann. Er enthält **noch keine Produktimplementierung**. Native bleibt der
-Standard; geplant ist ein expliziter Offscreenpfad mit echtem Bevy/wgpu-Rendering,
-Readback und den bestehenden Session-, Input-, Recording- und Replayverträgen.
+Dieser Bereich hält den historischen Integrationsplan und seine nachgelagerten
+Nachweise bereit. Der [erste enge Produkt-Slice](SLICE.md) verbindet inzwischen
+explizites 2D/Metal-Image-Capture mit dem bestehenden Screenshotowner. Native bleibt
+Standard; Vollspiel, UI/Input ohne Fenster und weitere Plattformen sind nicht abgenommen.
 
 - [Integrationsplan](PLAN.md): Architektur, Lifecycle, Orakel, Pakete W00–W12 und offene Gates.
 - [Coverage](COVERAGE.json): vollständige Zuordnung der Originalowner, zusätzlichen Owner und geplanten Proofs.
@@ -17,7 +17,8 @@ Der [lokale Renderprüfstand](../../tests/prototypes/headless-render-lab/README.
 ergänzt inzwischen echte 2D/Metal-Nachweise: sichtbarer InitTick1, pausiertes
 Rendering/Readback, gesunder öffentlicher Fatal-Wrapper und begrenzte
 Ausgabeketten-/Publikationsfehler. Die kleine Opt-in-Integration ist technisch
-sinnvoll; Produktintegration und umfassende Plattform-/Spielabnahme fehlen noch.
+sinnvoll und als [Image-Capture-Slice](SLICE.md) umgesetzt; umfassende Plattform-/
+Spielabnahme und ein Vollspiel-Headlessmodus fehlen noch.
 Der öffentliche `pre_extract`-Hook ist im gepinnten Bevy tatsächlich nutzbar;
 ein neuer privater Fehlerdrain ist nicht grundsätzlich Voraussetzung.
 
@@ -71,7 +72,11 @@ Produkt-/GPU-Test. Die für die Veröffentlichung neu geprüften Eigenschaften s
 CI-Pause, unveränderte Workflowdaten, Dokumentlinks, JSON-Struktur, Referenzen und
 unveränderter technischer R05-Inhalt.
 
-## Nächster Implementierungsschritt
+## Historischer erster Implementierungsauftrag
+
+Der inzwischen belegte und umgesetzte enge Slice steht in [SLICE.md](SLICE.md).
+Die folgende Reihenfolge bleibt die historische Planung, kein Auftrag zu weiteren
+Machbarkeitsrunden vor diesem Slice.
 
 Nach passender Freigabe mit W00 beginnen: neue Quell-/Testbaseline und additive
 Verträge festlegen. Früh den öffentlichen GPU-Fehlerbeobachtungs-/Publisher-Hook

@@ -132,6 +132,7 @@ pub enum Event {
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EndReason {
+    RenderFailed { error: protocol::Diagnostic },
     ProcessExit { status: String },
     TransportClosed { channel: String },
     TransportFailed { channel: String, message: String },

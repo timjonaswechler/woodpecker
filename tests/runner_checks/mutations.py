@@ -317,12 +317,12 @@ mod handle_encoding {
             with self.assertRaises(ValueError):
                 m.evidence_destination(parent, link / "mutation-evidence/other")
 
-    def test_inventory_stays_75_python_10_public_10_internal_plus_control(self):
+    def test_inventory_stays_75_python_10_public_13_internal_plus_control(self):
         rows, _, targets, errors = acceptance.inventory()
         self.assertEqual(errors, [])
-        self.assertEqual(len(rows), 96)
+        self.assertEqual(len(rows), 99)
         self.assertEqual(len(targets), 10)
         self.assertEqual({kind: sum(row["kind"] == kind for row in rows.values())
                           for kind in ("python", "rust", "internal", "control")},
-                         dict(python=75, rust=10, internal=10, control=1))
+                         dict(python=75, rust=10, internal=13, control=1))
         self.assertFalse(any(row.get("module", "").startswith("tests.runner_checks.") for row in rows.values()))

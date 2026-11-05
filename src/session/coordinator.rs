@@ -231,6 +231,29 @@ pub(super) fn run(
                 }
                 process::Event::Line(line) => {
                     let decoded = serde_json::from_str::<Message>(&line);
+                    if let Ok(Message::RenderFailed { error }) = &decoded {
+                        if !observation.wire_ready() {
+                            let _ = ready.send(Err(Error::new("invalid_ready", "render failure preceded Ready")));
+                            return;
+                        }
+                        if !observation.offscreen() {
+                            push_event(&shared, &mut reason, Event::ProtocolError { code: "unexpected_render_failure".into(), message: "render failure requires the offscreen capability".into() });
+                            continue;
+                        }
+                        if !observation.initialized() {
+                            let _ = ready.send(Err(Error::from(error.clone())));
+                        }
+                        for (id, _) in std::mem::take(&mut active).into_iter().chain(deferred.drain(..)) {
+                            if id != u64::MAX {
+                                let outcome = Err(Error::from(error.clone()));
+                                recorder.terminal(id, &outcome);
+                                replay.terminal(id, &outcome);
+                                complete(&shared, id, outcome);
+                            }
+                        }
+                        reason.get_or_insert(EndReason::RenderFailed { error: error.clone() });
+                        continue;
+                    }
                     if matches!(
                         &decoded,
                         Ok(Message::EngineReady { .. } | Message::StartupFailed { .. })
@@ -330,9 +353,10 @@ pub(super) fn run(
                                 command: name,
                                 error,
                                 ..
-                            }) if name == command.name() => Err(Error::Rejected {
-                                code: error.code,
-                                message: error.message,
+                            }) if name == command.name() => Err(if error.code.starts_with("render_") {
+                                Error::from(error)
+                            } else {
+                                Error::Rejected { code: error.code, message: error.message }
                             }),
                             Ok(Message::ProtocolError { error, .. }) => Err(Error::Protocol {
                                 code: error.code,
@@ -631,6 +655,7 @@ pub(super) fn run(
     drop(process);
     let error = match &reason {
         Some(EndReason::TransportFailed { message, .. }) => Error::io(message),
+        Some(EndReason::RenderFailed { error }) => Error::from(error.clone()),
         _ => Error::Ended,
     };
     for (id, outcome) in replay.end(error) {
@@ -709,6 +734,7 @@ fn complete(shared: &Shared, id: u64, result: Outcome) {
                 output: output.clone(),
             },
             Err(Error::Ended) => history::Outcome::Unanswered,
+            Err(Error::Render { code, message }) => history::Outcome::RenderFailed { code: code.clone(), message: message.clone() },
             Err(Error::Protocol { code, message }) => history::Outcome::ProtocolFailed {
                 code: code.clone(),
                 message: message.clone(),

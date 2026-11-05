@@ -143,6 +143,8 @@ impl bevy::app::Plugin for Plugin {
     fn finish(&self, app: &mut App) {
         let root = std::env::var_os("WOODPECKER_ARTIFACT_DIR")
             .expect("session requires WOODPECKER_ARTIFACT_DIR");
+        #[cfg(feature = "offscreen")]
+        super::offscreen::install(app);
         super::screenshot::install(app, std::path::Path::new(&root));
         crate::report::capture::layer_status();
         // Startup schedules precede the first control iteration, so Ready is sent there.
@@ -191,6 +193,16 @@ fn ready(world: &World) {
             version: protocol::VERSION,
             capabilities: protocol::Capabilities {
                 screenshot: super::screenshot::available(world),
+                offscreen: {
+                    #[cfg(feature = "offscreen")]
+                    {
+                        world.contains_resource::<super::offscreen::OffscreenTarget>()
+                    }
+                    #[cfg(not(feature = "offscreen"))]
+                    {
+                        false
+                    }
+                },
                 fixed_clock: bridge.clock.duration().is_some(),
                 engine_startup: super::startup::enabled(world),
             },
@@ -203,6 +215,20 @@ fn run(world: &mut World) {
     world.resource_scope(|world, mut bridge: Mut<Bridge>| {
         let frame_budget = Instant::now();
         loop {
+            #[cfg(feature = "offscreen")]
+            if let Some(error) = world
+                .get_resource::<super::offscreen::Status>()
+                .and_then(|s| s.error())
+            {
+                world.resource::<super::offscreen::Status>().stop();
+                let (tx, rx) = mpsc::channel();
+                let _ = bridge
+                    .output
+                    .send((Message::RenderFailed { error }, Some(tx)));
+                let _ = rx.recv();
+                world.write_message(AppExit::error());
+                return;
+            }
             bridge.input_gate.capture(world);
             // Bound both command intake and tick execution so neither can starve the other.
             for _ in 0..64 {
@@ -229,6 +255,10 @@ fn run(world: &mut World) {
                     }
                     Err(mpsc::TryRecvError::Empty) => break,
                     Err(mpsc::TryRecvError::Disconnected) => {
+                        #[cfg(feature = "offscreen")]
+                        if let Some(status) = world.get_resource::<super::offscreen::Status>() {
+                            status.stop();
+                        }
                         world.write_message(AppExit::Success);
                         return;
                     }
@@ -454,6 +484,10 @@ fn dispatch(world: &mut World, bridge: &mut Bridge, id: u64, command: Command) -
             }
         },
         Command::Shutdown(_) => {
+            #[cfg(feature = "offscreen")]
+            if let Some(status) = world.get_resource::<super::offscreen::Status>() {
+                status.stop();
+            }
             // All output uses one writer; shutdown waits for its flush acknowledgement.
             let response = protocol::completed(id, name, ());
             let (tx, rx) = mpsc::channel();
