@@ -203,6 +203,18 @@ fn ready(world: &World) {
                         false
                     }
                 },
+                headless: {
+                    #[cfg(feature = "offscreen")]
+                    {
+                        world
+                            .get_resource::<super::headless::Viewport>()
+                            .map(|viewport| viewport.configuration())
+                    }
+                    #[cfg(not(feature = "offscreen"))]
+                    {
+                        None
+                    }
+                },
                 fixed_clock: bridge.clock.duration().is_some(),
                 engine_startup: super::startup::enabled(world),
             },

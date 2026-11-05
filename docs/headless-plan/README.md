@@ -1,12 +1,12 @@
 # Headless: Status und Integrationsplan
 
 **Zum Weiterarbeiten zuerst [STATUS.md](STATUS.md) lesen.** Dort stehen der
-aktuelle Umsetzungsstand, erledigte Slice-Liefergegenstände, teilweise/offene
-Arbeitspakete und der nächste konkrete Signalstation-Anwendungsfall.
+aktuelle Umsetzungsstand und die verbindliche Regel: **ein vollständiges
+Lieferpaket abschließen, dann erst das nächste anfangen**.
 
 | Dokument | Zweck |
 | --- | --- |
-| **[STATUS.md](STATUS.md)** | Aktueller Arbeitsplan: erledigt / teilweise / offen, Quellbelege, Abgleich W00–W12 und G01–G12, nächste Etappe mit Abschlusskriterien. |
+| **[STATUS.md](STATUS.md)** | Vollständige Lieferpakete L1–L5 mit Abschlusskriterien, maximal ein aktives Paket; ehrlicher W00–W12-/G01–G12-Bestandsabgleich und Quellbelege. |
 | [SLICE.md](SLICE.md) | Verbindlicher Umfang und Betriebsvertrag des implementierten 2D-/Basis-3D-Metal-Captureadapters; Nachweise und Grenzen. |
 | [PLAN.md](PLAN.md) | Historischer Gesamtplan R05: Architektur, Paket-/Proof-IDs und ursprüngliche Abnahmeanforderungen. Keine aktuelle Erledigt/offen-Liste. |
 | [COVERAGE.json](COVERAGE.json) | Unveränderter historischer R05-Owner-/Proofdatensatz. Seine `planning-only`-/`planned-not-executed`-Felder sind kein heutiger Ausführungsstand. |
@@ -15,18 +15,25 @@ Arbeitspakete und der nächste konkrete Signalstation-Anwendungsfall.
 
 ## Arbeitsumfang
 
-Produktbaseline dieses Statusabgleichs ist `5493eb1` auf
-[PR #23](https://github.com/timjonaswechler/woodpecker/pull/23). Der enge
-Image-Capturepfad ist implementiert und mit 2D sowie einfachem PBR/Licht/Schatten
-auf Metal nachgewiesen. Native bleibt Standard. Vollspiel, fensterloses Input/UI,
-Image-EngineReady und zusätzliche Supportprofile sind noch nicht abgenommen.
+Die Capturebasis `5493eb1` ist um [L1](L1.md) auf
+[PR #23](https://github.com/timjonaswechler/woodpecker/pull/23) erweitert: echte
+Signalstation mit Image-EngineReady, Keyboard/Pointer/Text/UI und Capture auf
+Metal lokal nachgewiesen. Alle zehn ursprünglichen Inputowner und die vollständige
+native lokale Regression bestehen. Native bleibt Standard. Unabhängiger
+Abschlussreview und finaler PR-Preflight stehen noch aus; L2–L5 bleiben offen.
 
-Der nächste Arbeitsumfang ist ein bleibender echter Anwendungsslice:
-**Signalstation headless starten → kontrolliert bereit werden → realen UIbutton
-per Command betätigen → Zustand und PNG prüfen → sauber beenden.** Die konkreten
-offenen Kopplungen, Paketbeiträge und Abschlusskriterien stehen ausschließlich im
-[aktuellen Statusplan](STATUS.md#nächste-etappe-ein-echter-anwendungsfall-noch-offen).
-Keine neue grundsätzliche Machbarkeitsrunde für den bereits belegten Renderer.
+Das einzige aktive Lieferpaket L1 ist der **Signalstation-Basisbetrieb auf
+Metal**: Start/Assets/Image-Ready, Capture, der vereinbarte vollständige
+Keyboard-/Pointer-/Text-/UIumfang und sauberer Einzel-Session-Abschluss. Alle zehn
+ursprünglichen Inputowner gehören zur Headless-Abnahme dieses Pakets.
+
+Der Ablauf **Start → Ready → realer UI-Klick → Zustand und PNG → Shutdown** bleibt
+ein früher Integrationscheck, aber kein Paketabschluss. Notwendige Fehlerpfade,
+Regressionen, Anleitung und Cleanup werden nicht auf später verschoben. Erst
+wenn die [L1-Abschlusskriterien](STATUS.md#abschlusskriterien-von-l1--alle-erforderlich)
+erfüllt sind, beginnt L2. „Teilweise“ bleibt lediglich der ehrliche Status des
+historischen Bestands, kein künftiger Liefermodus. Kein Scope-Verkleinern oder
+Testlockern zum Grünmachen und keine erneute Render-Machbarkeitsrunde.
 
 Der öffentliche `pre_extract`-Hook ist im gepinnten Bevy nutzbar; der frühere
 vermutete fehlende öffentliche Fehlerdrain ist kein fortbestehender Blocker.

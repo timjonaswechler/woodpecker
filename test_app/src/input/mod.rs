@@ -8,7 +8,6 @@ use crate::{
     player::camera::ViewState,
 };
 use bevy::{
-    camera::NormalizedRenderTarget,
     ecs::system::SystemParam,
     picking::pointer::{PointerId, PointerLocation},
 };

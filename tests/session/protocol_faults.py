@@ -64,12 +64,15 @@ class ProtocolFaultsTest(unittest.TestCase):
         metadata_only.write_text(f'#!/bin/sh\ncase "$1" in metadata|--version) exec {shlex.quote(str(adapter))} "$@";; *) exit 89;; esac\n')
         metadata_only.chmod(0o700)
         environment = {"CARGO": str(adapter), "WOODPECKER_TEST_REAL_CARGO": cargo,
-                       "WOODPECKER_TEST_PEER_MANIFEST": str(manifest)}
+                       "WOODPECKER_TEST_PEER_MANIFEST": str(manifest),
+                       "WOODPECKER_HEADLESS": '{"width":1,"height":1,"scale_factor":1.0}'}
         for mode, startup_error in (
             ("wrong-version", "unsupported_protocol_version"),
             ("invalid-capabilities", "invalid_ready"),
             ("missing-fixed-clock", "invalid_config"),
             ("missing-engine-startup", "invalid_config"),
+            ("missing-headless", "invalid_config"), ("wrong-headless", "invalid_config"),
+            ("unrequested-headless", "invalid_config"), ("headless-no-offscreen", "invalid_config"),
             ("malformed-known", None), ("wrong-name", None), ("bad-output", None),
             ("malformed-unassigned", None), ("unknown-id", None), ("duplicate", None),
         ):
@@ -84,6 +87,9 @@ class ProtocolFaultsTest(unittest.TestCase):
                 manifest_path=str(manifest), package="woodpecker-protocol-fixture",
                 target={"kind": "binary", "name": "protocol-peer"}, features=[], arguments=[mode],
             )
+            if mode in ("missing-headless", "wrong-headless", "headless-no-offscreen"):
+                configuration["launch"]["headless"] = {"width": 1440, "height": 900, "scale_factor": 1.0}
+                configuration["launch"]["no_default_features"] = True
             if prebuilt_case:
                 configuration["launch"]["executable"] = str(prebuilt)
             if mode == "missing-engine-startup":

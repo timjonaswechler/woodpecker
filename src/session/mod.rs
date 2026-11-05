@@ -1,5 +1,7 @@
 //! Controlled sessions and their optional-in-process Bevy adapter.
 mod clock;
+#[cfg(feature = "offscreen")]
+pub mod headless;
 mod input;
 mod inspect;
 #[cfg(feature = "offscreen")]

@@ -2,7 +2,6 @@
 use super::protocol::Diagnostic;
 use bevy::{
     asset::{AssetId, RenderAssetUsages, handle_internal_asset_events},
-    camera::RenderTarget,
     prelude::*,
     render::{
         Extract, ExtractSchedule, RenderApp,
@@ -291,15 +290,14 @@ fn copy(world: &mut World) {
         && cache
             .pipelines()
             .all(|p| matches!(p.state, CachedPipelineState::Ok(_)));
-    let target = RenderTarget::Image(ticket.image.clone().into())
-        .normalize(None)
-        .unwrap();
     let mut cameras = world.query::<(&ExtractedCamera, &ViewTarget)>();
     let views = cameras
         .iter(world)
-        .filter(|(camera, view)| camera.target.as_ref() == Some(&target) && view.needs_present())
+        .filter(|(camera, view)| matches!(camera.target.as_ref(), Some(bevy::camera::NormalizedRenderTarget::Image(target)) if target.handle == ticket.image) && view.needs_present())
         .count();
-    if !pipelines_ready || views != 1 {
+    // Bevy UI adds a second view of the same final image. All views have been
+    // submitted here; the image must be unique, not its contributing views.
+    if !pipelines_ready || views == 0 {
         world.resource_mut::<Frame>().stable = 0;
         return;
     }

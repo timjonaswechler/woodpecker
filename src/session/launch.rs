@@ -17,11 +17,43 @@ pub struct Config {
     pub package: String,
     pub target: Target,
     pub features: Vec<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub no_default_features: bool,
     pub arguments: Vec<String>,
     /// Run this prepared executable instead of invoking `cargo run`.
     /// Relative paths are resolved against the manifest's directory.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub executable: Option<PathBuf>,
+    /// Request an application-installed headless image viewport. Native is the default.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub headless: Option<Headless>,
+}
+
+pub use super::protocol::Headless;
+
+impl Headless {
+    pub fn validate(&self) -> Result<(), Error> {
+        if self.width == 0 || self.height == 0 || self.width > 8192 || self.height > 8192
+            || !self.scale_factor.is_finite() || !(0.25..=8.0).contains(&self.scale_factor)
+        {
+            return Err(Error::new("invalid_config", "headless dimensions must be 1..8192 physical pixels and scale_factor 0.25..8"));
+        }
+        Ok(())
+    }
+
+    /// Read the host's request before installing native platform plugins.
+    /// Absence (or JSON null) means native. Invalid requests are never ignored.
+    pub fn from_env() -> Result<Option<Self>, Error> {
+        let value = match std::env::var("WOODPECKER_HEADLESS") {
+            Ok(value) => value,
+            Err(std::env::VarError::NotPresent) => return Ok(None),
+            Err(error) => return Err(Error::new("invalid_config", error)),
+        };
+        let value: Option<Self> = serde_json::from_str(&value)
+            .map_err(|error| Error::new("invalid_config", error))?;
+        if let Some(value) = &value { value.validate()?; }
+        Ok(value)
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -33,6 +65,7 @@ pub enum Target {
 
 impl Config {
     pub fn validate(&self) -> Result<(), Error> {
+        if let Some(headless) = &self.headless { headless.validate()?; }
         let name = match &self.target {
             Target::Binary { name } | Target::Example { name } => name,
         };
@@ -164,6 +197,8 @@ impl Config {
             target: self.target.clone(),
             features: self.features.clone(),
             arguments: self.arguments.clone(),
+            no_default_features: self.no_default_features,
+            headless: self.headless.clone(),
             source,
         };
         let toolchain = crate::report::Toolchain {
@@ -201,6 +236,7 @@ impl Config {
                     command.args(["--example", name]);
                 }
             }
+            if self.no_default_features { command.arg("--no-default-features"); }
             if !self.features.is_empty() {
                 command.arg("--features").arg(self.features.join(","));
             }

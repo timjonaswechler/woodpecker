@@ -2,7 +2,10 @@
 
 [STATUS.md](STATUS.md) führt den aktuellen Gesamtarbeitsplan und die noch offenen
 Pakete. Diese Datei beschreibt den gelieferten Captureadapter und dessen
-belegten Betriebsumfang, nicht die vollständige Headless-Abnahme.
+belegten Betriebsumfang, nicht die vollständige Headless-Abnahme. Der nachgelagerte
+[L1-Appumfang](L1.md) ergänzt die echte Signalstation samt Startup, Input/UI/Text
+und unveränderten Spieleffekten. Aussagen unten über fehlende Appintegration
+bezeichnen den damaligen ersten Slice, nicht eine erneut offene Render-Machbarkeit.
 
 Der enge 2D-/Basis-3D-Metalpfad ist im **Produkt-Captureowner** angeschlossen, nicht
 nur im Wegwerfprüfstand. Native bleibt unverändert Standard. Dieser Slice ist

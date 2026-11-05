@@ -271,6 +271,8 @@ fn driver(mode: &str, root: PathBuf) {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml");
     let config = session::Config {
         launch: session::launch::Config {
+            headless: None,
+            no_default_features: false,
             manifest_path: manifest,
             package: "woodpecker-offscreen-fixture".into(),
             target: session::launch::Target::Binary {

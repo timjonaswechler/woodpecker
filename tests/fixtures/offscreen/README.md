@@ -31,6 +31,10 @@ python3 -B tests/fixtures/offscreen/run.py run --allow-gpu --profile 3d --name l
 
 `plan --profile 2d|3d` zeigt die jeweilige Auswahl; ohne Profil laufen alle acht.
 Jeder Aufruf verlangt einen frischen Namen und startet keine automatischen Neubuilds.
+`WOODPECKER_OFFSCREEN_ARTIFACT_DIR=target/NEUER_NACHWEIS` wählt einen separaten
+Evidenzroot; so bleiben frühere `build-latest.json` und Kampagnen unverändert.
+`CARGO_TARGET_DIR` bleibt ein veränderlicher Compilercache; wichtige frühere
+Programme vor einem Neubuild als unveränderliche Kopie mit Hash aufbewahren.
 
 `build --online` erlaubt bewusst normale Cargo-Downloads, keine Toolchain- oder
 Systeminstallation. `CARGO_TARGET_DIR` kann einen vorhandenen eigenen Buildcache

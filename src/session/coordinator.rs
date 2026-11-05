@@ -75,6 +75,7 @@ fn launch(
     super::workspace::prepare(&root, &directory, &mut command)?;
     command
         .env("WOODPECKER_ARTIFACT_DIR", root)
+        .env("WOODPECKER_HEADLESS", serde_json::to_string(&config.launch.headless).unwrap())
         .env(
             "WOODPECKER_TRACING_ERRORS",
             if config.report.tracing_errors {
@@ -311,6 +312,12 @@ pub(super) fn run(
                                 }
                                 if config.startup.enabled() && !capabilities.engine_startup {
                                     let _ = ready.send(Err(Error::new("unsupported_feature", "application bridge does not support the requested engine startup")));
+                                    return;
+                                }
+                                if capabilities.headless != config.launch.headless
+                                    || (capabilities.headless.is_some() && !capabilities.offscreen)
+                                {
+                                    let _ = ready.send(Err(Error::new("unsupported_feature", "application did not acknowledge the requested headless viewport")));
                                     return;
                                 }
                                 startup_started = Some(Instant::now());

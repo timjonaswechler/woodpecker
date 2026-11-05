@@ -36,6 +36,13 @@ pub fn install(app: &mut App) {
     if !enabled() {
         return;
     }
+    #[cfg(feature = "native")]
+    if !app
+        .world()
+        .contains_resource::<woodpecker::session::headless::Viewport>()
+    {
+        app.insert_resource(bevy::winit::WinitSettings::continuous());
+    }
     app.init_resource::<SimulationTicks>()
         .register_type::<SimulationTicks>()
         .add_systems(Last, count_simulation_tick)
@@ -60,7 +67,6 @@ pub fn install(app: &mut App) {
         .insert_resource(crate::input::InputMode::Controlled(
             woodpecker::session::VIRTUAL_POINTER_ID,
         ))
-        .insert_resource(bevy::winit::WinitSettings::continuous())
         .add_plugins(woodpecker::session::Plugin)
         .add_plugins(
             woodpecker::session::ThroughputPlugin::default()

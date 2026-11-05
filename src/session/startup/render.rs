@@ -19,7 +19,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 #[derive(Clone)]
 pub(super) struct Ticket {
-    window: Entity,
+    target: bevy::camera::NormalizedRenderTarget,
     meshes: Vec<AssetId<Mesh>>,
     images: Vec<AssetId<Image>>,
     result: Arc<OnceLock<Result<(), Diagnostic>>>,
@@ -27,7 +27,7 @@ pub(super) struct Ticket {
 }
 
 impl Ticket {
-    pub(super) fn new(world: &World, window: Entity) -> Self {
+    pub(super) fn new(world: &World, target: bevy::camera::NormalizedRenderTarget) -> Self {
         let meshes = world
             .get_resource::<Assets<Mesh>>()
             .map(|assets| {
@@ -51,7 +51,7 @@ impl Ticket {
             })
             .unwrap_or_default();
         Self {
-            window,
+            target,
             meshes,
             images,
             result: Arc::new(OnceLock::new()),
@@ -165,13 +165,22 @@ fn prepare(
             .as_ref()
             .is_some_and(|assets| assets.get(*id).is_some())
     });
-    let surface = windows.iter().any(|(entity, window)| {
-        entity == ticket.window
-            && window.swap_chain_texture_view.is_some()
-            && window.swap_chain_texture_view_format.is_some()
-    });
-    let camera = cameras.iter().any(|(camera, _)| matches!(camera.target,
-        Some(bevy::camera::NormalizedRenderTarget::Window(window)) if window.entity() == ticket.window));
+    let surface = match &ticket.target {
+        bevy::camera::NormalizedRenderTarget::Window(target) => {
+            windows.iter().any(|(entity, window)| {
+                entity == target.entity()
+                    && window.swap_chain_texture_view.is_some()
+                    && window.swap_chain_texture_view_format.is_some()
+            })
+        }
+        bevy::camera::NormalizedRenderTarget::Image(target) => images
+            .as_ref()
+            .is_some_and(|images| images.get(&target.handle).is_some()),
+        _ => false,
+    };
+    let camera = cameras
+        .iter()
+        .any(|(camera, _)| camera.target.as_ref() == Some(&ticket.target));
     ticket.wait(format!(
         "GPU meshes/images ready={assets_ready}, window surface={surface}, camera={camera}"
     ));
@@ -193,7 +202,7 @@ fn submitted(mut frame: ResMut<Frame>, queue: Res<RenderQueue>) {
     }
     let ticket = frame.ticket.as_ref().unwrap().clone();
     frame.submitted = true;
-    ticket.wait("GPU completion of prepared window frame");
+    ticket.wait("GPU completion of prepared target frame");
     queue.on_submitted_work_done(move || {
         let _ = ticket.result.set(Ok(()));
     });

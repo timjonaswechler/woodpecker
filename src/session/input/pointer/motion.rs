@@ -1,5 +1,4 @@
 use bevy::{
-    camera::NormalizedRenderTarget,
     input::{
         ButtonState,
         mouse::{MouseButtonInput, MouseMotion, MouseWheel},
@@ -13,19 +12,22 @@ use bevy::{
 pub(super) struct Input {
     pub(super) pointer: PointerInput,
     relative: Option<Vec2>,
+    window: Entity,
 }
 
 impl Input {
-    pub(super) fn pointer(pointer: PointerInput) -> Self {
+    pub(super) fn pointer(window: Entity, pointer: PointerInput) -> Self {
         Self {
             pointer,
+            window,
             relative: None,
         }
     }
 
-    pub(super) fn relative(pointer: PointerInput, delta: Vec2) -> Self {
+    pub(super) fn relative(window: Entity, pointer: PointerInput, delta: Vec2) -> Self {
         Self {
             pointer,
+            window,
             relative: Some(delta),
         }
     }
@@ -36,13 +38,13 @@ impl Input {
         if let Some(delta) = self.relative {
             world.write_message(MouseMotion { delta });
         }
-        let NormalizedRenderTarget::Window(window) = self.pointer.location.target else {
-            unreachable!("virtual pointer is window-backed")
-        };
+        // Keyboard/mouse messages retain their admitted logical identity even
+        // when picking targets an Image rather than a native window.
+        let window = self.window;
         match self.pointer.action {
             PointerAction::Press(button) | PointerAction::Release(button) => {
                 world.write_message(MouseButtonInput {
-                    window: window.entity(),
+                    window,
                     button: match button {
                         PointerButton::Primary => MouseButton::Left,
                         PointerButton::Secondary => MouseButton::Right,
@@ -57,7 +59,7 @@ impl Input {
             }
             PointerAction::Scroll { unit, x, y, phase } => {
                 world.write_message(MouseWheel {
-                    window: window.entity(),
+                    window,
                     unit,
                     x,
                     y,

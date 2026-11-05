@@ -71,6 +71,8 @@ pub(crate) fn context(config: &crate::session::Config) -> crate::report::Context
             features: vec![],
             arguments: vec![],
             source: None,
+            no_default_features: false,
+            headless: None,
         },
         woodpecker_version: env!("CARGO_PKG_VERSION").into(),
         protocol_version: 3,

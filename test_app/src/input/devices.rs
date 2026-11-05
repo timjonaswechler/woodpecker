@@ -23,6 +23,7 @@ impl InputMode {
 pub struct Cursor<'w, 's> {
     mode: Res<'w, InputMode>,
     pointers: Query<'w, 's, (&'static PointerId, &'static PointerLocation)>,
+    cameras: Query<'w, 's, &'static bevy::camera::RenderTarget, With<GameCamera>>,
 }
 
 impl Cursor<'_, '_> {
@@ -35,8 +36,13 @@ impl Cursor<'_, '_> {
                 }
                 let location = location.location.as_ref()?;
                 let position = location.position;
-                (matches!(location.target, NormalizedRenderTarget::Window(target)
-                    if target.entity() == window_entity)
+                (self
+                    .cameras
+                    .single()
+                    .ok()
+                    .and_then(|target| target.normalize(Some(window_entity)))
+                    .as_ref()
+                    == Some(&location.target)
                     && position.is_finite()
                     && position.cmpge(Vec2::ZERO).all()
                     && position

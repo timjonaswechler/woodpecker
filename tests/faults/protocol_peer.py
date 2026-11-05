@@ -11,6 +11,7 @@ import sys
 
 MODES = {
     "wrong-version", "invalid-capabilities", "missing-fixed-clock", "missing-engine-startup",
+    "missing-headless", "wrong-headless", "unrequested-headless", "headless-no-offscreen",
     "malformed-known", "wrong-name", "bad-output", "malformed-unassigned", "unknown-id", "duplicate",
     "recording-end", "replay-ok", "repl", "shutdown-starting", "shutdown-hold",
     *("report-marker-" + name for name in ("valid", "json", "checksum", "base64", "duplicate", "missing", "truncated", "process-payload")),
@@ -30,6 +31,8 @@ def cargo(arguments):
     assert arguments[arguments.index("--bin") + 1] == "protocol-peer"
     mode, = arguments[arguments.index("--") + 1:]
     assert mode in MODES
+    if mode in ("missing-headless", "wrong-headless", "headless-no-offscreen"):
+        assert "--no-default-features" in arguments
     os.execv(sys.executable, [sys.executable, str(Path(__file__).resolve()), "peer", mode])
 
 
@@ -66,6 +69,16 @@ def peer(mode):
         (root / "before-ready").write_text("external process held before Ready\n")
         while not (root / "release-ready").exists():
             time.sleep(0.02)
+    requested = json.loads(os.environ["WOODPECKER_HEADLESS"])
+    if mode in ("missing-headless", "wrong-headless", "headless-no-offscreen"):
+        assert requested == {"width": 1440, "height": 900, "scale_factor": 1.0}
+    else:
+        assert requested is None, "Native configuration must clear inherited headless mode"
+    if mode in ("wrong-headless", "unrequested-headless", "headless-no-offscreen"):
+        ready["capabilities"]["headless"] = {"width": 1280 if mode == "wrong-headless" else 1440,
+                                             "height": 900, "scale_factor": 1.0}
+        if mode != "headless-no-offscreen":
+            ready["capabilities"]["offscreen"] = True
     emit(ready)
     pending = None
     faulted = False

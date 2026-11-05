@@ -63,6 +63,10 @@ pub struct Application {
     pub target: session::launch::Target,
     pub features: Vec<String>,
     pub arguments: Vec<String>,
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub no_default_features: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headless: Option<session::launch::Headless>,
     pub source: Option<SourceRevision>,
 }
 #[derive(Clone, Debug, Serialize)]

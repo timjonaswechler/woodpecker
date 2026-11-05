@@ -15,6 +15,7 @@ import uuid
 
 from tests import _artifacts, _shared, acceptance
 from tests._support import ROOT, use_products
+from tests._builds import validate_app_build
 
 STATE = ROOT / "target/shared-app.json"
 
@@ -76,6 +77,7 @@ def host(manifest):
         products = _artifacts.load(manifest)
         if not {"bin:woodpecker", "bin:test_app"} <= products.keys():
             raise ValueError("Persistent app needs prepared CLI and automation app")
+        validate_app_build(json.loads(manifest.read_text()).get("app_build"), headless=False)
         directory = Path(tempfile.mkdtemp(prefix="shared-host-", dir=ROOT / "target/test-runs"))
         identity = implementation()
         game = _shared.SharedGame()

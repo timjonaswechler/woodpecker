@@ -269,7 +269,24 @@ verwendet eine feste Uhr und Engine-Startup für Signalstation.
 
 `launch::Config` nennt verpflichtend Manifest, nicht leeres Package sowie genau ein benanntes
 Binary oder Example. `features` aktiviert Cargo-Features, `arguments` wird unverändert an die Anwendung
-übergeben. Das optionale `executable` wählt eine bereits gebaute ausführbare Datei
+übergeben. `no_default_features: true` ergänzt ausdrücklich Cargo `--no-default-features`;
+Default ist `false`. `headless: Some(Headless { width, height, scale_factor })` fordert
+Imagegeometrie an; ohne das Feld bleibt Native gewählt. Maße sind physische Pixel
+(1–8192), Scale ist endlich und liegt zwischen 0,25 und 8. Das ist Validierung,
+keine pauschale Supportfreigabe aller Größen. Das belegte Appprofil und eine
+[ausführbare Signalstation-Konfiguration](../../tests/headless/app.toml) stehen in
+[L1.md](../headless-plan/L1.md).
+
+Der Host übergibt den Auftrag vor der Plugininstallation als `WOODPECKER_HEADLESS`;
+Native setzt ausdrücklich JSON `null`, statt einen geerbten Modus zu übernehmen.
+Die App bestätigt dieselbe Geometrie im Ready plus `offscreen:true`. Fehlende,
+abweichende oder unangeforderte Bestätigung ergibt `InvalidConfig`, keinen
+Fensterfallback. Der Host installiert selbst weder Renderer noch Fenster.
+
+Rust-Structliterale von `launch::Config` benötigen jetzt zusätzlich `headless`
+und `no_default_features`; für Native sind dies `None` und `false`.
+
+Das optionale `executable` wählt eine bereits gebaute ausführbare Datei
 anstelle von `cargo run`; relative Pfade gelten ab dem Manifest-Elternordner.
 Ein leerer Wert ist intrinsisch ungültig, eine fehlende Datei ein Startfehler.
 Es gibt keinen Build-Fallback. Package, Features und Version müssen zum vorbereiteten
@@ -655,11 +672,16 @@ Die Response wartet
 auf Renderdurchlauf, asynchronen GPU-Readback und erfolgreiches PNG-Schreiben.
 Simulationsticks und simulierte Zeit bleiben unverändert.
 Ohne vollständige Unterstützung oder das gewählte Ziel wird der Command abgelehnt.
-Der enge Imagepfad erfordert Manual-Startup, Metal-Hardware, nicht-pipelined,
-RGBA8-sRGB und eine vorbereitete Camera2d oder einfache Camera3d. Für das
-geprüfte 3D-Profil wird asynchrone Pipelinekompilierung verwendet; komplexe
-PBR-/Posteffekte sind nicht mitqualifiziert. Vor InitTick1 folgt dort
-`render_initial_tick_required`; native Fenster verwenden weiterhin den folgenden Vertrag.
+Der Captureadapter verlangt Metal-Hardware, nicht-pipelined, ein finales
+single-sampled RGBA8-sRGB-Image und vorbereitete Kameraansichten. UI kann weitere
+Ansichten desselben finalen Images beitragen; kopiert wird nach deren Graph-Submit.
+Das kleine 2D-/Basis-3D-Profil und der zusätzliche
+[Signalstation-L1-Umfang](../headless-plan/L1.md) bleiben getrennt qualifiziert.
+L1 behält die wirklichen Spielassets, UI, MSAA4 und AcesFitted-Tonemapping bei;
+asynchrone Pipelinekompilierung und Image-EngineReady sind angeschlossen.
+Beliebige PBR-/Posteffekte sind damit nicht pauschal freigegeben. Bei Manual-Startup
+folgt vor InitTick1 `render_initial_tick_required`; konfigurierter Engine-Startup
+zählt seine Vorbereitungsticks ausdrücklich. Native verwendet folgenden Vertrag.
 
 Vor dem ersten vollständig ausgeführten expliziten Tick bleiben Render-Extraction
 und Render-Schedule angehalten, damit unvorbereitete Startup-Kamera-/Lichtdaten nicht
@@ -1020,7 +1042,11 @@ ist ein Ready-Handshake, beispielsweise:
 `version` muss 3 sein, `capabilities.screenshot` ein boolescher Wert. Die optionalen
 booleschen Felder `fixed_clock` und `engine_startup` bestätigen die gewählte feste
 Uhr bzw. den Engine-Startup. `offscreen:true` bezeichnet den expliziten Imagepfad
-mit technischem `render_failed`-Transport; es fehlt im nativen Handshake. Ohne diese Felder gilt jeweils `false`. Bestätigt die
+mit technischem `render_failed`-Transport; es fehlt im nativen Handshake.
+`headless:{"width":1440,"height":900,"scale_factor":1.0}` bestätigt zusätzlich
+den angeforderten logischen Imageviewport und setzt `offscreen:true` voraus.
+Ohne die booleschen Felder gilt jeweils `false`; ohne `headless` ist kein
+Headless-Viewport bestätigt. Native-Ready bleibt unverändert. Bestätigt die
 Spielseite eine angeforderte Funktion nicht, scheitert der Start mit `InvalidConfig`
 und dem öffentlich ausgegebenen Code `invalid_config`.
 

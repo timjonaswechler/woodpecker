@@ -14,7 +14,7 @@ import time
 
 SOURCE = Path(__file__).resolve().parent
 ROOT = SOURCE.parents[2]
-ARTIFACTS = ROOT / "target/headless-product-proof"
+ARTIFACTS = (ROOT / os.environ.get("WOODPECKER_OFFSCREEN_ARTIFACT_DIR", "target/headless-product-proof")).resolve()
 BUILD = Path(os.environ.get("CARGO_TARGET_DIR", ARTIFACTS / "build")).resolve()
 BINARY = BUILD / "debug/woodpecker-offscreen-fixture"
 BASE_CASES = ("healthy", "device-loss", "early-loss", "native-default")

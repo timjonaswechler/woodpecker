@@ -1,6 +1,8 @@
 # Headless: aktueller Umsetzungsplan
 
-**Stand: 2026-11-05 · geprüfte Produktbaseline `5493eb1` · PR [#23](https://github.com/timjonaswechler/woodpecker/pull/23), noch kein vollständig freigegebener Headlessmodus.**
+**Stand: 2026-11-05 · L1 lokal nachgewiesen, Abschlussreview noch offen · PR [#23](https://github.com/timjonaswechler/woodpecker/pull/23).**
+Capturebasis `5493eb1`, L1-Ausgangsstand `f9a74f6`; die exakten ausgeführten
+Runtimequellen und Belege stehen in [L1.md](L1.md). Kein vollständiger L2–L5-Headlessmodus.
 
 Diese Datei ist die aktuelle Übersicht über **erledigte, teilweise umgesetzte und
 offene Arbeit**. Der [Gesamtplan R05](PLAN.md) und [COVERAGE.json](COVERAGE.json)
@@ -10,10 +12,11 @@ Der konkrete Betriebs-/Erfolgsvertrag des gelieferten Adapters steht in [SLICE.m
 
 ## Ziel und Statusregeln
 
-Als nächste nutzbare Etappe soll die **echte Signalstation auf Metal ohne natives
-Fenster** über dieselben Woodpecker-Commands gestartet, vorbereitet, bedient und
-aufgenommen werden können. Der erste vollständige Anwendungsfall ist noch keine
-Abnahme sämtlicher Funktionen, Grafikeffekte oder Plattformen.
+Als nächstes vollständiges Lieferpaket soll die **echte Signalstation auf Metal
+ohne natives Fenster** gestartet, vorbereitet, aufgenommen und mit dem vereinbarten
+Keyboard-/Pointer-/Text-/UIumfang bedient werden können. Ein einzelner erfolgreicher
+UI-Klick ist dabei ein Zwischencheck, kein Paketabschluss. Andere Funktionen,
+Grafikeffekte und Plattformen werden als eigene vollständige Pakete geliefert.
 
 - **Erledigt im Slice:** implementiert und für den ausdrücklich genannten Umfang
   ausgeführt/geprüft. Keine pauschale Abnahme des größeren R05-Pakets.
@@ -29,6 +32,52 @@ Supportprofile aus dem Gesamtplan; ihr fehlender Nachweis widerlegt den Metalpfa
 nicht. Zoo und die weitere Plattformqualifikation werden nicht aus dem Gesamtziel
 gestrichen. CI-Reaktivierung und echter GitHub-/Providerlauf bleiben separat.
 
+## Arbeitsregel: erst abschließen, dann weiter
+
+Ab jetzt wird **höchstens ein Produkt-Lieferpaket gleichzeitig** bearbeitet.
+Die vorhandenen „Teilweise“-Zeilen weiter unten bleiben ein ehrlicher
+Bestandsabgleich, sind aber keine Vorlage für weitere halbfertige Lieferungen.
+
+1. **Umfang vor Beginn festlegen:** unterstütztes Profil, sichtbares Ergebnis,
+   zugehörige Originalowner und Abschlusskriterien. Nutzbar abgegrenzter Umfang,
+   nicht nur ein interner Baustein oder ein nachträglich kleiner gerechnetes Ziel.
+2. **Ende zu Ende fertigstellen:** Implementation, Integration, Fehlerpfade,
+   erforderliche Regressionen und Anleitung gehören zum selben Paket.
+   Zwischenschritte und kleine Commits sind erlaubt, aber kein Fertigstatus
+   nur wegen eines erfolgreichen Happy-Path-/PoC-Laufs.
+3. **Erst reparieren, dann erweitern:** fehlende oder fehlschlagende notwendige
+   Tests, Cleanup, Kompatibilität und Reviewfindings im Paket beheben. Keine
+   dafür nötigen Restarbeiten als TODO oder „später“ ins nächste Paket schieben;
+   keine zweite provisorische Implementation neben dem Produktpfad stehen lassen.
+4. **Abschluss nachweisen:** aktuelle Quellen/Profil und vollständige Kriterien
+   prüfen, relevante Reviewfindings auflösen, Dokumentation/Status aktualisieren.
+   Bestehende Orakel nicht lockern oder überspringen, um einen Abschluss zu melden.
+5. **Blockiert ist nicht fertig:** bei fehlender Freigabe, Zeit oder ungelöstem
+   Hindernis den konkreten Rest und Blocker melden. Nicht still das nächste Paket
+   anfangen oder den Umfang nachträglich zur grünen Kennzeichnung verkleinern.
+
+Ein Lieferpaket ist erst **abgeschlossen**, wenn sein vereinbartes Ergebnis
+benutzbar integriert ist, alle erforderlichen Positiv-/Negativ- und
+Regressionsnachweise vorliegen und keine notwendige Restarbeit dieses Umfangs
+offen ist. Externe Aktionen und zusätzliche Profile bleiben nur dann außerhalb,
+wenn das schon vor Beginn ausdrücklich so abgegrenzt war.
+
+### Verbindliche Lieferreihenfolge
+
+| Lieferpaket | Zustand | Vollständiger Liefergegenstand / Ende |
+| --- | --- | --- |
+| L1 Signalstation-Basisbetrieb auf Metal | Aktiv – einziges aktives Paket | Start-/Zielkonfiguration, echte Assets/Image-Ready, vollständiger vereinbarter Input/UI/Textumfang, Capture und Einzel-Session-Abschluss; alle zehn ursprünglichen Inputowner zusätzlich headless geprüft. Ein einzelner UI-Klick reicht nicht. Details unten. |
+| L2 Persistenz und sämtliche Einstiegspunkte | Offen – nicht begonnen | Inspect-/Recording-/Replay-/Reportverträge sowie SDK, Server/Clients, CLI/REPL, Scripts und Messwerkzeuge durchgängig im Appprofil; zugehörige Originalowner und direkte Fehler-/Terminalpfade bestanden. Echter externer Providerlauf bleibt separat. |
+| L3 Isolation, Lebensdauer und Gesamtabnahme | Offen – nicht begonnen | Mehrsession, Startabbruch, Shutdown/Drop/Writer-/Gerätefehlerverbund sowie vollständige betroffene Test-/Wiederverwendungs-/Cleanup-Verträge; keine notwendige Restarbeit des zugesicherten Metalumfangs. |
+| L4 Zoo | Offen – nicht begonnen | Vollständiger fensterloser Motiv-/Ansichtsexport samt Assets, Shadern, Labels, Bereitschaft und Dateiquittung; bestehender nativer Viewer bleibt erhalten. |
+| L5 Weitere Supportprofile | Offen – nicht begonnen | Jeweils ein zuvor ausgewähltes Profil (etwa Linux/Vulkan oder Software) vollständig mit seinen erforderlichen Funktionen und Nachweisen abschließen, dann erst das nächste Profil. |
+
+Die L-Pakete sind die **Ausführungsreihenfolge**, keine neue Architektur und keine
+nachträgliche Umbenennung offener Arbeit in „erledigt“. Die W-/G-Matrix darunter
+bleibt die querschnittliche Zuordnung zum Gesamtumfang. Sie wird nach jedem
+abgeschlossenen L-Paket anhand tatsächlicher Evidenz nachgezogen. CI-Neustart,
+Merge und externe Veröffentlichung werden dadurch nicht automatisch freigegeben.
+
 ## Bereits erledigt im gelieferten Slice
 
 | Liefergegenstand | Was tatsächlich vorhanden und belegt ist | Implementation / Evidenz |
@@ -39,9 +88,16 @@ gestrichen. CI-Reaktivierung und echter GitHub-/Providerlauf bleiben separat.
 | Fehlertransport | Öffentlicher früher Fatalcheck, terminale Offscreen-Unwindbehandlung, `Error::Render`, `EndReason::RenderFailed` und technische History. Aktive und während Recordingtransition zurückgestellte Spielcommands werden typisiert beendet. | [Koordinator](../../src/session/coordinator.rs), [Fehler](../../src/session/error.rs), [Übergangsregression](../../src/session/tests/test_transition_races.rs) |
 | 2D-Basisprofil | Camera2d/ColorMaterial, asymmetrische Geometrie, echte RGB-Pixel, Pause, Overwrite/Pfadfehler sowie eigener früher/später logischer Geräteverlust. Native Auswahl bleibt ohne impliziten Imagefallback. | [Fixture-Orakel](../../tests/fixtures/offscreen/README.md), [2D-Bilder](../../tests/fixtures/offscreen/evidence/README.md) |
 | 3D-Basisprofil | Perspektiv-Camera3d, StandardMaterial, DirectionalLight, tatsächliche Flächenbeleuchtung und Schatten. Licht-/Schattengegenproben, Pause, Pose-/Materialwechsel und typisierter Geräteverlust. Kein neuer Produkt-Capturepfad nötig. | [3D-Orakel](../../tests/fixtures/offscreen/src/scene3d.rs), [3D-Bilder und Fingerprints](../../tests/fixtures/offscreen/evidence/3d/README.md) |
-| Reproduzierbare lokale Teilabnahme | Acht GPU-/SDKfälle in gemeinsamer Serie bestanden; finale vier 3D-Fälle nochmals bestanden. 13 interne Owner- und 81 Harness-Tests sowie Workspace-/Fixture-Clippy bestanden. Historische Proben sind getrennt vom Produktnachweis. | [Expliziter Runner](../../tests/fixtures/offscreen/run.py), [historische Evidenz](../../tests/prototypes/headless-render-lab/evidence/README.md), [Testsuite](../../tests/README.md) |
+| Historische lokale Teilabnahme (`5493eb1`) | Acht GPU-/SDKfälle in gemeinsamer Serie bestanden; finale vier 3D-Fälle nochmals bestanden. Damals 13 interne Owner- und 81 Harness-Tests sowie Workspace-/Fixture-Clippy bestanden. Historische Proben sind getrennt vom Produktnachweis. | [Expliziter Runner](../../tests/fixtures/offscreen/run.py), [historische Evidenz](../../tests/prototypes/headless-render-lab/evidence/README.md), [Testsuite](../../tests/README.md) |
 
-**Qualifikationsgrenze:** Apple M1 Pro/Metal, macOS27.2, Bevy0.20.0/wgpu30.0.1,
+**Zusätzlich in L1 lokal nachgewiesen:** wirkliche Signalstation 1440×900/Scale 1,
+Image-EngineReady, vollständige zehn Original-Inputowner, Legacy-/Widget-UI,
+sichtbare Unicodeglyphen, GPUoverlay, Pauseninvarianz und typisierter Geräteverlust.
+13/13 L1-Fälle, 99/99 native lokale Einträge, 14 interne Owner-, 21 App-,
+93 Harness- und erneut alle acht SDK-GPUfälle bestanden. Finale Reviewfreigabe
+steht aus. [Nachweise und Bilder](../../tests/headless/evidence/README.md).
+
+**Qualifikationsgrenze der historischen Basisszenen:** Apple M1 Pro/Metal, macOS27.2, Bevy0.20.0/wgpu30.0.1,
 65×49, nicht-pipelined; 3D mit asynchroner Pipelinekompilierung, festem HDR-/
 Exposure-/Tonemappingprofil ohne temporale Effekte. Das ist weder ein Vollspiel-
 noch ein allgemeiner PBR-/UI-/Asset-/Hardwarefehlertoleranznachweis.
@@ -52,22 +108,24 @@ er bleibt Fehlbeleg, kein PASS und kein kontrollierter Kaltcache-Vergleich.
 
 Die IDs stammen unverändert aus [R05, Abschnitt 11](PLAN.md#11-geordneter-integrationsfahrplan).
 Der Status bezieht sich auf den **vollständigen dort beschriebenen Headlessumfang**,
-nicht nur auf die vorstehend erledigten Slice-Liefergegenstände.
+nicht nur auf die vorstehend erledigten Slice-Liefergegenstände. Das ist eine
+Bestandsmatrix, keine Aufforderung, jedes W-Paket nacheinander nur teilweise
+anzufangen. Gearbeitet wird nach der vorstehenden L-Lieferreihenfolge.
 
 | Paket | Status | Erledigter Beitrag | Noch offen / konkreter Abschluss |
 | --- | --- | --- | --- |
 | W00 Scope/Proofspec | Teilweise | Gepinnter Slice, konkrete Quellen/Orakel und dieser Statusabgleich. | Aktuelles Testinventar mit den Originalownern der Vollapp-Etappe verbinden; deren Vorbereitung, Tickbudgets und Erfolgskriterien vor Ausführung festlegen. Kein neuer grundsätzlicher Render-Machbarkeitsauftrag. |
-| W01 Version/Config | Teilweise | Rust-Opt-in, v3-`offscreen`-Capability und Renderterminaltransport vorhanden. | Einheitliche angeforderte/bestätigte Start-/Zielkonfiguration durch SDK, Server/CLI und App; Kompatibilitäts-/Fehlerfälle dieser Konfiguration. R05-v2/v4-Vorschläge sind nicht bereits implementierte oder zwingend nachzubauende Interfaces. |
-| W02 Renderziel | Teilweise | Reales Imageziel und Format-/Copyadmission im engen Metalprofil; Renderer/Kamera werden in der Fixture korrekt installiert. | Appseitige fensterlose Installation, logische Geometrie/Scale und Eingabeziel verbinden; primäre Spielkamera samt tatsächlicher UI/Overlays anbinden und reale Spielauflösung qualifizieren. |
-| W03 Kontrollierter Runner | Teilweise | Originale Control-/Warpowner, InitTick1-Gate, Idle-Rendering/Readback, öffentlicher Fatalhook und Uhrentrennung belegt. | Vollapp-Asset-/Message-/Change-/Removed-Lifecycle und deren Zusammenspiel mit der Renderiteration nachweisen; keine beliebigen SubApps oder pipelined Profile mitbehaupten. |
-| W04 Ready | Offen | Manual-Handshake und InitTick1-Capture sind nutzbar. | `EngineReady` an Imageziel und tatsächliche Spielassets/-szene statt PrimaryWindow binden; Ladefortschritt, Freeze, Zeit-/Ticklimits und Fehler für die echte App nachweisen. |
-| W05 Capture | Teilweise | Produkt-RGB-Copy/Map-/Dateipfad, Korrelation, Publicationcheck und kleine echte 2D-/3D-Profile erledigt. | Zusammenschluss mit Vollapp-Ready, realer Zielgeometrie/UI und den noch offenen Lifecyclefällen abnehmen. Kleine Bilder und zwei Szenen sind keine allgemeine Frame-/Appabnahme. |
-| W06 Input/UI | Offen | Native Eingabeowner und ihre bisherigen Verträge existieren. | Fensterlose Key-/Textidentität, Image-Pointerlocation, Picking, Legacy-/Widget-UI, Fokus, Layout/Clipping und sichtbare Glyphen implementieren/prüfen. |
-| W07 Signalstation/Persistenz | Offen | Native App, Inspect, Recording/Replay, Reports und Clients sind wiederverwendbare Grundlage; grundlegender PBR-Pfad funktioniert. | Echte Signalstation mit ihren Assets, Kameras, UI, Settings-/Clipboardgrenzen und genutzten Effekten headless betreiben. Originale Input-/Spiel-/Persistenz-/Clientowner zusätzlich in diesem Profil ausführen. |
-| W08 Isolation/Abschluss | Teilweise | Typisierte Gerätefehler, aktive/deferred Requests und einzelne Writer-/Dateibarrieren geprüft. | Vollapp-Mehrsession, Startabbruch, Shutdown/Drop, konkurrierende Captures/Writer und vollständiger Prozess-/Dateiabschluss mit bestehenden Budgets. Keine physische GPUpartitionierung versprechen. |
+| W01 Version/Config | L1 lokal belegt | Gemeinsame SDK-/Server-/CLI-/Appkonfiguration mit angeforderter/bestätigter Geometrie, explizitem Cargoflag und typisierter Ablehnung; Native-Ready unverändert. | Abschlussreview. Rust-Structliteral-Migration ist dokumentiert; R05-v2/v4-Vorschläge werden nicht nachträglich als notwendige Implementation ausgegeben. |
+| W02 Renderziel | L1 lokal belegt | Appinstallation ohne native Features, reale Spielkamera/UI/Overlay auf Image, logische Inputgeometrie, 1440×900/Scale 1; HiDPI-Adapter CPUgeprüft. | Abschlussreview; weitere Größen/Scales/Plattformen bleiben eigene L5-Supportprofile, keine unfertige L1-Installation. |
+| W03 Kontrollierter Runner | Teilweise | Originale Control-/Warpowner, InitTick1, Idle-Rendering, Uhrentrennung und L1-App-Startup-/Asset-/Resetpfad belegt; keine versteckten Schedules. | Übriger Lebensdauer-/Message-/Change-/Removed-Verbund in L3; andere SubApps/pipelined Profile nicht mitbehaupten. |
+| W04 Ready | L1 lokal belegt | Image-EngineReady für tatsächliche Assets/Szene, GPUvorbereitung, Freeze, gezählte Ticks; originale Manual-/Engine- und vier Fehlerowner mit unveränderten Budgets bestanden. | Abschlussreview. Neue App-/SubAppprofile brauchen eigene Qualifikation, keine erneute Grundmachbarkeit. |
+| W05 Capture | Teilweise | Produkt-RGB-Copy/Map-/Dateipfad, Korrelation und Publicationcheck; zusätzlich echte L1-App-/UI-/Glyphen-/Overlaybilder in realer Größe und Image-Ready. | Übriger Writer-/Mehrsession-/Lifecycleverbund gehört L3; keine beliebigen App-/Frame-/Effektprofile mitbehaupten. |
+| W06 Input/UI | L1 lokal belegt | Alle zehn ursprünglichen Keyboard-/Pointer-/Textowner unverändert bestanden; Image-Picking, logische Keyidentität, Fokus/Unicode/Limits sowie Legacy-/Widget- und sichtbare Glyphenwirkung belegt. | Abschlussreview; keine übrigen Inputowner oder notwendigen Implementationen in L2 verschoben. |
+| W07 Signalstation/Persistenz | Teilweise | Echte Signalstation mit Assets, Kamera, UI/Fonts, MSAA4/Tonemapping und Input jetzt im L1-Metalprofil betrieben; Systemclipboard ausgeschlossen. | Headless-Persistenz-/Inspect-/Recording-/Replay-/Report-/Clientverbund gehört zum noch unbegonnenen L2, nicht zur Freigabe durch den UI-Klick. |
+| W08 Isolation/Abschluss | Teilweise | L1-Einzel-Session beendet sich normal sauber und bei eigenem Geräteverlust typisiert/reaped; aktive/deferred Requests und Datei-/Writerbarrieren CPUgeprüft. | Vollapp-Mehrsession, Startabbruch, konkurrierender Shutdown/Drop/Capture-/Writerverbund in L3. Keine physische GPUpartitionierung versprechen. |
 | W09 Zoo | Offen | Vorhandener Imageexport ist wiederverwendbare Grundlage. | Hidden Window durch echten fensterlosen Export ersetzen; Ziel-/Assetbereitschaft und Captureack statt fester Framewartewerte; vollständiger Motiv-/Ansichts-/Label-/Shaderumfang. |
-| W10 Tests/Entwicklereinstiege | Teilweise | Drei neue CPU-Ownerfälle registriert; separate explizite Acht-Fälle-GPU-Fixture mit Fingerprints, Profilwahl und Belegen. | Originalowner/Orakel headless zusätzlich anschließen; gemeinsame App-/Reset-/Lebensdauerpolitik und direkte Beispiele/Messwerkzeuge integrieren. Keine native Abnahme als Headless umbenennen. |
-| W11 Plattform/Software | Teilweise | Enges M1-Pro-/Metal-/65×49-2D-/Basis-3D-Profil tatsächlich qualifiziert. | Zuerst vollständiges Metal-Appprofil in realer Größe; weitere Adapter/Versionen/Größen, Linux/Vulkan und Software separat entscheiden/qualifizieren. Keine stillen Fallbacks oder Featureabschaltungen. |
+| W10 Tests/Entwicklereinstiege | Teilweise | Zehn Original-Inputowner plus drei Headlessowner; expliziter Runner mit Buildvariantenschutz, ursprünglichem Resetvertrag und Bildern. Neuer Viewport-CPUowner registriert; bisherige acht SDKfälle erneut bestanden. | Übrige Originalfallmatrix, direkte Entwickler-/Messwerkzeuge und weitere Testverbünde in L2/L3/L4; keine native Abnahme als Headless umbenennen. |
+| W11 Plattform/Software | Teilweise | M1-Pro/Metal: kleine Basisszenen und tatsächlicher L1-Appumfang in 1440×900/Scale 1 nachgewiesen. | Weitere Adapter/Versionen/Größen, Linux/Vulkan und Software als eigene vollständige L5-Profile. Keine stillen Fallbacks oder Featureabschaltungen. |
 | W12 Abschluss | Offen | Slice-Vertrag, Anleitung, Grenzen und Evidenz sind vorhanden. | Endgültige Support-/Abnahmematrix, Migration und verbleibende native Aussagen für den gewählten Produktumfang zusammenführen. Kein automatischer Merge, Release oder CI-Neustart. |
 
 **Wichtig:** Ein Beitrag zu W02/W03/W05 ist kein pauschaler Abschluss von
@@ -87,14 +145,14 @@ gesamte früher geplante Ausführungsmenge.
 
 | Gate | Heute | Verbleibende Aussage |
 | --- | --- | --- |
-| G01 Kompatibilität | Teilweise | Native Ready bleibt unverändert; aktueller v3-Opt-in/Terminalpfad vorhanden. Vollständiger angeforderter Launch-/Client-/Renderkonfigurationsvertrag fehlt. |
+| G01 Kompatibilität | L1 lokal belegt | Gemeinsamer angeforderter/bestätigter Launch-/Viewportvertrag, fehlende/falsche/unangeforderte Acks und Native-Defaults geprüft; Rust-Structliteral-Migration dokumentiert. Abschlussreview offen. |
 | G02 Runner | Teilweise | Enger Tick-/Pause-/Hookpfad ist belegt. Vollapp-Lifecycle und tatsächlich benötigte Asset-/SubApp-Profile fehlen. |
-| G03 Ready/Graph | Offen für EngineReady | Erfolgreiches Capture ist nicht die noch fehlende Image-/Vollapp-Startupabnahme. |
+| G03 Ready/Graph | L1 lokal belegt | Tatsächliche Image-/Appbereitschaft samt Freeze, Zählung und originalen Fehlerbudgets belegt; Abschlussreview offen. Weitere Profile bleiben eigene Abnahmen. |
 | G04 Readback | Teilweise | Enger Produktpfad und Fehler-/Dateiregressionen sind belegt; vollständige App-/Ziel-/Lifecyclekombinationen fehlen. |
-| G05 UI/Geometrie | Offen | Logische Geometrie, Image-Picking, Fokus und echte UI-/Textwirkung ohne natives Fenster fehlen. |
-| G06 Adapter/Plattform | Teilweise | Benanntes Metal-Basisprofil belegt; übrige Profile nicht qualifiziert, nicht widerlegt. |
-| G07 GPUfeatures/Assets | Teilweise | 2D und grundlegendes PBR/Licht/Schatten belegt; tatsächliche Spielassets, Fonts, UI, Overlays und weitere genutzte Effekte fehlen. |
-| G08 Native Dienste | Teilweise | Kleine Fixture ohne Winit/Clipboard/native Fenster belegt. Signalstation besitzt noch native Window-/Winit-/Clipboardkopplungen. |
+| G05 UI/Geometrie | L1 lokal belegt | Image-Picking, Fokus, zehn unveränderte Inputowner sowie wirkliche Legacy-/Widget-/Glyphenpixel belegt; Abschlussreview offen. GPUprofil ist Scale 1, HiDPI-Adapter zusätzlich CPUgeprüft. |
+| G06 Adapter/Plattform | Teilweise | Metal-Basisszenen und reales L1-Appprofil belegt; übrige L5-Profile nicht qualifiziert, nicht widerlegt. |
+| G07 GPUfeatures/Assets | L1 lokal belegt | Tatsächliche Spielassets, PBR/MSAA/Tonemapping, Fonts, UI/Glyphen und GPUoverlay im L1-Profil belegt; kein allgemeines Effekteversprechen. Abschlussreview offen. |
+| G08 Native Dienste | L1 lokal belegt | Isolierter Appbuild ohne Winit/Arboard/X11, logische statt native Windowidentität und OS-Audit mit null eigenen nativen Fenstern; Native Default und Regression bleiben erhalten. |
 | G09 Abschluss/Device-loss | Teilweise | Eigene logische Gerätefehler und Publicationbarrieren belegt. Vollständiger Mehrsession-/Start-/Writer-/Shutdownverbund fehlt. |
 | G10 Zoo | Offen | Vorhandener Capturemodus erzeugt noch ein verborgenes natives Fenster. |
 | G11 Abnahmevertrag | Teilweise | Lokale Slice-/Ownerprüfungen vorhanden; Originalfallmatrix und vollständige Headless-Ausführung nicht abgeschlossen. |
@@ -106,25 +164,28 @@ zukünftiger/unbeobachteter Backendfehler und kein echter Treiberreset als neues
 Pflichtgate. Einzel-Screenshot-Cancel wird nicht als neue Funktion vorausgesetzt;
 `Pending`-Drop bleibt keine Cancellation.
 
-## Konkrete noch offene Kopplungen
+## Konkrete Kopplungen: gelöst und noch offen
 
-Diese Befunde wurden am oben genannten Quellstand geprüft:
-
-| Quelle | Heutiger Befund | Folgearbeit |
+| Quelle | Heutiger Befund | Zuordnung |
 | --- | --- | --- |
-| [Launch](../../src/session/launch.rs), [CLI-Konfig](../../src/cli/config.rs) | Kein vereinheitlichter Headless-/Renderzielauftrag; die Fixture setzt Renderer/Image/Kamera selbst zusammen. | W01/W02 |
-| [Startup](../../src/session/startup.rs), [Render-Ticket](../../src/session/startup/render.rs) | `after_tick`/`Ticket` verlangen PrimaryWindow und Fensterframe. | W04 |
-| [Keyboard](../../src/session/input/keyboard.rs), [Pointer](../../src/session/input/pointer/cursor.rs), [Text](../../src/session/input/text.rs), [UI](../../src/session/input/ui.rs) | PrimaryWindow-Bindung; Pointerlocation und Legacy-UI sind fensterbezogen. | W06 |
-| [Appinstallation](../../test_app/src/app/mod.rs), [Woodpecker-Anbindung](../../test_app/src/woodpecker.rs), [Appfeatures](../../test_app/Cargo.toml) | Echte App erzeugt Window, setzt WinitSettings und führt native Featurepfade; grundlegende Renderfixture ersetzt das nicht. | W02/W07/G08 |
-| [Zoo](../../test_zoo/src/app.rs) | `--zoo-capture` setzt `visible:false`, installiert aber weiterhin ein Window. | W09 |
-| [Performanceeinstieg](../../examples/performance.py) | `raise_window`, `osascript`, Displayabfragen und eigener Requestdispatcher sind noch nicht als Headless-Einstieg integriert. | W10 |
+| [Launch](../../src/session/launch.rs), [Wire](../../src/session/protocol.rs) | `headless`/`no_default_features` gemeinsam durch SDK/CLI/Server/App; Acknowledgement und Native-Envreset geprüft. | L1 gelöst, Review offen |
+| [Startup](../../src/session/startup.rs), [Render-Ticket](../../src/session/startup/render.rs) | Ticket akzeptiert Window oder Image und scoped GPUassets; gezählte Readiness und ursprüngliche Fehlerbudgets für die App belegt. | L1 gelöst, Review offen |
+| [Viewport](../../src/session/headless.rs), [Pointer](../../src/session/input/pointer/cursor.rs), [UI](../../src/session/input/ui.rs) | Logische Window-Metadaten ohne nativen Handle; Image-Picking und kurzlebige Legacy-Focusprojektion. Originale Key-/Text-/Pointerverträge bestanden. | L1 gelöst, Review offen |
+| [Appinstallation](../../test_app/src/app/headless.rs), [Appfeatures](../../test_app/Cargo.toml) | Expliziter isolierter Headlessbuild ohne Winit/Systemclipboard; native Defaults unverändert. Kameras/UI/Overlay zielen auf Image. | L1 gelöst, Review offen |
+| [Zoo](../../test_zoo/src/app.rs) | `--zoo-capture` setzt weiterhin `visible:false` und installiert ein Window. | L4 offen |
+| [Performanceeinstieg](../../examples/performance.py) | Appinternes GPUoverlay ist imagefähig; Script nutzt weiterhin `raise_window`, `osascript`, Displayabfragen und eigenen Dispatcher. | Direkter Headless-Entwicklereinstieg in L2 offen |
 
-## Nächste Etappe: ein echter Anwendungsfall, noch offen
+## L1: Umfang und Abschlusskriterien
 
-**Ziel:** Signalstation headless starten → SessionReady und kontrollierte
-Spiel-/Enginebereitschaft unterscheiden → tatsächlichen UIbutton per Command
-betätigen → geänderten Spielzustand und reales PNG nachweisen → sauber beenden.
-Das ist ein bleibender Produktslice, keine weitere Wegwerfgrafikdemo.
+**Lieferpaket L1: Signalstation-Basisbetrieb auf Metal. Zustand: aktiv.**
+Konkreter Umfang und Nachweise: [L1.md](L1.md). Noch kein Abschluss behauptet.
+
+Der erste Integrationscheck bleibt: Signalstation headless starten → SessionReady
+und kontrollierte Spiel-/Enginebereitschaft unterscheiden → tatsächlichen UIbutton
+per Command betätigen → geänderten Spielzustand und reales PNG nachweisen → sauber
+beenden. **Das ist nur ein Zwischencheck.** L1 wird erst mit dem vollständigen
+vereinbarten Start-/Asset-/Input-/UI-/Text-/Captureumfang und dessen Fehler- und
+Regressionsfällen abgeschlossen, nicht nach dem ersten funktionierenden Klick.
 
 1. **Start-/Zielkonfiguration (W01/W02):** Modus früh in der echten App auswählen,
    Window/Winit und Systemclipboard nicht initialisieren; eigene Workspace-/Seed-
@@ -136,42 +197,59 @@ Das ist ein bleibender Produktslice, keine weitere Wegwerfgrafikdemo.
    konfiguriert/angefordert und vollständig gezählt erlaubt. GPUvorbereitung,
    Fristen und Fehler an das richtige Imageziel binden, keine zusätzlichen
    `App.update`-/Reparaturticks oder Deadlineverlängerung zum Grünmachen.
-3. **Logisches Input-/UIziel (W06):** Key/Text/Fokus und Image-Pointer/Picking mit
-   einer gemeinsamen Geometrie verbinden. Wirkungen erst am expliziten Tick,
-   weder Renderpump noch Inspect/Capture dürfen Inputs verbrauchen.
+3. **Logisches Input-/UIziel vollständig (W06):** Keyboard mit Hold/Flanken/
+   Release, absoluter/relativer Pointer, Buttons/Scroll, Text/Fokus und Image-
+   Picking/UI mit einer gemeinsamen Geometrie verbinden. Unicode, Limits,
+   ungültige Übergänge und sichtbare Glyphen gehören dazu. Wirkungen erst am
+   expliziten Tick; Renderpump und Inspect/Capture dürfen keine Inputs verbrauchen.
 4. **Original-Appfall anschließen (W07/W10):** den Owner
    [`tests.pointer.ui_click`](../../tests/pointer/ui_click.py) mit seiner wirklichen
    Vorbereitung und seinen unveränderten Zustands-/Tickassertions verwenden:
    „Gesamtkarte [G]“, `ViewState` Overview → Map, Move/Press/Release mit drei
    Aktionsticks. Bild-/Layoutbeleg und sauberer Abschluss kommen hinzu; der
-   native Owner wird nicht durch eine reduzierte Headlesskopie ersetzt.
+   native Owner wird nicht durch eine reduzierte Headlesskopie ersetzt. Anschließend
+   im selben Paket alle ursprünglichen Owner aus [Keyboard](../../tests/keyboard/),
+   [Pointer](../../tests/pointer/) und [Text](../../tests/text/) vollständig anschließen:
+   drei Keyboard-, fünf Pointer- und zwei Textfälle. Keine übrigen Inputowner
+   als Restarbeit in L2 auslagern.
 
-### Abschlusskriterien dieser Etappe
+### Abschlusskriterien von L1 – alle erforderlich
 
-- [ ] Derselbe echte App-/Asset-/UIumfang startet im gewählten Metalprofil ohne
+- [x] Derselbe echte App-/Asset-/UIumfang startet im gewählten Metalprofil ohne
   natives Fenster, Display-/Fokus-/Clipboardaktion oder stillen Ersatzprozess.
-- [ ] SessionReady ist nicht fälschlich Spiel-/Enginebereitschaft; explizite
+- [x] SessionReady ist nicht fälschlich Spiel-/Enginebereitschaft; explizite
   Vorbereitung, Seed, Auflösung/Scale und sämtliche Ticks sind protokolliert.
-- [ ] Move/Press/Release haben vor dem Tick keine Wirkung; danach zeigt Inspect
-  den erwarteten Spiel-/UIzustand und Capture die wirkliche Szene samt UI.
-- [ ] Capture/Inspect während Pause erhalten Uhren/Ticks; kein synthetisches Bild
+- [x] Alle zehn ursprünglichen Keyboard-/Pointer-/Textowner bestehen zusätzlich
+  im Headless-Appprofil, einschließlich ihrer Vorbereitung, ungültigen Übergänge,
+  Fokus-/Unicode-/Limit-/Zustands- und Tickassertions; keine Abschwächung oder Skips.
+- [x] Reales UIlayout, sichtbare Textglyphen und der UI-Klick sind im PNG und
+  mit Inspect-Zustand belegt; Key/Pointer/Text entfalten vor dem angeforderten
+  Tick keine Wirkung.
+- [x] Capture/Inspect während Pause erhalten Uhren/Ticks; kein synthetisches Bild
   oder abgeschwächtes Originalorakel ersetzt den Produktnachweis.
-- [ ] Fehler werden typisiert beendet, Abschluss sammelt eigene Prozesse und
-  berücksichtigt Writer/Dateiwirkungen; native Defaults bleiben erhalten.
+- [x] Die für Start, Ready, Input/UI und Capture erforderlichen Fehler-/Fristfälle
+  sind abgedeckt; Einzel-Session-Abschluss sammelt eigene Prozesse und
+  berücksichtigt Writer/Dateiwirkungen. Native Defaults und betroffene native
+  Regressionen bleiben erhalten.
+- [ ] Benutzbare Konfiguration, Anleitung und reproduzierbarer Nachweis beziehen
+  sich auf denselben finalen Stand; relevante Reviewfindings sind aufgelöst und
+  keine notwendige Implementation/Test-/Cleanup-Restarbeit von L1 bleibt offen.
 
-**Danach, nicht dadurch erledigt:** restliche Keyboard-/Pointer-/Textowner,
-Recording/Replay/Reports/Clients, weitere Lebensdauer-/Mehrsessionfälle, Zoo,
-Entwicklereinstiege und zusätzliche Supportprofile. Erst deren vorgesehene
-Abnahmen erlauben die jeweils weitergehende Supportaussage.
+**Erst danach L2 beginnen.** Recording/Replay/Reports, weitere direkte
+Entwicklereinstiege, Mehrsessionverbund, Zoo und weitere Profile behalten ihre
+eigenen vollständigen Abschlusskriterien. Das sind zuvor abgegrenzte andere
+Lieferpakete, kein Ablageort für unfertige L1-Arbeit.
 
 ## Pflege und nächste Aktualisierung
 
-Nach jeder Etappe hier Produktbaseline, erledigten Umfang, W-/Gatezeilen und
-verbleibenden nächsten Schritt nachziehen. Neue Evidenz mit eigenem Source-/
-Profilbezug verlinken; alte Fehlbelege und native Assertions erhalten. Eine
+Während der Arbeit genau ein L-Paket als aktiv führen und seinen konkreten Rest
+beziehungsweise Blocker festhalten. Nach dessen vollständigem Abschluss hier
+Produktbaseline, erledigten Umfang, L-Zustand, W-/Gatezeilen und den nächsten
+Schritt nachziehen. Erst dann ein neues L-Paket aktivieren. Neue Evidenz mit
+eigenem Source-/Profilbezug verlinken; alte Fehlbelege und native Assertions erhalten. Eine
 Quellprüfung ist kein Runtime-PASS. Keine Prozentzahl oder Komplettfreigabe aus
 bloßer Existenz von Code ableiten.
 
-Diese Aktualisierung ist ein Dokumentations-/Statusabgleich. Sie erzeugt keine
-neuen GPU-/Appnachweise und erteilt keine Freigabe für CI, Installationen,
-Provideraktionen oder weitere Laufzeit-/Produktänderungen.
+L1 wird unter dem expliziten `full-stop`-Auftrag implementiert und geprüft; die
+neuen App-/GPUbelege sind oben verlinkt. Das ersetzt nicht die separate Freigabe
+für CI, Installationen, externe Provider, Merge oder das Beginnen von L2–L5.
