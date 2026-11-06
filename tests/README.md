@@ -127,7 +127,10 @@ WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance \
 `--headless` wählt 13 Fälle: die zehn ursprünglichen Keyboard-/Pointer-/Textowner
 mit unveränderten Assertions und drei eigene Headlessowner. [basis.py](headless/basis.py)
 prüft echten Appstart, Image-Ready, RGB-/Pause-/UI-/Unicode-/Overlaybilder und einen
-PID-gefilterten OS-Audit ohne native Fenster. [startup.py](headless/startup.py)
+PID-gefilterten OS-Audit ohne native Fenster. Für `Time<Real>` liest der Owner
+einen ausdrücklich aktivierten Snapshot tatsächlicher Skalare/Updatezeitpunkte:
+bei jeder Extraction, auch während Pause, und mit Fortschrittskontrolle nach
+expliziten Ticks; kein Eingriff in den Clock oder zusätzliche Anwendungsschedules. [startup.py](headless/startup.py)
 führt die ursprünglichen Manual-/Engine-/vier Fehler-Startupvarianten mit lediglich
 geänderter Konfiguration aus. [terminal.py](headless/terminal.py) zerstört nach
 healthy Capture nur das eigene logische Gerät und verlangt typisiertes Ende und

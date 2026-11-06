@@ -96,6 +96,12 @@ sichtbare Unicodeglyphen, GPUoverlay, Pauseninvarianz und typisierter Gerätever
 13/13 L1-Fälle, 99/99 native lokale Einträge, 14 interne Owner-, 21 App-,
 93 Harness- und erneut alle acht SDK-GPUfälle bestanden. Finale Reviewfreigabe
 steht aus. [Nachweise und Bilder](../../tests/headless/evidence/README.md).
+Die 99/99-native Basis entspricht dem funktionalen Stand `8e7de92`. S1 ergänzt
+nur eine opt-in Real-Clock-Beobachtung für den Basisowner; alle 13 Headlessfälle
+bestehen danach erneut, einschließlich direktem Real-Nachweis. Ein zusätzlicher
+nativer Gesamtlauf scheiterte an fehlender Window-Surface; anschließend war der
+Desktop nachweislich gesperrt. Dieser Versuch wird nicht grün gerechnet. Exakte
+Sourceunterschiede und die Grenze dieser Nachprüfung stehen in [L1.md](L1.md).
 
 **Qualifikationsgrenze der historischen Basisszenen:** Apple M1 Pro/Metal, macOS27.2, Bevy0.20.0/wgpu30.0.1,
 65×49, nicht-pipelined; 3D mit asynchroner Pipelinekompilierung, festem HDR-/

@@ -17,7 +17,7 @@ class HeadlessBasisTest(unittest.TestCase):
         from PIL import Image
         server = start_server(self, "headless-basis")
         configuration = load_config(ROOT / "tests/headless/app.toml")
-        configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe", "--woodpecker-legacy-ui"]
+        configuration["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe", "--woodpecker-legacy-ui", "--woodpecker-clock-snapshot"]
         path = server.artifacts / "headless.toml"
         write_app_config(path, configuration)
         session_id = server.cli("session", "create", "--config", str(path))["id"]
@@ -35,7 +35,10 @@ class HeadlessBasisTest(unittest.TestCase):
         identity = owned_process(server, root)
         self.assertEqual(owned_windows(identity["pid"]), [], "The real app must own no native windows")
         server.record(["observation", "owned-native-windows"], pid=identity["pid"], windows=[])
+        # Time<Real> contains nonserializable Instants. The read-only diagnostic
+        # samples its real scalars/update timestamps on every extraction, also idle.
         types = ("test_app::woodpecker::SimulationTicks", "bevy_time::time::Time<()>",
+                 "test_app::diagnostics::clock::RealSnapshot",
                  "bevy_time::time::Time<bevy_time::virt::Virtual>",
                  "bevy_time::time::Time<bevy_time::fixed::Fixed>")
         before = {name: server.read_resource(session_id, name) for name in types}
@@ -111,6 +114,9 @@ class HeadlessBasisTest(unittest.TestCase):
         server.call(session_id, {"command": "input.keyboard.release", "arguments": {"key": "f8"}})
         tick()
         self.assertEqual(server.read_resource(session_id, types[0])["ticks"], before[types[0]]["ticks"] + 13)
+        real_after = server.read_resource(session_id, "test_app::diagnostics::clock::RealSnapshot")
+        self.assertGreater(real_after["elapsed"], before[types[2]]["elapsed"], "The Real snapshot must be live, not a constant/frozen probe")
+        server.record(["observation", "real-clock-live-after-counted-ticks"], before=before[types[2]], after=real_after)
         server.record(["observation", "image-overlay"], changed_pixels=overlay_changed, action_ticks=2)
         self.assertEqual(owned_windows(identity["pid"]), [])
         server.cli("server", "stop")

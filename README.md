@@ -103,7 +103,7 @@ python3 -m tests.acceptance --list             # plan only; no builds or process
 python3 -m tests.acceptance --non-graphical    # passing subset still exits 2
 ```
 
-The current native local run and scoped headless L1 run passed; external GitHub
+The native feature baseline and scoped headless L1 run passed; external GitHub
 verification was not rerun. [L1 evidence](tests/headless/evidence/README.md) and the
 [status plan](docs/headless-plan/STATUS.md) record scope and remaining work.
 Rendered runs require explicit scoped permission. Native runs need an awake

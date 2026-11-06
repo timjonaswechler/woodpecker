@@ -13,6 +13,9 @@ pub(crate) fn install(app: &mut App) {
     {
         return;
     }
+    if std::env::args().any(|argument| argument == "--woodpecker-clock-snapshot") {
+        clock::install_snapshot(app);
+    }
     if std::env::args().any(|argument| argument == "--woodpecker-render-loss") {
         app.add_systems(
             Update,

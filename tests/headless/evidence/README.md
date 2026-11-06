@@ -9,8 +9,10 @@ Keine nativen Fenster, kein OS-Input und kein Systemclipboard im Headlessbuild.
 ## Bilder
 
 - [a.png](a.png): reale Signalstation nach Image-EngineReady; eine zweite Aufnahme
-  während Pause war bytegleich bei unveränderten Real-/Virtual-/Fixeduhren und
-  Simulationstickzählern.
+  während Pause war bytegleich bei unveränderten Real-/Default-/Virtual-/Fixeduhren
+  und Simulationstickzählern. Der nicht vollständig serialisierbare `Time<Real>`
+  wird über einen lesenden, auch bei Pause aktualisierten Scalar-/Instantoffset-
+  Snapshot beobachtet; sein Fortschritt nach expliziten Ticks ist separat belegt.
 - [map.png](map.png): tatsächlicher UIbutton „Gesamtkarte [G]“, Overview → Map
   mit genau drei Move-/Press-/Release-Ticks. Das Bild zeigt den Pressframe nach
   dem zweiten Aktionstick; Release folgt im dritten. Widget- und Legacy-
@@ -31,8 +33,10 @@ CPUbild, Thumbnail, Browserscreenshot oder Proben-Publisher.
 - **13/13 Headlessfälle:** alle zehn ursprünglichen Inputowner unverändert plus
   Basis, Wiederverwendung der ursprünglichen Startupowner (Manual, Engine und
   vier Fehlerzustände) und Geräteverlust der echten App.
-- **99/99 native lokale Einträge:** 98 Produkttests plus typisierte Negativkontrolle,
-  einschließlich Feature-Matrix; separat von der Headlessauswahl ausgeführt.
+- **99/99 native lokale Einträge auf dem funktionalen L1-Stand entsprechend
+  `8e7de92`:** 98 Produkttests plus typisierte Negativkontrolle, einschließlich
+  Feature-Matrix; separat von der Headlessauswahl ausgeführt. Nachgelagerter
+  Runtime-Diff: nur die ausdrücklich aktivierbare Real-Clock-Beobachtung.
 - 14 interne Owner-, 21 App- und 93 CPU-Harness-Prüfungen bestanden.
 - Alle acht bisherigen 2D-/Basis-3D-SDK-GPUfälle samt Licht-/Schattenaudit erneut
   bestanden. Workspace- und Headless-Clippy mit `-D warnings` sowie Format bestanden.
@@ -44,6 +48,13 @@ CPUbild, Thumbnail, Browserscreenshot oder Proben-Publisher.
 `--headless` endet trotz bestandener Auswahl mit **Exit 2**, weil er keine
 Gesamtfreigabe für alle Produktfunktionen, nativen Verträge oder externe Provider
 beansprucht. Die erfolgreiche native lokale Gesamtabnahme endete mit Exit 0.
+Ein weiterer nativer Gesamtlauf nach dem Clockhinweis scheiterte mit
+`startup_timeout` / `window surface=false`. Der anschließend abgefragte Desktop
+war gesperrt. Dieser Lauf bleibt **fehlgeschlagen** und wird nicht als neuer
+99/99-PASS behauptet; keine Entsperrung, Frist-/Orakellockerung oder Headless-
+Substitution. Aktuelle Headlessbelege und die frühere native Qualifikation sind
+mit ihren unterschiedlichen Source-/Programmhashes explizit auseinandergehalten.
+
 Fehlgeschlagene Vorläufe bleiben unter `target/headless-l1-proof/` separat erhalten:
 fehlende Konfiguration, UI-Subview-Capturetimeout, altes Window-Pointer-Unreachable,
 Legacy-UI-None, fehlende Image-Framemetrik und Geräteverlust ohne Faultaktivierung.
@@ -52,7 +63,9 @@ Legacy-UI-None, fehlende Image-Framemetrik und Geräteverlust ohne Faultaktivier
 
 [`recorded.json`](recorded.json) enthält die beobachteten Test-IDs/Ergebnisse,
 Programm- und Bildhashes sowie alle 266 relevanten Runtimequellen-/Assethashes.
-Absolute Rechnerpfade und interne Thread-IDs wurden nicht exportiert. Die
+`native_qualification` bezeichnet die native Basis und die exakt zwei später nur
+für den opt-in Real-Probe geänderten Runtime-Dateien. Absolute Rechnerpfade und
+interne Thread-IDs wurden nicht exportiert. Die
 vollständigen Rohläufe bleiben lokal unter den dort genannten relativen Pfaden.
 
 ```sh

@@ -463,40 +463,63 @@
   },
   "images": {
     "a.png": {
+      "after_action_ticks": 0,
       "height": 900,
       "mode": "RGB",
       "sha256": "2a2d4f30039ea89ff21cd67749573e1de9dd4b6421969687d12e0f2cf7cca81f",
-      "width": 1440,
-      "after_action_ticks": 0
+      "width": 1440
     },
     "map.png": {
+      "after_action_ticks": 2,
       "height": 900,
       "mode": "RGB",
       "sha256": "68d460e0b654412bd0b6446f34deb638dd809df3f1b725bdd31c09706971c35c",
-      "width": 1440,
-      "after_action_ticks": 2
+      "width": 1440
     },
     "notes-before.png": {
+      "after_action_ticks": 9,
       "height": 900,
       "mode": "RGB",
       "sha256": "6ed69f13a3d26fb70087a05d1139c2e5d532674872520338690ebc83c2f93648",
-      "width": 1440,
-      "after_action_ticks": 9
+      "width": 1440
     },
     "notes.png": {
+      "after_action_ticks": 11,
       "height": 900,
       "mode": "RGB",
       "sha256": "d9740c9b538685a2e172335ff7c1fc9ab7c3c3a00236e163d4eecfbc2bde7082",
-      "width": 1440,
-      "after_action_ticks": 11
+      "width": 1440
     },
     "overlay.png": {
+      "after_action_ticks": 12,
       "height": 900,
       "mode": "RGB",
-      "sha256": "6fafed94873154407f94b119fb5e77050f4649c598f768ad616585bdd6caca29",
-      "width": 1440,
-      "after_action_ticks": 12
+      "sha256": "954445edaabd4e468d62a0297c5e4419f418cbe5465ddb2d9be40be234eea5af",
+      "width": 1440
     }
+  },
+  "native_qualification": {
+    "actual_dirty": true,
+    "actual_git_revision": "f9a74f6ac86133f53da5db0eda86949bf0f81373",
+    "additional_attempt": {
+      "error": "startup_timeout: GPU assets ready and camera present, window surface unavailable",
+      "note": "Retained failure; not counted as PASS. No unlock, weaker oracle, deadline increase or headless fallback used.",
+      "screen_locked_observed_after_run": true,
+      "status": "Fehlgeschlagen",
+      "summary": "target/test-runs/acceptance-68b8k3gh/summary.json"
+    },
+    "delta_scope": "Only opt-in read-only Real clock observation for the headless basis owner; no native default branch changes.",
+    "later_runtime_delta": {
+      "test_app/src/diagnostics.rs": {
+        "current_sha256": "2965381e052cdcb2854264beaea509376ce7673065cdfbf9b492306f1670dc3b",
+        "qualified_sha256": "742427944b4752150d07c3c31ee4f8b977f5365e1e1f288dfdf6d8d9d1c8cb56"
+      },
+      "test_app/src/diagnostics/clock.rs": {
+        "current_sha256": "e6fe3d610968085d4bb11c3fb694f4fdfae71967c6d54d47ca1b8a164d75cbe3",
+        "qualified_sha256": "c4b4876d7ca5446055504857e08c1da2659856dd289ccf07bb72e24f357776a6"
+      }
+    },
+    "source_tree_equivalent_to": "8e7de92"
   },
   "observations": {
     "device_loss": {
@@ -517,6 +540,22 @@
     "native_windows": [],
     "overlay_action_ticks": 2,
     "paused_sha256": "2a2d4f30039ea89ff21cd67749573e1de9dd4b6421969687d12e0f2cf7cca81f",
+    "real_clock": {
+      "after_counted_ticks": {
+        "delta": 0.016666667,
+        "elapsed": 0.266666672,
+        "first_update": 0.0,
+        "last_update": 0.266666672
+      },
+      "before": {
+        "delta": 0.016666667,
+        "elapsed": 0.050000001,
+        "first_update": 0.0,
+        "last_update": 0.050000001
+      },
+      "observer": "test_app::diagnostics::clock::RealSnapshot sampled on every extraction, not application ticks",
+      "paused_unchanged": true
+    },
     "shared_input_processes": 1,
     "text_action_ticks": 8,
     "unicode_text": "Grüße 🦉\nCafé – 東京"
@@ -538,14 +577,14 @@
     "os": "macOS 27.2",
     "pipelined": false,
     "rust": "1.99.1",
-    "scale_factor": 1,
+    "scale_factor": 1.0,
     "tonemapping": "AcesFitted",
     "wgpu": "30.0.1",
     "width": 1440
   },
   "programs": {
     "bin:test_app": {
-      "sha256": "9e9a9e49a511814e484a5280a692567a2e8f81a887d848cec3aeb46c611a10a7"
+      "sha256": "9d580a79c5e9b2fa84c551e0ca437540594dab6fdc9cb4444aab0a8e12649131"
     },
     "bin:woodpecker": {
       "sha256": "c1401d13e26b8aa09d8f333cb59fdd54ee72a3ff2a540cd9655b958dd32afd53"
@@ -555,14 +594,14 @@
     }
   },
   "raw_evidence": {
-    "basis_config_smoke": "target/test-runs/headless-basis-etzapa3r",
-    "headless": "target/test-runs/acceptance-0kww0ocw/summary.json",
+    "basis_config_smoke": "target/test-runs/headless-basis-0v43ztha",
+    "headless": "target/test-runs/acceptance-ktjrh922/summary.json",
     "native": "target/test-runs/acceptance-l4_zohzt/summary.json",
     "note": "Local raw evidence is retained separately; this export records observed results, not a new execution.",
     "offscreen": "target/headless-l1-proof/product-regressions/runs/l1-final-01"
   },
   "recipe_sha256": "304c9a3906328d67a584e39f58ce51b814aef53ed267f5c73a7a52d049f4838c",
-  "recorded_at": "2026-11-05T22:28:16.373864+00:00",
+  "recorded_at": "2026-11-05T23:55:26.205063+00:00",
   "runtime_sources": {
     "Cargo.lock": "ea3dc5db7ffd62dbed7528a4d29a9edf6ad97987f21996577b353750eb9e3aff",
     "Cargo.toml": "fbe68db9cbf677fa26f55d83306ea27306871137dc386ea946617c9769286cbf",
@@ -766,8 +805,8 @@
     "test_app/src/app/settings/mod.rs": "186724b350f415cd77f77a0192b8c6ff96bbcbb92cb4d1b1ebbb7bc0f57b8f6d",
     "test_app/src/app/settings/storage.rs": "4d45b593ffdf9cd91eff03e65972ac8c381684205f2c1785b323d8918972096c",
     "test_app/src/app/settings/values.rs": "e6fd5e4cd937a4414cebe699c0b62bbe043e153b2d5b10d64e209cd11b8c6824",
-    "test_app/src/diagnostics.rs": "742427944b4752150d07c3c31ee4f8b977f5365e1e1f288dfdf6d8d9d1c8cb56",
-    "test_app/src/diagnostics/clock.rs": "c4b4876d7ca5446055504857e08c1da2659856dd289ccf07bb72e24f357776a6",
+    "test_app/src/diagnostics.rs": "2965381e052cdcb2854264beaea509376ce7673065cdfbf9b492306f1670dc3b",
+    "test_app/src/diagnostics/clock.rs": "e6fe3d610968085d4bb11c3fb694f4fdfae71967c6d54d47ca1b8a164d75cbe3",
     "test_app/src/diagnostics/fixture.rs": "d678027ef07f2129d5ef01f15594c3d87915e77a77ab6b9e719e846de7926e3f",
     "test_app/src/diagnostics/reflection.rs": "0228e46cdbfabb09f1c20dc7abc4376020f15a17476b96bbf0b0ab1e5d776472",
     "test_app/src/diagnostics/reports.rs": "0f67aef6533fded789970c89722250f8cd1fc7ded351f2ced21f0cb941746017",

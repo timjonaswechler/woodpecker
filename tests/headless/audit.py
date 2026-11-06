@@ -32,6 +32,14 @@ def main():
         assert all(row["status"] == "Bestanden" for row in manifest["cases"][group])
     assert len(manifest["cases"]["headless"]) == 13
     assert len(manifest["cases"]["native"]) == 99
+    real = manifest["observations"]["real_clock"]
+    assert real["paused_unchanged"] and real["after_counted_ticks"]["elapsed"] > real["before"]["elapsed"]
+    native = manifest["native_qualification"]
+    assert native["source_tree_equivalent_to"] == "8e7de92"
+    assert set(native["later_runtime_delta"]) == {"test_app/src/diagnostics.rs", "test_app/src/diagnostics/clock.rs"}
+    assert all(row["current_sha256"] == manifest["runtime_sources"][name]
+               for name, row in native["later_runtime_delta"].items())
+    assert native["additional_attempt"]["status"] == "Fehlgeschlagen"
     assert manifest["observations"]["native_windows"] == []
     assert manifest["observations"]["paused_sha256"] == manifest["images"]["a.png"]["sha256"]
     for name, record in manifest["images"].items():
