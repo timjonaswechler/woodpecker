@@ -1,9 +1,7 @@
 use super::{Diagnostic, ID};
 use bevy::{
-    camera::NormalizedRenderTarget,
     picking::pointer::{Location, PointerAction, PointerInput},
     prelude::*,
-    window::WindowRef,
 };
 
 /// Accepted virtual geometry, independent of device motion and the OS cursor.
@@ -29,7 +27,7 @@ impl State {
             .location
             .filter(|(id, _)| *id == entity)
             .map_or(position, |(_, position)| position);
-        Ok(self.moved(entity, previous, position))
+        Ok(self.moved(world, entity, previous, position))
     }
 
     pub(super) fn move_by(
@@ -56,14 +54,20 @@ impl State {
         let position = (previous.as_dvec2() + delta.as_dvec2())
             .clamp(bevy::math::DVec2::ZERO, maximum.as_dvec2())
             .as_vec2();
-        Ok(self.moved(entity, previous, position))
+        Ok(self.moved(world, entity, previous, position))
     }
 
-    fn moved(&mut self, entity: Entity, previous: Vec2, position: Vec2) -> PointerInput {
+    fn moved(
+        &mut self,
+        world: &World,
+        entity: Entity,
+        previous: Vec2,
+        position: Vec2,
+    ) -> PointerInput {
         self.location = Some((entity, position));
         PointerInput::new(
             ID,
-            location(entity, position),
+            location(world, position),
             PointerAction::Move {
                 delta: position - previous,
             },
@@ -85,9 +89,9 @@ impl State {
     }
 }
 
-pub(super) fn location(window: Entity, position: Vec2) -> Location {
+pub(super) fn location(world: &World, position: Vec2) -> Location {
     Location {
-        target: NormalizedRenderTarget::Window(WindowRef::Entity(window).normalize(None).unwrap()),
+        target: crate::session::window::target(world).expect("validated primary render target"),
         position,
     }
 }

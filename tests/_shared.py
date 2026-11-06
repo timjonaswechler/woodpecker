@@ -28,7 +28,8 @@ class _Owner(unittest.TestCase):
 
 
 class SharedGame:
-    def __init__(self):
+    def __init__(self, *, headless=False):
+        self.headless = headless
         self.owner = _Owner()
         self.server = None
         self.session_id = None
@@ -38,17 +39,25 @@ class SharedGame:
         self.cleanup_error = None
         self.cases = []
 
-    def _start(self):
-        if os.environ.get("WOODPECKER_TEST_RENDERED") != "1":
-            raise RuntimeError("Shared game needs scoped graphics approval: WOODPECKER_TEST_RENDERED=1")
-        self.owner.assertTrue(app_binary().is_file(), "Prepare the automation app first")
-        self.server = start_server(self.owner, "shared-game", activity_bytes=16 * 1024 * 1024)
+    def configuration(self):
+        """Same explicit preparation in both profiles; never modify tests/app.toml."""
         config = load_config()
         config["launch"]["executable"] = str(app_binary().resolve())
         config["launch"]["arguments"] += ["--woodpecker-diagnostics", "--woodpecker-process-probe", "--woodpecker-test-fixture"]
         # These cases test inputs/gameplay, not cold GPU startup. The dedicated
         # engine-startup case remains isolated and owns the EngineReady contract.
         config["startup"] = {"kind": "manual"}
+        if self.headless:
+            config["launch"]["no_default_features"] = True
+            config["launch"]["headless"] = {"width": 1440, "height": 900, "scale_factor": 1.0}
+        return config
+
+    def _start(self):
+        if os.environ.get("WOODPECKER_TEST_RENDERED") != "1":
+            raise RuntimeError("Shared game needs scoped graphics approval: WOODPECKER_TEST_RENDERED=1")
+        self.owner.assertTrue(app_binary().is_file(), "Prepare the automation app first")
+        self.server = start_server(self.owner, "shared-game", activity_bytes=16 * 1024 * 1024)
+        config = self.configuration()
         path = self.server.artifacts / "engine.toml"
         write_config(path, config)
         self.session_id = self.server.cli("session", "create", "--config", str(path))["id"]
@@ -72,7 +81,8 @@ class SharedGame:
                 raise RuntimeError(f"Shared game not ready: {load}")
             self.server.call(self.session_id, {"command": "tick.warp.start", "arguments": {"ticks": 1}})
         self.server.record(["preparation", "shared-game-ready"], app_pid=self.identity["pid"],
-                           additional_ticks=additional, session_id=self.session_id)
+                           additional_ticks=additional, session_id=self.session_id,
+                           headless=self.headless, geometry=config["launch"].get("headless"))
 
     def acquire(self, test, label):
         if self.failed:

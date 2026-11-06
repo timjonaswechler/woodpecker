@@ -1,0 +1,4313 @@
+{
+  "schema": 1,
+  "recorded_on": "2026-11-04",
+  "product_base": "100cc68395f0f5b6c58e566734d7cef6f060db87",
+  "scope": "historical local evidence; not a new run of the portable packaging",
+  "profile": {
+    "adapter": "Apple M1 Pro",
+    "device_class": "IntegratedGpu",
+    "backend": "Metal",
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B123",
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "bevy": "0.20.0",
+    "wgpu": "30.0.1",
+    "wgpu_core": "30.0.1",
+    "wgpu_hal": "30.0.1",
+    "naga": "30.0.1",
+    "size": [
+      65,
+      49
+    ],
+    "format": "Rgba8UnormSrgb",
+    "msaa": false
+  },
+  "execution_source_sha256": {
+    "Cargo.toml": "7bfa0b68fb9726f878147bddabb3e49e631835fbf1923f078c678faee6ce0af8",
+    "Cargo.lock": "f14bbbb70c45832bca56f27c21724056d46fd40b6e2a0f076ec6aabc7092ef59",
+    "src/cases.rs": "f1f1adbd6b5e8fc7a01c4c4ab6ca687c9c73ad2f8f6d4efd24a49c1d2b5a1d82",
+    "src/fixture.rs": "bda093c87a581b6a7fb4dc602d9261e978e4311dbc371d6e4726485fff1722d5",
+    "src/main.rs": "6e7fb8912d0f0e1d2607aa9852d4718581c15313115bd41dbd9c2c43e591c2e9",
+    "src/publication.rs": "68148102684fc7d097a91070d3ef37e60af2aa17544d647d373a6eebb8084f0b",
+    "src/study_base.rs": "53289ea507a24506eda2966bc5ddc2ea4e009feacc3297be024901873f237091"
+  },
+  "publication_source_sha256": {
+    "Cargo.toml": "7bfa0b68fb9726f878147bddabb3e49e631835fbf1923f078c678faee6ce0af8",
+    "Cargo.lock": "f14bbbb70c45832bca56f27c21724056d46fd40b6e2a0f076ec6aabc7092ef59",
+    "src/cases.rs": "f1f1adbd6b5e8fc7a01c4c4ab6ca687c9c73ad2f8f6d4efd24a49c1d2b5a1d82",
+    "src/fixture.rs": "bda093c87a581b6a7fb4dc602d9261e978e4311dbc371d6e4726485fff1722d5",
+    "src/main.rs": "6e7fb8912d0f0e1d2607aa9852d4718581c15313115bd41dbd9c2c43e591c2e9",
+    "src/publication.rs": "68148102684fc7d097a91070d3ef37e60af2aa17544d647d373a6eebb8084f0b",
+    "src/study_base.rs": "f36e81aaf0117213e58b664a5be1982384313b754c25aee670450e5266acdbb7"
+  },
+  "removed_trailing_newlines": {
+    "src/study_base.rs": 1
+  },
+  "sample_file_sha256": {
+    "a.png": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+    "b.png": "e8c1d28215c9216b0ada55cfb35762a441e9225d9ff35c01932db72976a1541a",
+    "b-paused.png": "e8c1d28215c9216b0ada55cfb35762a441e9225d9ff35c01932db72976a1541a",
+    "early-black.png": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+    "published-frame.png": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+    "published-receipt.json": "8781bf9fe2ef78f565e271b242f99ee301fee15f81e3eba50dd06002b8fa2fdb",
+    "partial-staging-prefix.bin": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6"
+  },
+  "latest": {
+    "summary": {
+      "processes": 15,
+      "all_exit0": true,
+      "retries": 0,
+      "unused_reserve": 1,
+      "prior_files_unchanged": 233,
+      "decoded_pngs": 52,
+      "intentional_partial_nonfinal_pngs": 1,
+      "committed_bundles": [
+        "artifacts/07-publisher_healthy/publisher/result-800-1",
+        "artifacts/10-stale_request_generation/publisher/result-801-2",
+        "artifacts/11-stale_frame/publisher/result-800-1"
+      ],
+      "healthy_windows": [
+        {
+          "after": {
+            "entities": [
+              [
+                "148v0",
+                "182v0",
+                3
+              ]
+            ],
+            "explicit_hook": 0,
+            "extracts": 5,
+            "image_modified": 3,
+            "original": 5,
+            "renders": 5,
+            "startup": 1,
+            "tracked_clones": 5
+          },
+          "before": {
+            "entities": [
+              [
+                "148v0",
+                "182v0",
+                0
+              ]
+            ],
+            "explicit_hook": 0,
+            "extracts": 2,
+            "image_modified": 0,
+            "original": 2,
+            "renders": 2,
+            "startup": 1,
+            "tracked_clones": 2
+          },
+          "guarded": false,
+          "implicit_original_pre_hook_count": "one per original callback by pinned Bevy source; not privately instrumented",
+          "simulation": {
+            "consumed_input": 0,
+            "fixed": 1,
+            "fixed_ns": 15625000,
+            "marker_changed": 16,
+            "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+            "moving_x": -12.0,
+            "pending_input": 7,
+            "pending_messages": 1,
+            "real_delta_ns": 16666667,
+            "real_ns": 16666667,
+            "removed": [
+              "194v0"
+            ],
+            "startup": 1,
+            "ticks": 1,
+            "updates": 1,
+            "virtual_ns": 16666667
+          }
+        },
+        {
+          "after": {
+            "entities": [
+              [
+                "148v0",
+                "182v0",
+                3
+              ]
+            ],
+            "explicit_hook": 5,
+            "extracts": 5,
+            "image_modified": 3,
+            "original": 5,
+            "renders": 5,
+            "startup": 1,
+            "tracked_clones": 5
+          },
+          "before": {
+            "entities": [
+              [
+                "148v0",
+                "182v0",
+                0
+              ]
+            ],
+            "explicit_hook": 2,
+            "extracts": 2,
+            "image_modified": 0,
+            "original": 2,
+            "renders": 2,
+            "startup": 1,
+            "tracked_clones": 2
+          },
+          "guarded": true,
+          "implicit_original_pre_hook_count": "one per original callback by pinned Bevy source; not privately instrumented",
+          "simulation": {
+            "consumed_input": 0,
+            "fixed": 1,
+            "fixed_ns": 15625000,
+            "marker_changed": 16,
+            "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+            "moving_x": -12.0,
+            "pending_input": 7,
+            "pending_messages": 1,
+            "real_delta_ns": 16666667,
+            "real_ns": 16666667,
+            "removed": [
+              "194v0"
+            ],
+            "startup": 1,
+            "ticks": 1,
+            "updates": 1,
+            "virtual_ns": 16666667
+          }
+        }
+      ],
+      "general_headless_PASS": false
+    },
+    "results": {
+      "healthy_original": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 5,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              3
+            ]
+          ],
+          "explicit_hook": 0,
+          "extracts": 5,
+          "image_modified": 3,
+          "original": 5,
+          "renders": 5,
+          "startup": 1,
+          "tracked_clones": 5
+        },
+        "success_count": 0,
+        "events": []
+      },
+      "healthy_wrapper": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 5,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              3
+            ]
+          ],
+          "explicit_hook": 5,
+          "extracts": 5,
+          "image_modified": 3,
+          "original": 5,
+          "renders": 5,
+          "startup": 1,
+          "tracked_clones": 5
+        },
+        "success_count": 0,
+        "events": []
+      },
+      "pipeline_validation": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 197380334
+          },
+          {
+            "data": {
+              "fragment_output": "vec4<u32>",
+              "pipeline_target": "Rgba8UnormSrgb"
+            },
+            "event": "valid_shader_module_accepted",
+            "seq": 35,
+            "t_ns": 197871167
+          },
+          {
+            "data": {
+              "error": "Validation Error\n\nCaused by:\n  In Device::create_render_pipeline, label = 'INTENTIONALLY_INCOMPATIBLE_PIPELINE_TARGET'\n    Color state [0] is invalid\n      Output format Float32x4 is incompatible with the shader Uint32x4\n",
+              "operation": "create_render_pipeline / valid module incompatible color target",
+              "source": "real wgpu Validation, not CPU boolean injection"
+            },
+            "event": "actual_output_validation",
+            "seq": 36,
+            "t_ns": 198023667
+          },
+          {
+            "data": {
+              "final_path": "artifacts/03-pipeline_validation/publisher/result-800-1",
+              "reason": "actual_output_chain_error"
+            },
+            "event": "publisher_terminal",
+            "seq": 37,
+            "t_ns": 198176709
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"actual_output_chain_error\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 38,
+            "t_ns": 198288042
+          }
+        ]
+      },
+      "draw_submit_validation": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 196411791
+          },
+          {
+            "data": {
+              "error": "Validation Error\n\nCaused by:\n  In a CommandEncoder\n    In a draw command, kind: Draw\n      Render pipeline must be set\n        Pipeline must be set\n",
+              "operation": "draw without pipeline / encoder finish / submit",
+              "source": "real wgpu Validation, not CPU boolean injection"
+            },
+            "event": "actual_output_validation",
+            "seq": 37,
+            "t_ns": 197406375
+          },
+          {
+            "data": {
+              "final_path": "artifacts/04-draw_submit_validation/publisher/result-800-1",
+              "reason": "actual_output_chain_error"
+            },
+            "event": "publisher_terminal",
+            "seq": 38,
+            "t_ns": 197565208
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"actual_output_chain_error\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 39,
+            "t_ns": 197680333
+          }
+        ]
+      },
+      "copy_validation": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 196080875
+          },
+          {
+            "data": {
+              "error": "Validation Error\n\nCaused by:\n  In a CommandEncoder\n    Copy at offset 0 for 24836 bytes would end up overrunning the bounds of the Destination buffer of size 16\n",
+              "operation": "copy actual rendered target into undersized buffer",
+              "source": "real wgpu Validation, not CPU boolean injection"
+            },
+            "event": "actual_output_validation",
+            "seq": 37,
+            "t_ns": 196571792
+          },
+          {
+            "data": {
+              "final_path": "artifacts/05-copy_validation/publisher/result-800-1",
+              "reason": "actual_output_chain_error"
+            },
+            "event": "publisher_terminal",
+            "seq": 38,
+            "t_ns": 196747500
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"actual_output_chain_error\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 39,
+            "t_ns": 196860375
+          }
+        ]
+      },
+      "map_destroyed_buffer": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 198556542
+          },
+          {
+            "data": {
+              "result": "Err(BufferAsyncError)"
+            },
+            "event": "actual_failed_map_callback",
+            "seq": 36,
+            "t_ns": 199729375
+          },
+          {
+            "data": {
+              "cpu_fault_injection": false,
+              "result": "Err(BufferAsyncError)",
+              "scoped_error": "Validation Error\n\nCaused by:\n  In Buffer::map_async\n    Buffer with 'own-readback-to-destroy' label has been destroyed\n"
+            },
+            "event": "actual_map_failure_verified",
+            "seq": 39,
+            "t_ns": 200016250
+          },
+          {
+            "data": {
+              "final_path": "artifacts/06-map_destroyed_buffer/publisher/result-800-1",
+              "reason": "actual_output_chain_error"
+            },
+            "event": "publisher_terminal",
+            "seq": 40,
+            "t_ns": 200182792
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"actual_output_chain_error\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 41,
+            "t_ns": 200301500
+          }
+        ]
+      },
+      "publisher_healthy": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 1,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 195038667
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 208024125
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 208376917
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/07-publisher_healthy/publisher/.staging-800-1"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 55,
+            "t_ns": 222342334
+          },
+          {
+            "data": {
+              "generation": 1,
+              "observed_fatal": false,
+              "request": 800,
+              "status": "Staged"
+            },
+            "event": "publisher_final_check",
+            "seq": 56,
+            "t_ns": 222567917
+          },
+          {
+            "data": {
+              "destination": "artifacts/07-publisher_healthy/publisher/result-800-1",
+              "receipt": {
+                "contract": "finite frame + no observed fatal at final owner check; not future device health",
+                "format": "Rgba8UnormSrgb -> RGBA8 PNG",
+                "frame": 3,
+                "generation": 1,
+                "height": 49,
+                "map_result": "Ok",
+                "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+                "png_sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+                "request": 800,
+                "state": 1,
+                "stride": 512,
+                "submission": "SubmissionIndex { index: 12 }",
+                "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}",
+                "tick": 1,
+                "width": 65
+              },
+              "success_count": 1
+            },
+            "event": "publisher_success",
+            "seq": 57,
+            "t_ns": 222852084
+          }
+        ]
+      },
+      "cancel_after_map": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 198350792
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 211674459
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 212037125
+          },
+          {
+            "data": {
+              "final_path": "artifacts/08-cancel_after_map/publisher/result-800-1",
+              "reason": "cancelled"
+            },
+            "event": "publisher_terminal",
+            "seq": 55,
+            "t_ns": 212253750
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"cancelled\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 56,
+            "t_ns": 212371584
+          }
+        ]
+      },
+      "expired_deadline": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 196969541
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 210038708
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 210398916
+          },
+          {
+            "data": {
+              "final_path": "artifacts/09-expired_deadline/publisher/result-800-1",
+              "reason": "timeout"
+            },
+            "event": "publisher_terminal",
+            "seq": 55,
+            "t_ns": 210606833
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": false,
+              "status": "Terminal(\"timeout\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 56,
+            "t_ns": 210719000
+          }
+        ]
+      },
+      "stale_request_generation": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 5,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 5,
+          "extracts": 5,
+          "image_modified": 0,
+          "original": 5,
+          "renders": 5,
+          "startup": 1,
+          "tracked_clones": 5
+        },
+        "success_count": 1,
+        "events": [
+          {
+            "data": {
+              "generation": 2,
+              "minimum_frame": 5,
+              "request": 801,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 60,
+            "t_ns": 230389459
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 2,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "reason": "request"
+            },
+            "event": "publisher_stale_rejected",
+            "seq": 74,
+            "t_ns": 244568084
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 4,
+                "generation": 1,
+                "request": 801,
+                "state": 1,
+                "tick": 1
+              },
+              "reason": "generation"
+            },
+            "event": "publisher_stale_rejected",
+            "seq": 75,
+            "t_ns": 244737959
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 5,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 80,
+            "t_ns": 245336125
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 5,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 81,
+            "t_ns": 245720375
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 5,
+                "generation": 2,
+                "request": 801,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/10-stale_request_generation/publisher/.staging-801-2"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 83,
+            "t_ns": 258872834
+          },
+          {
+            "data": {
+              "generation": 2,
+              "observed_fatal": false,
+              "request": 801,
+              "status": "Staged"
+            },
+            "event": "publisher_final_check",
+            "seq": 84,
+            "t_ns": 259171584
+          },
+          {
+            "data": {
+              "destination": "artifacts/10-stale_request_generation/publisher/result-801-2",
+              "receipt": {
+                "contract": "finite frame + no observed fatal at final owner check; not future device health",
+                "format": "Rgba8UnormSrgb -> RGBA8 PNG",
+                "frame": 5,
+                "generation": 2,
+                "height": 49,
+                "map_result": "Ok",
+                "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+                "png_sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+                "request": 801,
+                "state": 1,
+                "stride": 512,
+                "submission": "SubmissionIndex { index: 22 }",
+                "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}",
+                "tick": 1,
+                "width": 65
+              },
+              "success_count": 1
+            },
+            "event": "publisher_success",
+            "seq": 85,
+            "t_ns": 259453500
+          }
+        ]
+      },
+      "stale_frame": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 4,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 4,
+          "extracts": 4,
+          "image_modified": 0,
+          "original": 4,
+          "renders": 4,
+          "startup": 1,
+          "tracked_clones": 4
+        },
+        "success_count": 1,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 4,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 47,
+            "t_ns": 209872750
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "reason": "frame"
+            },
+            "event": "publisher_stale_rejected",
+            "seq": 48,
+            "t_ns": 210002041
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 4,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 66,
+            "t_ns": 222461166
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 4,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 67,
+            "t_ns": 222828791
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 4,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/11-stale_frame/publisher/.staging-800-1"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 69,
+            "t_ns": 233404583
+          },
+          {
+            "data": {
+              "generation": 1,
+              "observed_fatal": false,
+              "request": 800,
+              "status": "Staged"
+            },
+            "event": "publisher_final_check",
+            "seq": 70,
+            "t_ns": 233648875
+          },
+          {
+            "data": {
+              "destination": "artifacts/11-stale_frame/publisher/result-800-1",
+              "receipt": {
+                "contract": "finite frame + no observed fatal at final owner check; not future device health",
+                "format": "Rgba8UnormSrgb -> RGBA8 PNG",
+                "frame": 4,
+                "generation": 1,
+                "height": 49,
+                "map_result": "Ok",
+                "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+                "png_sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+                "request": 800,
+                "state": 1,
+                "stride": 512,
+                "submission": "SubmissionIndex { index: 17 }",
+                "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}",
+                "tick": 1,
+                "width": 65
+              },
+              "success_count": 1
+            },
+            "event": "publisher_success",
+            "seq": 71,
+            "t_ns": 233900125
+          }
+        ]
+      },
+      "observed_device_fatal_before_commit": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 195184542
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 208178375
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 208534875
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/12-observed_device_fatal_before_commit/publisher/.staging-800-1"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 55,
+            "t_ns": 222439667
+          },
+          {
+            "data": {
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_enter",
+            "seq": 56,
+            "t_ns": 222694208
+          },
+          {
+            "data": {
+              "message": "Caught DeviceLost error: Destroyed ",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 61,
+            "t_ns": 225679667
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 64,
+            "t_ns": 226001792
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "",
+              "type": "DeviceLost"
+            },
+            "event": "public_render_error_handler",
+            "seq": 65,
+            "t_ns": 226378667
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: ",
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 66,
+            "t_ns": 226507292
+          },
+          {
+            "data": {
+              "final_path": "artifacts/12-observed_device_fatal_before_commit/publisher/result-800-1",
+              "reason": "observed_fatal"
+            },
+            "event": "publisher_terminal",
+            "seq": 68,
+            "t_ns": 226727250
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: "
+            },
+            "event": "publisher_observed_fatal",
+            "seq": 69,
+            "t_ns": 226834417
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": true,
+              "status": "Terminal(\"observed_fatal\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 70,
+            "t_ns": 226922750
+          }
+        ]
+      },
+      "cancel_after_stage": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 196750750
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 209668541
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 210023958
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/13-cancel_after_stage/publisher/.staging-800-1"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 55,
+            "t_ns": 222852375
+          },
+          {
+            "data": {
+              "final_path": "artifacts/13-cancel_after_stage/publisher/result-800-1",
+              "reason": "cancelled"
+            },
+            "event": "publisher_terminal",
+            "seq": 56,
+            "t_ns": 223091666
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": true,
+              "status": "Terminal(\"cancelled\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 57,
+            "t_ns": 223200666
+          }
+        ]
+      },
+      "partial_write_injection": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 195675583
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 208637416
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 208995583
+          },
+          {
+            "data": {
+              "final_path": "artifacts/14-partial_write_injection/publisher/result-800-1",
+              "reason": "injected_partial_write"
+            },
+            "event": "publisher_terminal",
+            "seq": 55,
+            "t_ns": 216920708
+          },
+          {
+            "data": {
+              "final_output": false,
+              "staging_bytes": 8
+            },
+            "event": "partial_write_fault_injection",
+            "seq": 56,
+            "t_ns": 217039041
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": true,
+              "status": "Terminal(\"injected_partial_write\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 57,
+            "t_ns": 217203166
+          }
+        ]
+      },
+      "rename_io_error": {
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 16,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "194v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "chain": {
+          "entities": [
+            [
+              "148v0",
+              "182v0",
+              0
+            ]
+          ],
+          "explicit_hook": 3,
+          "extracts": 3,
+          "image_modified": 0,
+          "original": 3,
+          "renders": 3,
+          "startup": 1,
+          "tracked_clones": 3
+        },
+        "success_count": 0,
+        "events": [
+          {
+            "data": {
+              "generation": 1,
+              "minimum_frame": 3,
+              "request": 800,
+              "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}"
+            },
+            "event": "publisher_accepted",
+            "seq": 34,
+            "t_ns": 196111541
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 16,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "194v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 52,
+            "t_ns": 209296625
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 53,
+            "t_ns": 209650041
+          },
+          {
+            "data": {
+              "candidate": {
+                "frame": 3,
+                "generation": 1,
+                "request": 800,
+                "state": 1,
+                "tick": 1
+              },
+              "destination_exists": false,
+              "staging": "artifacts/15-rename_io_error/publisher/.staging-800-1"
+            },
+            "event": "publisher_stage_barrier",
+            "seq": 55,
+            "t_ns": 222280666
+          },
+          {
+            "data": {
+              "generation": 1,
+              "observed_fatal": false,
+              "request": 800,
+              "status": "Staged"
+            },
+            "event": "publisher_final_check",
+            "seq": 56,
+            "t_ns": 222710625
+          },
+          {
+            "data": {
+              "final_path": "artifacts/15-rename_io_error/publisher/result-800-1",
+              "reason": "rename_io"
+            },
+            "event": "publisher_terminal",
+            "seq": 57,
+            "t_ns": 222885125
+          },
+          {
+            "data": {
+              "error": "Not a directory (os error 20)",
+              "operation": "rename"
+            },
+            "event": "publisher_io_error",
+            "seq": 58,
+            "t_ns": 222990791
+          },
+          {
+            "data": {
+              "final_bundle": false,
+              "staging_exists": true,
+              "status": "Terminal(\"rename_io\")"
+            },
+            "event": "publisher_no_success_proven",
+            "seq": 59,
+            "t_ns": 223116416
+          }
+        ]
+      }
+    },
+    "images": [
+      {
+        "path": "artifacts/01-healthy_original/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/01-healthy_original/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/02-healthy_wrapper/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/02-healthy_wrapper/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/03-pipeline_validation/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/03-pipeline_validation/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/03-pipeline_validation/healthy-after-api-error.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/04-draw_submit_validation/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/04-draw_submit_validation/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/04-draw_submit_validation/healthy-after-api-error.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/05-copy_validation/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/05-copy_validation/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/05-copy_validation/healthy-after-api-error.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/06-map_destroyed_buffer/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/06-map_destroyed_buffer/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/06-map_destroyed_buffer/healthy-after-api-error.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/07-publisher_healthy/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/07-publisher_healthy/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/07-publisher_healthy/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/07-publisher_healthy/publisher/result-800-1/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/08-cancel_after_map/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/08-cancel_after_map/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/08-cancel_after_map/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/09-expired_deadline/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/09-expired_deadline/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/09-expired_deadline/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/held-old-generation.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/fresh-current.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/held-old-request.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/10-stale_request_generation/publisher/result-801-2/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/11-stale_frame/fresh-current.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/11-stale_frame/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/11-stale_frame/held-old-frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/11-stale_frame/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/11-stale_frame/publisher/result-800-1/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/12-observed_device_fatal_before_commit/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/12-observed_device_fatal_before_commit/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/12-observed_device_fatal_before_commit/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/12-observed_device_fatal_before_commit/publisher/.staging-800-1/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/13-cancel_after_stage/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/13-cancel_after_stage/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/13-cancel_after_stage/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/13-cancel_after_stage/publisher/.staging-800-1/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/14-partial_write_injection/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/14-partial_write_injection/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/14-partial_write_injection/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/14-partial_write_injection/publisher/.staging-800-1/frame.png",
+        "kind": "intentionally partial nonfinal PNG prefix",
+        "bytes": 8,
+        "sha256": "4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6"
+      },
+      {
+        "path": "artifacts/15-rename_io_error/request-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/15-rename_io_error/first-candidate.png",
+        "kind": "decoded actual PNG",
+        "sha256": "35f864bb743ad62991dae1d590c8734b986de01849a8a807ecebdaeaf2f3e471",
+        "pixels_sha256": "4433a98bd6119ce69904851a321a33f202e88073094c42233076ba23c683e0f9"
+      },
+      {
+        "path": "artifacts/15-rename_io_error/diagnostic-A.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      },
+      {
+        "path": "artifacts/15-rename_io_error/publisher/.staging-800-1/frame.png",
+        "kind": "decoded actual PNG",
+        "sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+        "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82"
+      }
+    ]
+  },
+  "process_outcomes": [
+    {
+      "number": 1,
+      "case": "healthy_original",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 2.976677957980428,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "case": "healthy_wrapper",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2859571659937501,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "case": "pipeline_validation",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.24464262498077005,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "case": "draw_submit_validation",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.23983054101699963,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "case": "copy_validation",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2410802499507554,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "case": "map_destroyed_buffer",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.23747091699624434,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "case": "publisher_healthy",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2896117920172401,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "case": "cancel_after_map",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2360176250222139,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "case": "expired_deadline",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.23877058399375528,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "case": "stale_request_generation",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2889882910531014,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "case": "stale_frame",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.29653125000186265,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "case": "observed_device_fatal_before_commit",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2895198749611154,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "case": "cancel_after_stage",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2927727090427652,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 14,
+      "case": "partial_write_injection",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.2384812079835683,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    },
+    {
+      "number": 15,
+      "case": "rename_io_error",
+      "exit_code": 0,
+      "timeout": false,
+      "reaped": true,
+      "seconds": 0.24387787497835234,
+      "binary_sha256": "e26dd8ca8790f89be7ec1737f30b7e1dda9600031e6c38c9e4affe4a927f7d0f",
+      "warp_completions": [
+        {
+          "status": "completed",
+          "request_id": 1,
+          "command": "tick.warp.start",
+          "output": {
+            "executed_ticks": 1,
+            "outcome": "completed",
+            "requested_ticks": 1
+          }
+        }
+      ]
+    }
+  ],
+  "earlier": {
+    "scope": "separate earlier campaigns, not additional passes in the latest campaign",
+    "render_campaign": {
+      "processes": 9,
+      "exit0": 5,
+      "exit101": 4,
+      "notes": "initial clock-channel drain omission and early-fatal extraction failure retained"
+    },
+    "boundary_campaign": {
+      "processes": 16,
+      "exit0": 14,
+      "expected_red_exit101": 1,
+      "instrumentation_timeout": 1,
+      "notes": "stdout writer lock conflict, fixed only by moving probe logs to stderr"
+    },
+    "early_original_counterexample": {
+      "exit_code": 101,
+      "signal": "Resource does not exist",
+      "interpretation": "error before first extraction skips RenderStartup; original ExtractSchedule still needs its resources",
+      "interpretation_kind": "source mechanism plus reproduced failure, not absent public API"
+    },
+    "selected_results": {
+      "04-pre_fault_public_guard": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 0,
+          "pending_messages": 0,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 0,
+          "gpu_preprocessing_resource": false,
+          "startup": 0
+        },
+        "fatal": "Validation: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+        "timeline": [
+          {
+            "data": {
+              "kind": "uncaptured_validation"
+            },
+            "event": "fault_api_enter",
+            "seq": 5,
+            "t_ns": 27222375
+          },
+          {
+            "data": {
+              "message": "Caught rendering error: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 6,
+            "t_ns": 27511542
+          },
+          {
+            "data": {
+              "handler_calls": 0,
+              "kind": "uncaptured_validation"
+            },
+            "event": "fault_api_return",
+            "seq": 7,
+            "t_ns": 27617917
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 8,
+            "t_ns": 27629708
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 9,
+            "t_ns": 27776000
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 0,
+                "pending_messages": 0,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 12,
+            "t_ns": 34917583
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "type": "Validation"
+            },
+            "event": "public_render_error_handler",
+            "seq": 13,
+            "t_ns": 35005583
+          },
+          {
+            "data": {
+              "fatal": "Validation: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "render": {
+                "extractions": 0,
+                "gpu_preprocessing_resource": false,
+                "startup": 0
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 15,
+            "t_ns": 35060417
+          }
+        ]
+      },
+      "05-runtime_uncaptured": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "154v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "fatal": "Validation: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+        "timeline": [
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 6,
+            "t_ns": 34604583
+          },
+          {
+            "data": {
+              "count": 1
+            },
+            "event": "render_startup_observed",
+            "seq": 7,
+            "t_ns": 36923416
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 1,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 9,
+            "t_ns": 48425750
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 1,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 11,
+            "t_ns": 106035291
+          },
+          {
+            "data": {
+              "frame": 1,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 12,
+            "t_ns": 106068750
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 18,
+            "t_ns": 108701833
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 20,
+            "t_ns": 109594791
+          },
+          {
+            "data": {
+              "frame": 2,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 22,
+            "t_ns": 169698625
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 23,
+            "t_ns": 169921541
+          },
+          {
+            "data": {
+              "kind": "uncaptured_validation"
+            },
+            "event": "fault_api_enter",
+            "seq": 28,
+            "t_ns": 174683291
+          },
+          {
+            "data": {
+              "message": "Caught rendering error: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 29,
+            "t_ns": 174795750
+          },
+          {
+            "data": {
+              "handler_calls": 0,
+              "kind": "uncaptured_validation"
+            },
+            "event": "fault_api_return",
+            "seq": 30,
+            "t_ns": 174873375
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 31,
+            "t_ns": 174884416
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 32,
+            "t_ns": 174933875
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 33,
+            "t_ns": 174962666
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "type": "Validation"
+            },
+            "event": "public_render_error_handler",
+            "seq": 34,
+            "t_ns": 175029500
+          },
+          {
+            "data": {
+              "fatal": "Validation: Validation Error\n\nCaused by:\n  In Device::create_shader_module, label = 'INTENTIONALLY_INVALID_PROOF_SHADER'\n    \nShader 'INTENTIONALLY_INVALID_PROOF_SHADER' parsing error: expected identifier, found \"->\"\n  ┌─ wgsl:1:21\n  │\n1 │ @vertex fn invalid( -> @builtin(position) vec4<f32> { return vec4<f32>(0.0); }\n  │                     ^^ expected identifier\n\n\n",
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 36,
+            "t_ns": 175593750
+          }
+        ]
+      },
+      "06-runtime_destroy": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "154v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 3,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "fatal": "DeviceLost: ",
+        "timeline": [
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 6,
+            "t_ns": 35602459
+          },
+          {
+            "data": {
+              "count": 1
+            },
+            "event": "render_startup_observed",
+            "seq": 7,
+            "t_ns": 38006000
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 1,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 9,
+            "t_ns": 49450042
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 1,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 11,
+            "t_ns": 107530000
+          },
+          {
+            "data": {
+              "frame": 1,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 12,
+            "t_ns": 107575042
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 18,
+            "t_ns": 110258250
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 20,
+            "t_ns": 111159834
+          },
+          {
+            "data": {
+              "frame": 2,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 22,
+            "t_ns": 171280917
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 23,
+            "t_ns": 171565584
+          },
+          {
+            "data": {
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_enter",
+            "seq": 28,
+            "t_ns": 176415209
+          },
+          {
+            "data": {
+              "handler_calls": 0,
+              "hardware_or_driver_reset": false,
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_return",
+            "seq": 29,
+            "t_ns": 176430667
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 30,
+            "t_ns": 176479417
+          },
+          {
+            "data": {
+              "message": "Caught DeviceLost error: Destroyed ",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 32,
+            "t_ns": 179081959
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 33,
+            "t_ns": 179117542
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 34,
+            "t_ns": 179145000
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "",
+              "type": "DeviceLost"
+            },
+            "event": "public_render_error_handler",
+            "seq": 35,
+            "t_ns": 179220292
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: ",
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 37,
+            "t_ns": 179847875
+          }
+        ]
+      },
+      "11-error_after_publication": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "154v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 4,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "fatal": "DeviceLost: ",
+        "timeline": [
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 6,
+            "t_ns": 35224166
+          },
+          {
+            "data": {
+              "count": 1
+            },
+            "event": "render_startup_observed",
+            "seq": 7,
+            "t_ns": 37699708
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 1,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 9,
+            "t_ns": 49509375
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 1,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 11,
+            "t_ns": 107458083
+          },
+          {
+            "data": {
+              "frame": 1,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 12,
+            "t_ns": 107490500
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 18,
+            "t_ns": 110125666
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 20,
+            "t_ns": 111033583
+          },
+          {
+            "data": {
+              "frame": 2,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 22,
+            "t_ns": 171154041
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 23,
+            "t_ns": 171386875
+          },
+          {
+            "data": {
+              "hook_only": false
+            },
+            "event": "observation_cut_enter",
+            "seq": 28,
+            "t_ns": 176171833
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 29,
+            "t_ns": 176181125
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 30,
+            "t_ns": 176228458
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 32,
+            "t_ns": 176269125
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 34,
+            "t_ns": 176838625
+          },
+          {
+            "data": {
+              "fatal": null
+            },
+            "event": "observation_cut_return",
+            "seq": 35,
+            "t_ns": 176852916
+          },
+          {
+            "data": {
+              "accepted": true,
+              "fatal": null,
+              "semantics": "verified_completed_frame_and_no_observed_fatal_at_cut; not future_device_health",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "publication_decision",
+            "seq": 37,
+            "t_ns": 179335125
+          },
+          {
+            "data": {
+              "frame": 2,
+              "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+              "request": 401,
+              "scope": "probe-only verified finite frame; observed fatal gate",
+              "tick": 1
+            },
+            "event": "probe_receipt_written",
+            "seq": 38,
+            "t_ns": 179826458
+          },
+          {
+            "data": {
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_enter",
+            "seq": 39,
+            "t_ns": 179879916
+          },
+          {
+            "data": {
+              "handler_calls": 0,
+              "hardware_or_driver_reset": false,
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_return",
+            "seq": 40,
+            "t_ns": 179895958
+          },
+          {
+            "data": {
+              "hook_only": false
+            },
+            "event": "observation_cut_enter",
+            "seq": 41,
+            "t_ns": 179943791
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 42,
+            "t_ns": 179953041
+          },
+          {
+            "data": {
+              "message": "Caught DeviceLost error: Destroyed ",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 44,
+            "t_ns": 182511541
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 45,
+            "t_ns": 182550541
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 47,
+            "t_ns": 182590708
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "",
+              "type": "DeviceLost"
+            },
+            "event": "public_render_error_handler",
+            "seq": 48,
+            "t_ns": 182658458
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: ",
+              "render": {
+                "extractions": 4,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 50,
+            "t_ns": 182953750
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: "
+            },
+            "event": "observation_cut_return",
+            "seq": 51,
+            "t_ns": 182968000
+          }
+        ]
+      },
+      "12-hook_cut_destroy": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "154v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 2,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "fatal": "DeviceLost: ",
+        "timeline": [
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 6,
+            "t_ns": 34681667
+          },
+          {
+            "data": {
+              "count": 1
+            },
+            "event": "render_startup_observed",
+            "seq": 7,
+            "t_ns": 36986458
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 1,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 9,
+            "t_ns": 48295917
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 1,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 11,
+            "t_ns": 108757292
+          },
+          {
+            "data": {
+              "frame": 1,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 12,
+            "t_ns": 108813333
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 18,
+            "t_ns": 111561875
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 20,
+            "t_ns": 112638542
+          },
+          {
+            "data": {
+              "frame": 2,
+              "generation": 1,
+              "request": 401,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 22,
+            "t_ns": 173561750
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 23,
+            "t_ns": 173876583
+          },
+          {
+            "data": {
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_enter",
+            "seq": 28,
+            "t_ns": 178876000
+          },
+          {
+            "data": {
+              "handler_calls": 0,
+              "hardware_or_driver_reset": false,
+              "kind": "own_device_destroy"
+            },
+            "event": "fault_api_return",
+            "seq": 29,
+            "t_ns": 178896542
+          },
+          {
+            "data": {
+              "hook_only": true
+            },
+            "event": "observation_cut_enter",
+            "seq": 30,
+            "t_ns": 178976583
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 31,
+            "t_ns": 178987250
+          },
+          {
+            "data": {
+              "message": "Caught DeviceLost error: Destroyed ",
+              "source_order": "log_then_latch"
+            },
+            "event": "backend_error_callback_log",
+            "seq": 33,
+            "t_ns": 181751833
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 34,
+            "t_ns": 181788000
+          },
+          {
+            "data": {
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              },
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "154v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "public_pre_extract_enter",
+            "seq": 36,
+            "t_ns": 181842667
+          },
+          {
+            "data": {
+              "calls": 1,
+              "description": "",
+              "type": "DeviceLost"
+            },
+            "event": "public_render_error_handler",
+            "seq": 37,
+            "t_ns": 181990250
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: ",
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "public_pre_extract_return",
+            "seq": 38,
+            "t_ns": 182028917
+          },
+          {
+            "data": {
+              "fatal": "DeviceLost: "
+            },
+            "event": "observation_cut_return",
+            "seq": 39,
+            "t_ns": 182045875
+          },
+          {
+            "data": {
+              "accepted": false,
+              "fatal": "DeviceLost: ",
+              "semantics": "verified_completed_frame_and_no_observed_fatal_at_cut; not future_device_health",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 401,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "publication_decision",
+            "seq": 41,
+            "t_ns": 182162708
+          }
+        ]
+      },
+      "16-product-pause-stderr": {
+        "result": "implemented oracles satisfied",
+        "snapshot": {
+          "consumed_input": 0,
+          "fixed": 1,
+          "fixed_ns": 15625000,
+          "marker_changed": 15,
+          "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+          "moving_x": -12.0,
+          "pending_input": 7,
+          "pending_messages": 1,
+          "real_delta_ns": 16666667,
+          "real_ns": 16666667,
+          "removed": [
+            "193v0"
+          ],
+          "startup": 1,
+          "ticks": 1,
+          "updates": 1,
+          "virtual_ns": 16666667
+        },
+        "render": {
+          "extractions": 4,
+          "gpu_preprocessing_resource": true,
+          "startup": 1
+        },
+        "fatal": null,
+        "timeline": [
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "193v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 7,
+            "t_ns": 41834292
+          },
+          {
+            "data": {
+              "count": 1
+            },
+            "event": "render_startup_observed",
+            "seq": 8,
+            "t_ns": 44440000
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 1,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 10,
+            "t_ns": 55461667
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 1,
+                "generation": 1,
+                "request": 501,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 12,
+            "t_ns": 117569792
+          },
+          {
+            "data": {
+              "frame": 1,
+              "generation": 1,
+              "request": 501,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 13,
+            "t_ns": 117761833
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "193v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 19,
+            "t_ns": 120999667
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 2,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 21,
+            "t_ns": 122273583
+          },
+          {
+            "data": {
+              "frame": 2,
+              "generation": 1,
+              "request": 501,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 23,
+            "t_ns": 183909333
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 2,
+                "generation": 1,
+                "request": 501,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 24,
+            "t_ns": 184273167
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "193v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 32,
+            "t_ns": 190885167
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 3,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 34,
+            "t_ns": 191844708
+          },
+          {
+            "data": {
+              "frame": 3,
+              "generation": 1,
+              "request": 502,
+              "state": 1,
+              "tick": 1
+            },
+            "event": "queue_callback",
+            "seq": 36,
+            "t_ns": 197552208
+          },
+          {
+            "data": {
+              "result": "Ok(())",
+              "token": {
+                "frame": 3,
+                "generation": 1,
+                "request": 502,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "map_callback",
+            "seq": 37,
+            "t_ns": 197862083
+          },
+          {
+            "data": {
+              "hook_only": false
+            },
+            "event": "observation_cut_enter",
+            "seq": 42,
+            "t_ns": 202978875
+          },
+          {
+            "data": {},
+            "event": "poll_enter",
+            "seq": 43,
+            "t_ns": 203054542
+          },
+          {
+            "data": {
+              "result": "Ok(QueueEmpty)"
+            },
+            "event": "poll_return",
+            "seq": 44,
+            "t_ns": 203160708
+          },
+          {
+            "data": {
+              "snapshot": {
+                "consumed_input": 0,
+                "fixed": 1,
+                "fixed_ns": 15625000,
+                "marker_changed": 15,
+                "material": "Srgba(Srgba { red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+                "moving_x": -12.0,
+                "pending_input": 7,
+                "pending_messages": 1,
+                "real_delta_ns": 16666667,
+                "real_ns": 16666667,
+                "removed": [
+                  "193v0"
+                ],
+                "startup": 1,
+                "ticks": 1,
+                "updates": 1,
+                "virtual_ns": 16666667
+              }
+            },
+            "event": "normal_extract_enter",
+            "seq": 46,
+            "t_ns": 203338458
+          },
+          {
+            "data": {
+              "fatal": null,
+              "render": {
+                "extractions": 4,
+                "gpu_preprocessing_resource": true,
+                "startup": 1
+              }
+            },
+            "event": "normal_extract_return",
+            "seq": 48,
+            "t_ns": 204111875
+          },
+          {
+            "data": {
+              "fatal": null
+            },
+            "event": "observation_cut_return",
+            "seq": 49,
+            "t_ns": 204240875
+          },
+          {
+            "data": {
+              "accepted": true,
+              "fatal": null,
+              "semantics": "verified_completed_frame_and_no_observed_fatal_at_cut; not future_device_health",
+              "token": {
+                "frame": 3,
+                "generation": 1,
+                "request": 502,
+                "state": 1,
+                "tick": 1
+              }
+            },
+            "event": "publication_decision",
+            "seq": 51,
+            "t_ns": 206995208
+          },
+          {
+            "data": {
+              "frame": 3,
+              "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+              "request": 502,
+              "scope": "probe-only verified finite frame; observed fatal gate",
+              "tick": 1
+            },
+            "event": "probe_receipt_written",
+            "seq": 52,
+            "t_ns": 207672083
+          }
+        ]
+      }
+    }
+  },
+  "notes": [
+    "Absolute machine paths and internal orchestration identifiers removed.",
+    "artifacts/ and boundary-artifacts/ are logical aliases of original local outputs, not committed directories.",
+    "Only named sample files are bundled; full raw logs, binaries and source snapshots remain local.",
+    "The partial PNG prefix is preserved as .bin so it cannot be mistaken for a valid image.",
+    "API validation, logical device destruction and CPU fault injection remain distinct in event records."
+  ]
+}

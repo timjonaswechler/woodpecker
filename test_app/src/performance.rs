@@ -79,9 +79,19 @@ pub fn install(app: &mut App, show: bool, log: bool, controlled: bool) {
             .query_filtered::<Entity, With<PrimaryWindow>>()
             .iter(main)
             .next();
+        let size = window
+            .and_then(|entity| main.get::<Window>(entity))
+            .map_or(UVec2::ZERO, Window::physical_size);
+        let target = main
+            .query_filtered::<&bevy::camera::RenderTarget, With<crate::player::camera::GameCamera>>(
+            )
+            .iter(main)
+            .next()
+            .and_then(|target| target.normalize(window));
         let metrics = main.resource::<Metrics>();
         let mut text = render.resource_mut::<overlay::Text>();
-        text.window = window;
+        text.target = target;
+        text.size = size;
         let enabled = metrics.overlay;
         if enabled && (updated || !text.enabled) {
             text.lines = lines(metrics);
@@ -107,8 +117,9 @@ fn count_frame(
     frames: Res<Frames>,
 ) {
     if views.iter().any(|(target, camera)| {
-        matches!(camera.target, Some(bevy::camera::NormalizedRenderTarget::Window(w)) if Some(w.entity()) == text.window)
-            && target.out_texture().is_some() && target.needs_present()
+        camera.target.as_ref() == text.target.as_ref()
+            && target.out_texture().is_some()
+            && target.needs_present()
     }) {
         frames.0.fetch_add(1, Ordering::Relaxed);
     }

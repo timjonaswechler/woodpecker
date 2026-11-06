@@ -7,8 +7,7 @@ use bevy::{
         camera::ExtractedCamera,
         render_resource::*,
         renderer::{RenderContext, RenderDevice, RenderGraph, RenderGraphSystems, RenderQueue},
-        sync_world::MainEntity,
-        view::{ViewTarget, window::ExtractedWindow},
+        view::ViewTarget,
     },
 };
 
@@ -18,7 +17,8 @@ const BUFFER_SIZE: u64 = (16 + COLUMNS * ROWS * 16) as u64;
 
 #[derive(Resource, Default)]
 pub(super) struct Text {
-    pub window: Option<Entity>,
+    pub target: Option<bevy::camera::NormalizedRenderTarget>,
+    pub size: UVec2,
     pub enabled: bool,
     pub lines: String,
     pub revision: u64,
@@ -126,7 +126,6 @@ fn draw(
     text: Res<Text>,
     mut gpu: ResMut<Gpu>,
     views: Query<(&ViewTarget, &ExtractedCamera)>,
-    windows: Query<(MainEntity, &ExtractedWindow)>,
     device: Res<RenderDevice>,
     queue: Res<RenderQueue>,
     mut context: RenderContext,
@@ -134,30 +133,25 @@ fn draw(
     if !text.enabled {
         return;
     }
-    let Some((_, window)) = windows
-        .iter()
-        .find(|(entity, _)| Some(*entity) == text.window)
-    else {
+    let Some((target, _)) = views.iter().find(|(target, camera)| {
+        camera.target.as_ref() == text.target.as_ref() && target.out_texture().is_some()
+    }) else {
         return;
     };
-    let Some((target, _)) = views.iter().find(|(target, camera)| {
-        matches!(camera.target, Some(bevy::camera::NormalizedRenderTarget::Window(w)) if Some(w.entity()) == text.window)
-            && target.out_texture().is_some()
-    }) else { return; };
     let Some(view) = target.out_texture() else {
         return;
     };
     let Some(format) = target.out_texture_view_format() else {
         return;
     };
-    let scale = if window.physical_width >= 640 { 2 } else { 1 };
+    let scale = if text.size.x >= 640 { 2 } else { 1 };
     let width = (COLUMNS as u32 * 6 + 16) * scale;
     let height = (ROWS as u32 * 9 + 12) * scale;
-    if window.physical_width < width || window.physical_height < height {
+    if text.size.x < width || text.size.y < height {
         return;
     }
-    let x = window.physical_width.saturating_sub(width + 24);
-    let y = window.physical_height.saturating_sub(height + 110);
+    let x = text.size.x.saturating_sub(width + 24);
+    let y = text.size.y.saturating_sub(height + 110);
     let geometry = [x, y, scale, 0];
     if gpu.prepared != Some((text.revision, geometry)) {
         let mut bytes = Vec::with_capacity(BUFFER_SIZE as usize);

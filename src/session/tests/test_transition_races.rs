@@ -86,8 +86,8 @@ fn query() -> inspect::Command {
 
 #[test]
 fn transition_races_obey_real_file_barriers_and_never_release_cancelled_plans() {
-    // Six external-wire sessions, no app/renderer or global env. Real worker IO.
-    for mode in ["success", "header-failed", "footer-failed"] {
+    // Seven external-wire sessions, no app/renderer or global env. Real worker IO.
+    for mode in ["success", "header-failed", "footer-failed", "render-failed"] {
         std::thread::scope(|scope| {
             let path = support::artifacts(&format!("recording-transition-{mode}"));
             let config = support::config(&path);
@@ -122,6 +122,7 @@ fn transition_races_obey_real_file_barriers_and_never_release_cancelled_plans() 
                         .join("tests/faults/internal_peer.py"),
                 )
                 .arg(&path);
+            if mode == "render-failed" { command.arg("--offscreen"); }
             let process = process::Process::spawn(command).unwrap();
             let pid = process.child.id();
             let wire = process.writer.as_ref().unwrap().clone();
@@ -209,6 +210,34 @@ fn transition_races_obey_real_file_barriers_and_never_release_cancelled_plans() 
                     .iter()
                     .all(|v| v["command"] == "test.fence")
             );
+            if mode == "render-failed" {
+                let mut capture = session.send(crate::command::screenshot::Capture::new("deferred.png")).unwrap();
+                check.send(()).unwrap();
+                checked.recv_timeout(Duration::from_secs(10)).unwrap();
+                wire.send(serde_json::json!({"command":"test.render_failed"}).to_string()).unwrap();
+                // Reaping the peer proves the coordinator consumed the fatal.
+                // Only then release the actual recording worker's header barrier.
+                support::wait(|| unsafe { libc::kill(pid as i32, 0) } == -1);
+                release.send(false).unwrap();
+                drop(wire);
+                for error in [
+                    support::receive(&mut session, &mut inside).unwrap_err(),
+                    support::receive(&mut session, &mut capture).unwrap_err(),
+                ] {
+                    assert!(matches!(error, Error::Render { .. }), "{error:?}");
+                    assert_eq!(error.code(), "render_device_lost");
+                }
+                let history = serde_json::to_value(session.history()).unwrap();
+                for id in ["inspect.query", "screenshot.capture"] {
+                    let row = history.as_array().unwrap().iter().find(|row| row["command"]["command"] == id).unwrap();
+                    assert_eq!(row["outcome"]["status"], "render_failed");
+                }
+                assert!(support::json_lines(path.join("wire.jsonl")).iter().all(|row| row["command"].as_str().unwrap().starts_with("test.")));
+                assert!(!path.join("deferred.png").exists());
+                drop(session);
+                file_worker.join().unwrap();
+                return;
+            }
             release.send(mode != "header-failed").unwrap();
             if mode == "header-failed" {
                 assert!(matches!(

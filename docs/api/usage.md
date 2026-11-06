@@ -21,7 +21,9 @@ verworfen; Resize-/Close-Ereignisse bleiben erhalten.
 
 `input.text.input` nimmt `{"text":"Grüße 🦜"}` bis 16.384 UTF-8-Bytes an.
 Erfolg liefert `null`, keine sofortige Textänderung. Auch leerer Text verlangt
-ein eindeutiges primäres Fenster und einen lebenden Fokus auf `EditableText`.
+eine eindeutige primäre Inputidentität und einen lebenden Fokus auf `EditableText`.
+Native verwendet dafür sein Window; Headless verwendet eine logische Window-Entity
+ohne nativen Handle und mit einem Image als Pointer-/Kameraziel.
 Die App aktiviert `woodpecker/ui`, für ein vollständiges Bevy-0.20-Widget außerdem
 `bevy/bevy_ui_widgets` und `bevy::ui_widgets::TextInputPlugin`.
 Der Command bindet das Ziel bei Annahme. Erst beim nächsten Tick geht der Edit
@@ -36,6 +38,54 @@ Unterstützte Tokens und feste Bevy-Zuordnungen stehen in
 [keyboard.rs](../../src/command/input/keyboard.rs); die Zuordnung ist unabhängig
 vom OS-Layout. Text kommt ausschließlich über den Text-Command.
 Die Anwendung selbst stellt UI, Spielbereitschaft und Renderer bereit.
+
+## Signalstation headless auf Metal
+
+Native bleibt Default. Für den belegten L1-Appumfang wird Signalstation ausdrücklich
+**ohne native Cargo-Features** gebaut: kein Winit und kein Systemclipboard. Der
+normale Build behält beide als Default. Ein Headlessauftrag an einen Build mit
+aktiviertem `test_app/native` wird vor der Plattforminstallation abgelehnt.
+Headless isoliert mit `-p test_app` bauen, nicht zusammen mit nativen Workspace-
+Mitgliedern: Cargo kann sonst deren Bevy-/Systemclipboardfeatures vereinigen.
+Solche vereinigten Dependencygraphen gehören nicht zum qualifizierten Profil.
+
+Vom Repository-Root, nach passender lokaler GPUfreigabe:
+
+```sh
+cargo build --locked -p woodpecker_cli --bin woodpecker
+cargo build --locked -p test_app --no-default-features --features automation --bin test_app
+# Server im ersten Terminal:
+target/debug/woodpecker --address 127.0.0.1:4100 server start --artifact-dir target/headless-sessions
+# Im zweiten Terminal:
+target/debug/woodpecker --address 127.0.0.1:4100 session create --config tests/headless/app.toml
+```
+
+Die [Konfiguration](../../tests/headless/app.toml) setzt `launch.no_default_features`,
+1440×900 physische Pixel/Scale 1, einen festen Tickclock und Engine-Startup.
+Ohne `executable` darf der Launcher den ausdrücklich gewählten Cargobuild ausführen;
+ein vorbereitetes passendes Programm lässt sich wie bei Native eintragen.
+
+Die ausgegebene Session-ID als `ID` setzen. Mit `session inspect "$ID"` und
+`session poll "$ID" --wait-ms 1000` **nur beobachten**, bis `EngineReady` gemeldet
+ist. `SessionReady` allein genügt nicht. Das sind keine Tickcommands; die
+konfigurierte Enginevorbereitung zählt und meldet ihre eigenen Ticks. Danach
+funktionieren dieselben Input-/Inspect-/Capture-Commands. Input wird erst beim
+angeforderten Tick wirksam; ein angenommener Capture bleibt bis zum PNG pending.
+
+Appintegration: [`launch::Headless::from_env`](../../src/session/launch.rs) vor
+nativen Plugins auswerten; Renderer ohne Winit/pipelined Rendering installieren,
+Systemclipboard als Buildfeature ausschließen und
+[`session::headless::Plugin`](../../src/session/headless.rs) vor `session::Plugin`
+installieren. Der Helfer erzeugt Image und logische Inputgeometrie und richtet
+Primary-Window-Kameras auf das Image. Die konkrete Installation steht in
+[`test_app/src/app/headless.rs`](../../test_app/src/app/headless.rs).
+Eine logische Window-Entity ist dabei beabsichtigte Metadatenkompatibilität,
+keine native Window/Surface. Legacy- und Widget-UI verwenden dieselbe Geometrie.
+
+Umfang, Nachweise und ausdrücklich offene L2–L5-Pakete stehen in
+[L1.md](../headless-plan/L1.md); reproduzierbare Abnahme in der
+[Testanleitung](../../tests/README.md#l1-expliziter-headless-teilumfang-mit-gpu).
+Keine zusätzliche Plattform-/Cold-cache-/beliebige-Effekte-Freigabe.
 
 ## Screenshot
 

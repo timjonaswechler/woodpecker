@@ -2,6 +2,8 @@
 use bevy::prelude::IVec2;
 
 pub struct Options {
+    #[cfg(feature = "automation")]
+    pub headless: Option<woodpecker::session::launch::Headless>,
     pub fixed_window: bool,
     pub uncapped: bool,
     pub performance_overlay: bool,
@@ -19,6 +21,9 @@ impl Options {
             "invalid scale factor"
         );
         Self {
+            #[cfg(feature = "automation")]
+            headless: woodpecker::session::launch::Headless::from_env()
+                .expect("invalid headless request"),
             fixed_window: std::env::args().any(|arg| arg == "--fixed-window"),
             uncapped: std::env::args().any(|arg| arg == "--uncapped"),
             performance_overlay: std::env::args().any(|arg| arg == "--performance-overlay"),

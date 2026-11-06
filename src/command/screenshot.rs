@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-/// Capture the primary rendered window beneath the session's artifact directory.
+/// Capture beneath the session's artifact directory. The primary rendered window
+/// is the default; `session::OffscreenTarget` explicitly selects an image instead.
 ///
 /// An unavailable render surface (for example, an occluded window on Metal)
 /// is rejected rather than saved as an unfilled readback image.

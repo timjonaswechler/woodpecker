@@ -43,6 +43,8 @@ class InteractiveTest(unittest.TestCase):
             root = Path(directory)
             (root / "target/test-runs").mkdir(parents=True)
             state = root / "target/shared-app.json"
+            (root / "products.json").write_text(json.dumps({
+                "app_build": {"mode": "native", "features": ["automation", "native"]}}))
             game = interactive._shared.SharedGame()
             game.identity = {"pid": 123}
             game.session_id = "session"

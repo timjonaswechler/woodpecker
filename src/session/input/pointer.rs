@@ -28,14 +28,19 @@ impl State {
     pub(crate) fn move_to(&mut self, world: &World, position: [f32; 2]) -> Result<(), Diagnostic> {
         let position = finite(position)?;
         let event = self.cursor.move_to(world, position)?;
-        self.pending.push(motion::Input::pointer(event));
+        self.pending
+            .push(motion::Input::pointer(cursor::window(world)?.0, event));
         Ok(())
     }
 
     pub(crate) fn move_by(&mut self, world: &World, delta: [f32; 2]) -> Result<(), Diagnostic> {
         let delta = finite(delta)?;
         let event = self.cursor.move_by(world, delta)?;
-        self.pending.push(motion::Input::relative(event, delta));
+        self.pending.push(motion::Input::relative(
+            cursor::window(world)?.0,
+            event,
+            delta,
+        ));
         Ok(())
     }
 
@@ -62,15 +67,18 @@ impl State {
                 token,
             ));
         }
-        self.pending.push(motion::Input::pointer(PointerInput::new(
-            ID,
-            cursor::location(window, position),
-            if down {
-                PointerAction::Press(picking_button)
-            } else {
-                PointerAction::Release(picking_button)
-            },
-        )));
+        self.pending.push(motion::Input::pointer(
+            window,
+            PointerInput::new(
+                ID,
+                cursor::location(world, position),
+                if down {
+                    PointerAction::Press(picking_button)
+                } else {
+                    PointerAction::Release(picking_button)
+                },
+            ),
+        ));
         if down {
             self.pressed.insert(button);
         } else {
@@ -83,16 +91,19 @@ impl State {
         let delta = finite(delta)?;
         cursor::window(world)?;
         let (window, position) = self.cursor.location(world)?;
-        self.pending.push(motion::Input::pointer(PointerInput::new(
-            ID,
-            cursor::location(window, position),
-            PointerAction::Scroll {
-                unit: MouseScrollUnit::Line,
-                x: delta.x,
-                y: delta.y,
-                phase: TouchPhase::Moved,
-            },
-        )));
+        self.pending.push(motion::Input::pointer(
+            window,
+            PointerInput::new(
+                ID,
+                cursor::location(world, position),
+                PointerAction::Scroll {
+                    unit: MouseScrollUnit::Line,
+                    x: delta.x,
+                    y: delta.y,
+                    phase: TouchPhase::Moved,
+                },
+            ),
+        ));
         Ok(())
     }
 

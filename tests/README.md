@@ -13,16 +13,17 @@ Produktsuite oder Gesamtabnahme.
 
 - Vom Repository-Root auf Unix ausführen; Rust gemäß `Cargo.toml`, Cargo, Git
   und Python **3.11+** müssen verfügbar sein.
-- Nur die PNG-Tests `screenshot/capture.py` und `screenshot/overwrite.py` benötigen
-  Pillow: bei Bedarf `python3 -m pip install Pillow`. Andere Tests und Discovery
-  benötigen es nicht.
+- Die PNG-Tests `screenshot/capture.py`, `screenshot/overwrite.py` und
+  `headless/basis.py` benötigen Pillow: bei Bedarf `python3 -m pip install Pillow`.
+  Andere Tests und Discovery benötigen es nicht.
 - Grafische Läufe einschließlich Wiederholungen zuerst mit Tests, Appstarts,
   Fenstern, Eingriffen und Tickbudgets freigeben. Die konkreten Varianten und
   Aktionen stehen im jeweiligen Test. `WOODPECKER_TEST_RENDERED=1` und
   `--rendered` bestätigen nur technisch eine bereits erteilte Freigabe.
-- Desktop wach halten, Spielfenster zumindest teilweise sichtbar lassen.
-  Größe, Skalierung und Bildschirmzuordnung während einer Session nicht ändern.
-  Kein Headless-/Offscreen-Ersatz, keine OS-Eingaben oder persönlichen Settings.
+- Native bleibt Default: Desktop wach halten, Spielfenster zumindest teilweise
+  sichtbar lassen. Größe, Skalierung und Bildschirmzuordnung während einer Session
+  nicht ändern. Kein stiller Headless-/Offscreen-Ersatz; der explizite L1-Modus
+  steht unten. Keine OS-Eingaben oder persönlichen Settings.
 - Einige Fälle erzeugen absichtlich Panics, Abort, Exit, Prozesssignale,
   Dateigrößenfehler und Symlinkwechsel. Nur testeigene Prozesse und Dateien
   betroffen; normale Läufe veröffentlichen keine echten GitHub-Issues.
@@ -39,7 +40,7 @@ python3 -m tests.acceptance --list
 # Vollständigen lokalen Umfang nur bauen; keine Spielfenster. Erwarteter Exit: 2.
 python3 -m tests.acceptance --build-only
 
-# Fensterlos: 15 Python-, zehn interne Rust- und ein öffentlicher Rust-Fall.
+# Fensterlos: 15 Python-, 14 interne Rust- und ein öffentlicher Rust-Fall.
 # Erwarteter Exit auch bei bestandener Auswahl: 2, da lokale Grafiknachweise fehlen.
 python3 -m tests.acceptance --non-graphical
 
@@ -53,7 +54,7 @@ python3 -m unittest discover -s tests/runner_checks -t . -p '*.py'
 **Erst nach passender Grafikfreigabe:**
 
 ```sh
-# Gesamter lokaler Sollumfang: 94 Produkttests plus Kontrolle 3.18, kein echtes gh.
+# Nativer lokaler Sollumfang: 98 Produkttests plus Kontrolle 3.18, kein echtes gh.
 WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --rendered
 
 # Pilot: 16 Produkttests, keine Gesamtabnahme.
@@ -63,7 +64,7 @@ WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --pilot --rendered
 WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance --negative-control --rendered
 ```
 
-Der vollständige lokale Lauf bereitet zwölf Schritte einschließlich Feature-Matrix
+Der vollständige native lokale Lauf bereitet 13 Schritte einschließlich Feature-Matrix
 und separatem Abort-Build vor.
 Teilumfänge bauen nur ihre benötigten Abhängigkeiten; `--feature-matrix` ergänzt
 explizit die Library-Kombinationen und die normale App. `--list` und `--build-only`
@@ -97,7 +98,7 @@ WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance \
   --test tests.keyboard.movement --rendered --artifacts MANIFEST
 ```
 
-Ohne Auswahlflag gilt die gesamte lokale Suite. Ein dafür vorbereitetes Manifest
+Ohne Auswahlflag gilt die native lokale Suite. Ein dafür vorbereitetes Manifest
 muss sämtliche benötigten Programme und die Feature-Matrix abdecken. `--artifacts`
 prüft kompilierte Quellen und Assets einschließlich uncommitteter Dateien,
 Manifeste/Lockfiles, Build-Rezepte, Toolchain, Plattform und relevante
@@ -107,6 +108,54 @@ Die Programme liegen inhaltadressiert unter `target/test-products/`; gleiche
 Programme werden nicht pro Test kopiert. Auf macOS werden die zugehörigen
 Debug-Symbole beim Vorbereiten gesichert. Der Projektcheckout bleibt für Assets
 und Cargo-Metadaten erforderlich; Metadaten-/Versionsabfragen sind keine Builds.
+
+### L1: expliziter Headless-Teilumfang mit GPU
+
+Headless ist **nicht** `--non-graphical`: Dieser Modus benötigt die echte GPU,
+aktuell das vereinbarte Metalprofil, aber kein natives Fenster. Erst nach eigener
+Freigabe dieses Umfangs ausführen; Flags erteilen keine Freigabe.
+
+```sh
+python3 -m tests.acceptance --headless --list
+# Nur vorbereiten, keine App-/GPUausführung; erwarteter Exit 2.
+python3 -m tests.acceptance --headless --build-only
+# MANIFEST durch den ausgegebenen products.json-Pfad ersetzen.
+WOODPECKER_TEST_RENDERED=1 python3 -m tests.acceptance \
+  --headless --rendered --artifacts MANIFEST
+```
+
+`--headless` wählt 13 Fälle: die zehn ursprünglichen Keyboard-/Pointer-/Textowner
+mit unveränderten Assertions und drei eigene Headlessowner. [basis.py](headless/basis.py)
+prüft echten Appstart, Image-Ready, RGB-/Pause-/UI-/Unicode-/Overlaybilder und einen
+PID-gefilterten OS-Audit ohne native Fenster. Für `Time<Real>` liest der Owner
+einen ausdrücklich aktivierten Snapshot tatsächlicher Skalare/Updatezeitpunkte:
+bei jeder Extraction, auch während Pause, und mit Fortschrittskontrolle nach
+expliziten Ticks; kein Eingriff in den Clock oder zusätzliche Anwendungsschedules. [startup.py](headless/startup.py)
+führt die ursprünglichen Manual-/Engine-/vier Fehler-Startupvarianten mit lediglich
+geänderter Konfiguration aus. [terminal.py](headless/terminal.py) zerstört nach
+healthy Capture nur das eigene logische Gerät und verlangt typisiertes Ende und
+vollständiges Reaping. Die zehn Inputowner teilen eine
+zurücksetzbare Signalstation: Manual-Handshake, maximal 120 Spielbereitschaftsticks
+in zehn Sekunden, dann vor jedem Owner F9 plus drei Reset-Ticks. Aktionsticks
+bleiben unverändert zusätzlich. Der Basisfall besitzt eine eigene Session und
+seinen eigenen Engine-Startupvertrag. Zusätzlich zu den Startup-Ticks verwendet
+Basis genau drei Map-, acht Fokus-/Text- und zwei Overlay-Aktionsticks; keine
+Reparaturticks. Startup- und Terminalowner besitzen getrennte Sessions und
+Fehlerbudgets. Das ist **keine Gesamtabnahme**; auch ein vollständig bestandener
+L1-Teilumfang endet mit Exit **2**. Native Standardläufe wählen die drei eigenen
+Headlessowner nicht aus. Öffentliche Konfiguration: [headless/app.toml](headless/app.toml).
+
+Die Vorbereitung baut die rendererfreie CLI separat und `test_app` ausschließlich
+mit `--no-default-features --features automation`, ohne den nativen gemeinsamen
+Cargo-Featuregraph. Cargo-Artefakte müssen die passende Appvariante belegen;
+`--artifacts` lehnt vertauschte native/Headless-Manifeste ab. Ohne `--artifacts`
+bereitet der Runner selbst dieselben inhaltgeprüften Programme vor. Die gemeinsame
+Appkonfiguration setzt `launch.no_default_features = true`,
+`launch.headless = { width = 1440, height = 900, scale_factor = 1.0 }` und die
+vorbereitete ausführbare Datei; `tests/app.toml` bleibt unverändert.
+Quellen-, Asset-, Toolchain- und Programm-Hashprüfungen gelten unverändert.
+Andere Auswahlflags, interaktiver Host und Feature-Matrix sind nicht Teil dieses
+begrenzten L1-Modus. Der Liefervertrag steht in [L1.md](../docs/headless-plan/L1.md).
 
 ### Gemeinsame laufende Anwendung
 
@@ -200,8 +249,8 @@ wiederverwendbarer Cache, kein anderes normales Buildprofil. Die kleine enginefr
 Abort-Fixture verwendet das Produktionsprotokoll und echte Panic-Hooks. Feature-
 Audits bauen in eigenen temporären Bäumen; ihre vollständigen Logs bleiben erhalten,
 ihre Compilerbäume nicht. Unveränderte Audits dürfen ihren inhaltgeprüften Nachweis
-wiederverwenden. CLI, Spiel und Rust-Verträge verwenden gemeinsam aufgelöste
-Dependency-Features statt dauerhaft mehrfacher Renderer-Varianten.
+wiederverwenden. Native Spiel- und Rust-Verträge verwenden gemeinsam aufgelöste
+Dependency-Features; der explizite Headless-Appbuild bleibt davon getrennt.
 Vorbereitete Programme behalten nur den neuesten vorbereiteten
 Quellstand mit einer Programmversion je Rolle;
 auch erneutes Linken desselben Codes darf nicht unbegrenzt Kopien erzeugen.
@@ -261,7 +310,7 @@ Varianten und packt die verbleibenden Cargo-Ausgaben verlustfrei. Es zählt dana
 macOS-Symbole bleiben unverpackt, laufende Verbraucher behalten ihre Leases.
 Weder Profile noch Compilerflags werden dafür umgestellt. Der gemessene Ruhebestand
 liegt nach freigegebener Bereinigung alter Logs unter dieser Grenze; den genauen
-Stand dokumentiert der [Testsuite-Plan](../docs/testing-plan.md#aktuelle-erweiterung-vorbereitete-programme-und-kleinerer-buildgraph).
+Stand dokumentiert der [Testsuite-Plan](../docs/testing-plan.md#frühere-erweiterung-vorbereitete-programme-und-kleinerer-buildgraph).
 
 Das ist **kein 5-GB-Spitzenlimit beim Bauen**. Vor neuem Kompilieren braucht der
 Cache seinen normalen entpackten Platz. Die Vorbereitung stellt ihn automatisch
@@ -299,8 +348,8 @@ python3 -m unittest discover -s tests/session -t . -p 'invalid_launch_config.py'
 # Öffentlicher Rust-Vertrag ohne Session oder Fenster.
 cargo test --locked --features cli --test contracts handle_encoding::handle_encoding_contract -- --exact --nocapture
 
-# Alle zehn internen Owner-Tests ohne Spielfenster.
-cargo test --locked --features cli,ui,screenshot --lib -- --nocapture --test-threads=1
+# Alle 14 internen Owner-Tests ohne Spielfenster.
+cargo test --locked --features cli,ui,screenshot,offscreen --lib -- --nocapture --test-threads=1
 ```
 
 **Grafische Einzelfälle erst freigeben und mit denselben App-Features bauen:**
@@ -360,8 +409,9 @@ baut nur Driver und Automation-App ohne GitHub-Anfrage oder Spielstart.
 
 ## Inventar und Zuständigkeiten
 
-95 Produkttests: **75 Python + zehn öffentliche Rust + zehn interne Rust**.
-94 sind lokal, einer extern. Mit Kontrolle 3.18 enthält das Inventar 96 Einträge;
+102 Produkttests: **78 Python + zehn öffentliche Rust + 14 interne Rust**.
+101 sind lokal (davon drei zusätzliche Headlessowner), einer extern.
+Mit Kontrolle 3.18 enthält das Inventar 103 Einträge;
 `runner_checks/` gehört nicht zu den Produkttests. Das tatsächliche Inventar
 und die Buildauswahl kommen aus `acceptance.py --list`, nicht aus Laufchroniken.
 
@@ -374,6 +424,7 @@ und die Buildauswahl kommen aus `acceptance.py --list`, nicht aus Laufchroniken.
 | [keyboard](keyboard/) | 3 | Bewegung, einmalige Aktion und Übergänge; 3.12, 4.20–4.21 |
 | [pointer](pointer/) | 5 | UI-Picking, relative Bewegung, Buttons, Scroll und Ablehnungen; 4.22–4.26 |
 | [text](text/) | 2 | Unicode, Fokus und UTF-8-/Widget-Grenzen; 4.27–4.28 |
+| [headless](headless/) | 3 | Echte App-/UI-/Text-/Capturebilder, ursprüngliche Startup-/Fehlerowner und realer typisierter Geräteverlust; nur `--headless` |
 | [screenshot](screenshot/) | 4 | Bild-Fixture, erster Tick, Overwrite und sichere Pfade; 3.13, 4.29–4.31 |
 | [recording](recording/) | 3 | Dateivertrag, Barrieren und I/O-Fehler; 4.32–4.34 |
 | [replay](replay/) | 5 | Frische Session, Vorvalidierung, Stop, Exklusivität und Blockierung; 3.14, 4.35–4.38 |
@@ -391,11 +442,16 @@ seriell gestarteten Prozess; globale Hooks und Lifecycle-Zustand werden nicht
 geteilt. Nur der letzte läuft ohne Spielfenster; Rust-Ownership,
 Pending-Drop und direkte Session-Lebensdauer sind keine doppelten CLI-Tests.
 
-Die zehn internen Tests liegen bei ihren tatsächlichen Ownern unter `src/`
+Die 14 internen Tests liegen bei ihren tatsächlichen Ownern unter `src/`
 (`cfg(test)`): native Inputs, Textzielbindung, Readback-Lebensdauer, Screenshot-
 und Recording-/Replay-Pfadaustausch, Session-Identität, Request-ID-Erschöpfung,
 Übergangsrennen, Reportabschluss (4.71–4.78, 4.82) und die getrennten Asset-
-Nachrichtenströme für Tick und Renderframe. Sie steuern reale
+Nachrichtenströme für Tick und Renderframe. Dazu kommen drei fensterlose Ownerfälle
+für den finalen Publicationcheck, Offscreen-Terminalguards und den Renderfehler-
+Wirevertrag sowie ein CPUcheck des öffentlichen Headless-Viewporthelpers für
+HiDPI, Imageidentität und Ablehnung vorhandener Windows. Der
+[achtfache lokale GPU-/SDK-Nachweis](fixtures/offscreen/README.md)
+ist separat und zählt nicht als automatische Standardausführung. Sie steuern reale
 World-/Datei-/Koordinatorgrenzen instanzlokal, keine nachgebaute Produktlogik,
 keine Winit-/GPU-Abnahme oder neue öffentliche API.
 

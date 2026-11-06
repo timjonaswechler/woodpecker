@@ -18,7 +18,7 @@ import unittest
 
 from tests._support import ROOT, force_owned_tree, use_products
 from tests import _artifacts, _audits, _compiler_cache, _shared
-from tests._builds import ABORT_TARGET, commands, executables, rust_source_tests
+from tests._builds import ABORT_TARGET, app_build, commands, executables, rust_source_tests, validate_app_build
 
 PILOT_MODULES = (
     "tests.session.server_lifecycle", "tests.session.session_lifecycle",
@@ -71,10 +71,12 @@ def inventory():
         objects[case.id()] = case
         rows[case.id()] = dict(kind="python", module=module, graphics=module not in NON_GRAPHICAL,
                                external=module == EXTERNAL, status="Nicht ausgeführt", seconds=None, artifacts=[])
-    if modules.get(EXTERNAL) != 1 or not NON_GRAPHICAL.issubset(modules) or not set(PILOT_MODULES).issubset(modules):
-        errors.append("Missing mandatory external, windowless or pilot module.")
-    if len(cases) != 75:
-        errors.append(f"Expected 75 Python cases, discovered {len(cases)}; reconcile coverage before execution.")
+    if (modules.get(EXTERNAL) != 1 or modules.get("tests.headless.basis") != 1
+            or not NON_GRAPHICAL.issubset(modules) or not set(PILOT_MODULES).issubset(modules)
+            or not _shared.MODULES.issubset(modules)):
+        errors.append("Missing mandatory external, windowless, pilot or L1 input/basis module.")
+    if len(cases) != 78:
+        errors.append(f"Expected 78 Python cases, discovered {len(cases)}; reconcile coverage before execution.")
     if any(count != 1 for count in modules.values()):
         errors.append("Exactly one Python test per module is required.")
     manifest = tomllib.loads((ROOT / "Cargo.toml").read_text())
@@ -106,8 +108,8 @@ def inventory():
         rows["internal::" + names[0]] = dict(kind="internal", function=names[0],
             source=str(path.relative_to(ROOT)), graphics=False, external=False,
             status="Nicht ausgeführt", seconds=None, artifacts=[])
-    if len(internal) != 10:
-        errors.append("Expected ten internal Rust tests.")
+    if len(internal) != 14:
+        errors.append("Expected fourteen internal Rust tests.")
     resource = next((case for case in cases if case.__class__.__module__ == "tests.inspect.resource_value"), None)
     if resource:
         control = type(resource)(resource._testMethodName)
@@ -163,8 +165,9 @@ def logged(command, path, *, timeout=900, env=None):
 def main(argv=None, *, shared_game=None, should_stop=None):
     parser = argparse.ArgumentParser(description=__doc__)
     group = parser.add_mutually_exclusive_group()
-    for flag in ("non-graphical", "pilot", "negative-control", "external-github"):
-        group.add_argument("--" + flag, action="store_true")
+    for flag in ("non-graphical", "pilot", "negative-control", "external-github", "headless"):
+        group.add_argument("--" + flag, action="store_true",
+                           **({"help": "scoped L1 headless input/basis run; requires GPU approval"} if flag == "headless" else {}))
     group.add_argument("--test", action="append", dest="tests", metavar="ID",
                        help="select an exact inventory ID or Python test module; repeatable")
     group.add_argument("--category", action="append", dest="categories", metavar="NAME",
@@ -181,10 +184,12 @@ def main(argv=None, *, shared_game=None, should_stop=None):
         parser.error("--build-only and --artifacts are mutually exclusive")
     if args.compact and not args.build_only:
         parser.error("--compact requires --build-only")
+    if args.headless and args.feature_matrix:
+        parser.error("--headless is the scoped L1 run, not a full feature-matrix audit")
     rows, objects, _, errors = inventory()
     selection = "non-graphical" if args.non_graphical else "pilot" if args.pilot else (
         "negative-control" if args.negative_control else "external-github" if args.external_github else
-        "tests" if args.tests else "categories" if args.categories else "full-local")
+        "headless-l1" if args.headless else "tests" if args.tests else "categories" if args.categories else "full-local")
     def category(row):
         return row["module"].split(".")[1] if row["kind"] in ("python", "control") else row["kind"]
     for value in args.tests or []:
@@ -193,7 +198,16 @@ def main(argv=None, *, shared_game=None, should_stop=None):
     for value in args.categories or []:
         if value not in {category(row) for row in rows.values()}:
             errors.append(f"Unknown category: {value}")
+    def headless_only(row):
+        return row.get("module", "").startswith("tests.headless.")
+    if not args.headless and (any(headless_only(row) and (key in (args.tests or []) or row.get("module") in (args.tests or []))
+                                 for key, row in rows.items()) or "headless" in (args.categories or [])):
+        errors.append("Headless-only owners require the explicit --headless L1 mode.")
     def selected(key, row):
+        if args.headless:
+            return row.get("module") in _shared.MODULES or headless_only(row)
+        if headless_only(row):
+            return False
         if args.tests:
             return (key in args.tests or (row["kind"] != "control" and row.get("module") in args.tests)) and not row["external"]
         if args.categories:
@@ -214,7 +228,7 @@ def main(argv=None, *, shared_game=None, should_stop=None):
     if not keys and not errors:
         errors.append("Selection contains no runnable tests; external GitHub cases require --external-github")
     feature_matrix = args.feature_matrix or selection == "full-local"
-    build_commands = [] if args.artifacts else commands([rows[key] for key in keys], feature_matrix=feature_matrix)
+    build_commands = [] if args.artifacts else commands([rows[key] for key in keys], feature_matrix=feature_matrix, headless=args.headless)
     if args.list:
         print(json.dumps({"action": "planning only; not acceptance", "selection": selection,
                           "selected": {key: rows[key] for key in keys}, "inventory_errors": errors,
@@ -227,7 +241,8 @@ def main(argv=None, *, shared_game=None, should_stop=None):
     (ROOT / "target/test-runs").mkdir(parents=True, exist_ok=True)
     artifacts = Path(tempfile.mkdtemp(prefix="acceptance-", dir=ROOT / "target/test-runs"))
     report = dict(started_at=datetime.now(timezone.utc).isoformat(), selection=selection,
-                  scope="94 local cases plus control 3.18; real Github case separate", artifacts=str(artifacts),
+                  scope=("L1 headless subset; not full-suite acceptance" if args.headless else
+                         "Native local cases plus control 3.18; headless and real GitHub separate"), artifacts=str(artifacts),
                   metadata={"python": platform.python_version()}, feature_matrix=feature_matrix, builds=[], tests=rows,
                   preflight=[], errors=errors, selected=keys)
     preflight = report["preflight"]
@@ -239,7 +254,7 @@ def main(argv=None, *, shared_game=None, should_stop=None):
     if not args.build_only and any(rows[key]["graphics"] for key in keys):
         if not args.rendered or os.environ.get("WOODPECKER_TEST_RENDERED") != "1":
             preflight.append("Fresh scoped graphics approval required, then --rendered and WOODPECKER_TEST_RENDERED=1. Flags alone grant no permission.")
-        if any(rows[key].get("module") in ("tests.screenshot.capture", "tests.screenshot.overwrite") for key in keys):
+        if any(rows[key].get("module") in ("tests.screenshot.capture", "tests.screenshot.overwrite", "tests.headless.basis") for key in keys):
             try:
                 importlib.import_module("PIL.Image")
             except ImportError:
@@ -252,7 +267,9 @@ def main(argv=None, *, shared_game=None, should_stop=None):
     product_scope = contextlib.ExitStack()
     audit_scope = contextlib.ExitStack()
     owns_game = shared_game is None
-    shared_game = shared_game or _shared.SharedGame()
+    if shared_game is not None and shared_game.headless != args.headless:
+        preflight.append("Shared application profile does not match the requested runner mode.")
+    shared_game = shared_game or _shared.SharedGame(headless=args.headless)
     shared_remaining = {key for key in keys if rows[key].get("module") in _shared.MODULES}
     report["shared_application"] = []
     restored_for_fixture = False
@@ -272,7 +289,7 @@ def main(argv=None, *, shared_game=None, should_stop=None):
             environment = {**os.environ, "CARGO_TARGET_DIR": str(ROOT / "target")}
             products = {}
             build_logs = []
-            build_inputs = _artifacts.inputs(root=ROOT) if args.build_only or feature_matrix else None
+            build_inputs = _artifacts.inputs(root=ROOT) if args.build_only or args.headless or feature_matrix else None
             cached_audits = _audits.load(ROOT, build_inputs) if feature_matrix else {}
             audit_builds = {}
             audit_target = None
@@ -282,6 +299,8 @@ def main(argv=None, *, shared_game=None, should_stop=None):
                 if missing:
                     raise ValueError(f"Prepared manifest is missing products: {sorted(missing)}")
                 manifest_data = json.loads(args.artifacts.read_text())
+                if "bin:test_app" in _artifacts.required(rows[key] for key in keys):
+                    validate_app_build(manifest_data.get("app_build"), headless=args.headless)
                 if feature_matrix and not manifest_data.get("feature_matrix"):
                     raise ValueError("Prepared manifest does not prove the requested feature matrix")
                 report["products_manifest"] = str(args.artifacts.resolve())
@@ -318,11 +337,18 @@ def main(argv=None, *, shared_game=None, should_stop=None):
             if feature_matrix and not args.artifacts:
                 _audits.publish(ROOT, build_inputs, audit_builds)
             audit_scope.close()
-            if args.build_only:
+            if (args.build_only or args.headless) and not args.artifacts:
                 manifest = artifacts / "products.json"
+                roles = _artifacts.required(rows[key] for key in keys)
+                proof = app_build(build_logs, headless=args.headless) if "bin:test_app" in roles else None
                 products = _artifacts.publish(build_logs, manifest, root=ROOT, feature_matrix=feature_matrix,
-                                             expected_inputs=build_inputs,
-                                             roles=_artifacts.required(rows[key] for key in keys))
+                                             expected_inputs=build_inputs, roles=roles)
+                if proof is not None:
+                    data = json.loads(manifest.read_text())
+                    data["app_build"] = proof
+                    temporary = manifest.with_suffix(".preparing")
+                    temporary.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+                    temporary.replace(manifest)
                 report["products_manifest"] = str(manifest)
             product_scope.enter_context(use_products(products))
             environment.update({key: value for key, value in os.environ.items() if key in
@@ -450,16 +476,18 @@ def main(argv=None, *, shared_game=None, should_stop=None):
                     raise RuntimeError(f"Idle target exceeds 5 GB: {kib * 1024 / 1e9:.3f} GB")
         except Exception as error:
             errors.append(f"Compiler checkpoint: {type(error).__name__}: {error}")
-    local = [row["status"] for row in rows.values() if not row["external"]]
+    local_keys = [key for key, row in rows.items() if not row["external"] and (args.headless or not headless_only(row))]
+    local = [rows[key]["status"] for key in local_keys]
     report["selection_status"] = verdict(rows[key]["status"] for key in keys)
     report["external_github"] = verdict(row["status"] for row in rows.values() if row["external"])
     report["status"] = verdict([*local, *[row["status"] for row in report["builds"]],
                                  *(["Fehlgeschlagen"] if errors else [])],
-                                missing=bool(preflight or args.build_only or not report["builds"]))
-    report["all_features_status"] = verdict([report["status"], report["external_github"]])
+                                missing=bool(preflight or args.build_only or args.headless or not report["builds"]))
+    report["headless_status"] = report["selection_status"] if args.headless else "Unvollständig"
+    report["all_features_status"] = verdict([report["status"], report["external_github"], report["headless_status"]])
     # An external-only failure still exits 1, even with unexecuted local cases.
     report["exit_status"] = verdict([report["status"], report["selection_status"]])
-    report["missing_local_evidence"] = [key for key, row in rows.items() if not row["external"] and row["status"] != "Bestanden"]
+    report["missing_local_evidence"] = [key for key in local_keys if rows[key]["status"] != "Bestanden"]
     report["features"] = {}
     for key, row in rows.items():
         feature = row.get("module", row.get("source", "rust")).split(".")[1] if row["kind"] in ("python", "control") else row["kind"]

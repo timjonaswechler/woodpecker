@@ -1,0 +1,875 @@
+{
+  "cases": {
+    "headless": [
+      {
+        "id": "tests.keyboard.invalid_transitions.InvalidTransitionsTest.test_invalid_tokens_and_transitions_preserve_queued_held_and_released_state",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.keyboard.movement.KeyboardMovementTest.test_press_hold_and_release_control_player_movement",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.keyboard.single_action.SingleActionTest.test_map_toggle_runs_once_while_held_and_again_only_after_repress",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.buttons.PointerButtonsTest.test_three_buttons_hold_and_release_independently_on_the_virtual_pointer",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.invalid_input.InvalidPointerInputTest.test_bad_positions_buttons_and_transitions_do_not_damage_queued_or_applied_state",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.relative_motion.RelativeMotionTest.test_relative_motion_moves_fpv_and_clamps_only_the_virtual_position",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.scroll.PointerScrollTest.test_signed_horizontal_vertical_zero_and_batched_scroll_are_line_deltas",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.ui_click.UiClickTest.test_absolute_pointer_picks_the_real_map_button_without_early_effects",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.text.input_limits.TextInputLimitsTest.test_focus_empty_text_utf8_byte_boundary_and_widget_limit_are_distinct",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.text.unicode_input.UnicodeInputTest.test_unicode_and_newlines_reach_pointer_focused_notes_only_after_ticks",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.headless.basis.HeadlessBasisTest.test_signalstation_image_ready_capture_and_pause_close_cleanly",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.headless.startup.HeadlessStartupTest.test_original_startup_owners_keep_their_readiness_failure_and_tick_contracts",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.headless.terminal.HeadlessTerminalTest.test_real_app_device_loss_is_typed_and_its_owned_process_is_reaped",
+        "status": "Bestanden"
+      }
+    ],
+    "native": [
+      {
+        "id": "internal::accepted_text_stays_bound_across_focus_despawn_and_editability_changes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::exhausted_ids_never_admit_work_or_lose_pending_and_reserved_shutdown",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::failed_or_expired_readbacks_never_write_or_complete_a_new_request",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::native_input_cannot_enter_controlled_ticks_or_release_virtual_holds",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::native_ready_remains_unchanged_and_render_failure_has_no_request_id",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::offscreen_terminal_cut_rejects_deadline_stop_fatal_and_render_unwind",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::recording_and_replay_pin_parents_and_reject_swapped_final_entries",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::render_asset_messages_survive_tick_aging_without_changing_application_readers",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::report_completion_joins_all_jobs_before_server_done",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::requested_viewport_has_hidpi_geometry_image_identity_and_no_native_handle",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::screenshot_path_replacement_never_reaches_the_outside_sentinel",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::session_identity_collisions_preserve_roots_and_reject_ambiguous_prefixes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::terminal_check_after_staging_preserves_existing_file_and_cleans_temporary",
+        "status": "Bestanden"
+      },
+      {
+        "id": "internal::transition_races_obey_real_file_barriers_and_never_release_cancelled_plans",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::handle_encoding",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.cli.config_errors.ConfigErrorsTest.test_file_and_toml_errors_never_create_a_session_or_invoke_cargo",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.cli.script_unknown.ScriptUnknownTest.test_connection_correlation_and_gap_abort_without_losing_known_results_or_retrying",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.replay.blocked.BlockedReplayTest.test_new_protocol_failure_blocks_tail_but_historical_failure_does_not_predict_new_outcomes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.before_ready.BeforeReadyTest.test_markers_bad_handshake_and_exit_before_ready_have_no_report_or_command_context",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.invalid_marker.InvalidMarkerTest.test_fragmented_valid_marker_and_invalid_frames_preserve_nonmarker_bytes_through_eof",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.panic_abort.PanicAbortTest.test_abort_build_reports_panic_once_and_not_process_exit",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.invalid_launch_config.InvalidLaunchConfigTest.test_invalid_launch_config_is_rejected_before_session_creation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.invalid_session_id.InvalidSessionIdTest.test_invalid_session_ids_are_rejected_without_stopping_server",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.launch_failure.LaunchFailureTest.test_launch_failure_keeps_session_diagnostics_and_server_available",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.local_access.LocalAccessTest.test_remote_bind_and_browser_origin_are_rejected_without_disabling_local_access",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.protocol_faults.ProtocolFaultsTest.test_bad_handshakes_and_responses_are_never_misreported_as_success",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.server_lifecycle.ServerLifecycleTest.test_server_starts_lists_sessions_and_stops",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.unknown_session.UnknownSessionTest.test_unknown_session_is_rejected_without_stopping_server",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.starting.StartingStopTest.test_stopping_a_proven_live_start_reaps_it_without_late_ready_or_report",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.startup.invalid_config.InvalidStartupTickConfigTest.test_invalid_startup_and_tick_values_are_rejected_before_launch",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.cli.command_errors.CommandErrorsTest.test_invalid_json_utf8_and_command_shapes_do_not_send_even_a_valid_prefix",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.keyboard.invalid_transitions.InvalidTransitionsTest.test_invalid_tokens_and_transitions_preserve_queued_held_and_released_state",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.keyboard.movement.KeyboardMovementTest.test_press_hold_and_release_control_player_movement",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.keyboard.single_action.SingleActionTest.test_map_toggle_runs_once_while_held_and_again_only_after_repress",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.buttons.PointerButtonsTest.test_three_buttons_hold_and_release_independently_on_the_virtual_pointer",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.invalid_input.InvalidPointerInputTest.test_bad_positions_buttons_and_transitions_do_not_damage_queued_or_applied_state",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.relative_motion.RelativeMotionTest.test_relative_motion_moves_fpv_and_clamps_only_the_virtual_position",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.scroll.PointerScrollTest.test_signed_horizontal_vertical_zero_and_batched_scroll_are_line_deltas",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.pointer.ui_click.UiClickTest.test_absolute_pointer_picks_the_real_map_button_without_early_effects",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.text.input_limits.TextInputLimitsTest.test_focus_empty_text_utf8_byte_boundary_and_widget_limit_are_distinct",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.text.unicode_input.UnicodeInputTest.test_unicode_and_newlines_reach_pointer_focused_notes_only_after_ticks",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::event_overflow",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::github_provider",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::history",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::local_provider",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::pending_drop",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::pending_ownership",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::report_signature",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::report_snapshot",
+        "status": "Bestanden"
+      },
+      {
+        "id": "rust::session_shutdown",
+        "status": "Bestanden"
+      },
+      {
+        "id": "control::3.18",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.cli.script_pipeline.ScriptPipelineTest.test_pipeline_boundaries_rejection_and_shutdown_keep_full_indexed_results",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.cli.script_validation.ScriptValidationTest.test_bad_tail_version_and_shutdown_position_reject_the_entire_script",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.inspect.entity_query.EntityQueryTest.test_filters_and_all_listed_projections_exclude_resource_entities_and_preserve_world",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.inspect.hierarchy_handles.HierarchyHandlesTest.test_hierarchy_depth_children_order_and_replaced_handles_are_not_retargeted",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.inspect.reflection_values.ReflectionValuesTest.test_reflection_shapes_and_unavailable_reasons_are_lossless_and_explicit",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.inspect.resource_metadata.ResourceMetadataTest.test_all_and_type_resource_metadata_are_sorted_and_do_not_serialize_values",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.inspect.resource_value.ResourceValueTest.test_resource_value_matches_the_settings_seed",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.recording.barriers.RecordingBarriersTest.test_controls_reject_open_work_and_delimit_commands_around_header_and_footer",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.recording.file_contract.RecordingFileContractTest.test_jsonl_has_exact_boundaries_acceptance_order_and_typed_uncut_outcomes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.recording.io_failure.RecordingIoFailureTest.test_start_active_write_and_unexpected_end_failures_keep_their_own_outcomes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.repl.commands.ReplCommandsTest.test_help_parse_errors_and_long_and_short_forms_share_the_public_command_contract",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.repl.disconnect.ReplDisconnectTest.test_client_exit_keeps_work_but_shutdown_ends_session_and_technical_end_errors",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.repl.terminal.ReplTerminalTest.test_pending_work_unicode_editing_and_normal_and_error_exits_restore_the_pty",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.replay.exclusivity.ReplayExclusivityTest.test_external_work_cannot_enter_the_plan_or_change_inputs_during_replay",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.replay.invalid_recording.InvalidRecordingTest.test_invalid_files_paths_and_symlinks_never_execute_a_valid_looking_prefix",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.replay.recording_roundtrip.RecordingRoundtripTest.test_recording_replays_intermediate_and_final_positions_in_a_fresh_session",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.replay.stop.StopReplayTest.test_stop_drains_the_active_warp_keeps_prefix_and_never_submits_tail",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.caught_panic.CaughtPanicTest.test_caught_panics_keep_payload_location_and_backtrace_separate_and_process_alive",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.panic_exit.PanicExitTest.test_panic_fails_the_tick_and_reports_once_before_process_cleanup",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.process_exit.ProcessExitTest.test_unexpected_exit_zero_and_nonzero_are_not_shutdown_or_panic",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.slow_provider.SlowProviderTest.test_owned_gh_can_wait_while_game_activity_and_other_clients_progress",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.tracing_config.TracingConfigTest.test_opt_in_filter_missing_layer_and_handled_error_have_distinct_observation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.reports.tracing_report.TracingReportTest.test_tracing_error_writes_a_report_and_session_remains_usable",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.screenshot.before_first_tick.ScreenshotBeforeFirstTickTest.test_capture_before_first_tick_preserves_files_time_and_simulation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.screenshot.capture.ScreenshotCaptureTest.test_capture_contains_the_scene_without_advancing_simulation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.screenshot.invalid_path.InvalidScreenshotPathTest.test_bad_paths_and_escaping_symlinks_leave_all_owned_targets_unchanged",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.screenshot.overwrite.ScreenshotOverwriteTest.test_two_captures_report_overwrite_and_replace_existing_bytes_with_valid_png",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.activity_gap.ActivityGapTest.test_gap_preserves_open_work_and_explicit_cursor_resumes_observation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.disconnect.DisconnectTest.test_accepted_warp_progresses_without_clients_and_is_observed_without_resubmission",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.file_isolation.FileIsolationTest.test_editing_settings_writes_only_the_addressed_session_file",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.input_isolation.InputIsolationTest.test_keyboard_pointer_and_player_state_do_not_leak_into_the_other_session",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.request_correlation.RequestCorrelationTest.test_request_ids_and_outcomes_stay_with_their_client_and_session",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.session_binding.SessionBindingTest.test_full_id_and_prefix_bind_to_the_same_retained_session",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.session_isolation.SessionIsolationTest.test_stopping_one_session_leaves_the_other_ready",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.session.session_lifecycle.SessionLifecycleTest.test_session_can_be_created_inspected_and_stopped",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.command.ShutdownCommandTest.test_preconditions_do_not_allocate_shutdown_id_and_final_shutdown_is_terminal",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.deadline.ShutdownDeadlineTest.test_one_deadline_kills_only_remaining_owned_work_without_claiming_complete_output",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.server_stop.ServerStopTest.test_stopped_slow_session_does_not_block_other_session_or_report_and_admission_closes",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.session_stop.SessionStopTest.test_management_stop_drains_replay_warp_and_recording_without_running_tail",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.shutdown.signals.ShutdownSignalsTest.test_first_interrupt_or_term_drains_second_interrupt_forces_and_kill_is_not_graceful",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.startup.engine_startup.EngineStartupTest.test_engine_startup_reports_ticks_and_then_stays_idle",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.startup.manual_startup.ManualStartupTest.test_manual_startup_stays_at_zero_ticks_and_time",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.startup.startup_failures.StartupFailuresTest.test_startup_prerequisites_and_budgets_fail_with_their_own_diagnostics",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.tick.application_clock.ApplicationClockTest.test_application_clock_keeps_its_step_speed_and_pause",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.tick.exact_ticks.ExactTicksTest.test_exact_ticks_advance_fixed_time_only_while_warping",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.tick.set_pace.SetPaceTest.test_request_override_and_runtime_pace_change_preserve_fixed_time",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.tick.stop_warp.StopWarpTest.test_stop_finishes_active_warps_and_freezes_simulation",
+        "status": "Bestanden"
+      },
+      {
+        "id": "tests.tick.warp_errors.WarpErrorsTest.test_invalid_work_preserves_active_warp_and_idle_stop_is_noop",
+        "status": "Bestanden"
+      }
+    ]
+  },
+  "counts": {
+    "app_unit": 21,
+    "harness": 93,
+    "headless": 13,
+    "internal": 14,
+    "native_with_control": 99,
+    "offscreen": 8
+  },
+  "images": {
+    "a.png": {
+      "after_action_ticks": 0,
+      "height": 900,
+      "mode": "RGB",
+      "sha256": "2a2d4f30039ea89ff21cd67749573e1de9dd4b6421969687d12e0f2cf7cca81f",
+      "width": 1440
+    },
+    "map.png": {
+      "after_action_ticks": 2,
+      "height": 900,
+      "mode": "RGB",
+      "sha256": "68d460e0b654412bd0b6446f34deb638dd809df3f1b725bdd31c09706971c35c",
+      "width": 1440
+    },
+    "notes-before.png": {
+      "after_action_ticks": 9,
+      "height": 900,
+      "mode": "RGB",
+      "sha256": "6ed69f13a3d26fb70087a05d1139c2e5d532674872520338690ebc83c2f93648",
+      "width": 1440
+    },
+    "notes.png": {
+      "after_action_ticks": 11,
+      "height": 900,
+      "mode": "RGB",
+      "sha256": "d9740c9b538685a2e172335ff7c1fc9ab7c3c3a00236e163d4eecfbc2bde7082",
+      "width": 1440
+    },
+    "overlay.png": {
+      "after_action_ticks": 12,
+      "height": 900,
+      "mode": "RGB",
+      "sha256": "954445edaabd4e468d62a0297c5e4419f418cbe5465ddb2d9be40be234eea5af",
+      "width": 1440
+    }
+  },
+  "native_qualification": {
+    "actual_dirty": true,
+    "actual_git_revision": "f9a74f6ac86133f53da5db0eda86949bf0f81373",
+    "additional_attempt": {
+      "error": "startup_timeout: GPU assets ready and camera present, window surface unavailable",
+      "note": "Retained failure; not counted as PASS. No unlock, weaker oracle, deadline increase or headless fallback used.",
+      "screen_locked_observed_after_run": true,
+      "status": "Fehlgeschlagen",
+      "summary": "target/test-runs/acceptance-68b8k3gh/summary.json"
+    },
+    "delta_scope": "Only opt-in read-only Real clock observation for the headless basis owner; no native default branch changes.",
+    "later_runtime_delta": {
+      "test_app/src/diagnostics.rs": {
+        "current_sha256": "2965381e052cdcb2854264beaea509376ce7673065cdfbf9b492306f1670dc3b",
+        "qualified_sha256": "742427944b4752150d07c3c31ee4f8b977f5365e1e1f288dfdf6d8d9d1c8cb56"
+      },
+      "test_app/src/diagnostics/clock.rs": {
+        "current_sha256": "e6fe3d610968085d4bb11c3fb694f4fdfae71967c6d54d47ca1b8a164d75cbe3",
+        "qualified_sha256": "c4b4876d7ca5446055504857e08c1da2659856dd289ccf07bb72e24f357776a6"
+      }
+    },
+    "source_tree_equivalent_to": "8e7de92"
+  },
+  "observations": {
+    "device_loss": {
+      "error": {
+        "code": "render_panicked",
+        "message": "called `Result::unwrap()` on an `Err` value: PoisonError { .. }"
+      },
+      "kind": "render_failed"
+    },
+    "glyph_box": [
+      478,
+      527,
+      962,
+      639
+    ],
+    "glyph_changed_pixels": 1163,
+    "map_action_ticks": 3,
+    "native_windows": [],
+    "overlay_action_ticks": 2,
+    "paused_sha256": "2a2d4f30039ea89ff21cd67749573e1de9dd4b6421969687d12e0f2cf7cca81f",
+    "real_clock": {
+      "after_counted_ticks": {
+        "delta": 0.016666667,
+        "elapsed": 0.266666672,
+        "first_update": 0.0,
+        "last_update": 0.266666672
+      },
+      "before": {
+        "delta": 0.016666667,
+        "elapsed": 0.050000001,
+        "first_update": 0.0,
+        "last_update": 0.050000001
+      },
+      "observer": "test_app::diagnostics::clock::RealSnapshot sampled on every extraction, not application ticks",
+      "paused_unchanged": true
+    },
+    "shared_input_processes": 1,
+    "text_action_ticks": 8,
+    "unicode_text": "Grüße 🦉\nCafé – 東京"
+  },
+  "product_baseline_before_l1": "f9a74f6",
+  "profile": {
+    "adapter": "Apple M1 Pro",
+    "asynchronous_pipeline_compilation": true,
+    "backend": "Metal",
+    "bevy": "0.20.0",
+    "camera_msaa": 4,
+    "cargo": "1.99.1",
+    "cli_renderer_window_dependencies": [],
+    "headless_features": [
+      "automation"
+    ],
+    "headless_native_platform_dependencies": [],
+    "height": 900,
+    "os": "macOS 27.2",
+    "pipelined": false,
+    "rust": "1.99.1",
+    "scale_factor": 1.0,
+    "tonemapping": "AcesFitted",
+    "wgpu": "30.0.1",
+    "width": 1440
+  },
+  "programs": {
+    "bin:test_app": {
+      "sha256": "9d580a79c5e9b2fa84c551e0ca437540594dab6fdc9cb4444aab0a8e12649131"
+    },
+    "bin:woodpecker": {
+      "sha256": "c1401d13e26b8aa09d8f333cb59fdd54ee72a3ff2a540cd9655b958dd32afd53"
+    },
+    "native:test_app": {
+      "sha256": "43894ee09c1207cd8ef92328ab975d1bd306266fbc31a46efbd9e67ca8aa7db7"
+    }
+  },
+  "raw_evidence": {
+    "basis_config_smoke": "target/test-runs/headless-basis-0v43ztha",
+    "headless": "target/test-runs/acceptance-ktjrh922/summary.json",
+    "native": "target/test-runs/acceptance-l4_zohzt/summary.json",
+    "note": "Local raw evidence is retained separately; this export records observed results, not a new execution.",
+    "offscreen": "target/headless-l1-proof/product-regressions/runs/l1-final-01"
+  },
+  "recipe_sha256": "304c9a3906328d67a584e39f58ce51b814aef53ed267f5c73a7a52d049f4838c",
+  "recorded_at": "2026-11-05T23:55:26.205063+00:00",
+  "runtime_sources": {
+    "Cargo.lock": "ea3dc5db7ffd62dbed7528a4d29a9edf6ad97987f21996577b353750eb9e3aff",
+    "Cargo.toml": "fbe68db9cbf677fa26f55d83306ea27306871137dc386ea946617c9769286cbf",
+    "crates/cli/Cargo.toml": "d48b2cb9f2c214b137aca36c622e8d660b9a1e5780d2aa191e735a52894cba52",
+    "crates/host/Cargo.toml": "34eef665ec7c1c1425ae8489e5359768758eb7f81ca0d45d63ebd338639cea55",
+    "crates/host/src/lib.rs": "680c79ff0edb709c775fe39496a1389919f8ef94efecf65aabe41c4975b508db",
+    "src/cli/config.rs": "415b4bbfc9dfc978eaf8e44f4afd007d66f28edd0ea7aa45a3da0f90885053a5",
+    "src/cli/main.rs": "8bb17c9973e730f7bb494eaab13153dd8dc9b647f76acbc4b79382af063506f1",
+    "src/cli/mod.rs": "725b6818952819b99c3d4fcdba1dddef345400b69173769ffb2d95706ba24d79",
+    "src/cli/repl/mod.rs": "b087790fb52b87128b593d89a9c3de3bb0b64d0a328f37dcf03b468fa5ed3fe3",
+    "src/cli/repl/network.rs": "6abee26a3004ffb9fcbfb70c623ac3552989e95dd848763258756b01272b9af7",
+    "src/cli/repl/parse.rs": "232ffb135b834368981e4e54c11e1b3459dc1e3e796032b73b11a0fc2259eb49",
+    "src/cli/repl/terminal.rs": "0043c61dd1450b0c012c91a51c473640fc2fbe8d03c386a9e1581a698892c7bf",
+    "src/cli/script/execution.rs": "23aabde173d495f5454c9b052ae03d8989c35f1660941ac775810dc07ce1c4f6",
+    "src/cli/script/launch.rs": "fa6b41161a981d3d14229467a662c5e7d6e048c7e6af7256160617b32c7abcbe",
+    "src/cli/script/mod.rs": "5aed8be7449d1f6340a511bc5140ec576834a81334ffa09a44e0fce955538387",
+    "src/client/access.rs": "3d0f9acacdc3d15cb10b46e73842435f996f1eb8158920177c38a0d78cba3dcf",
+    "src/client/mod.rs": "66f1eda8d8ddb083d4d16736e66e2c66843e4d38354ee2a11b900a2a45760d81",
+    "src/command/input.rs": "340d54436032ff8c6d39373a43003d4df204fe6f162137776ebea304031188f5",
+    "src/command/input/keyboard.rs": "52a8ea59bd74cde6872774d135dd3a54e40c3e03fbdc083d085f0d1aafad203f",
+    "src/command/input/keyboard/mapping.rs": "cf9da6414571a07725fecb9c7c9de8a11dd206e12e98be9386de43183149957e",
+    "src/command/input/pointer.rs": "b9e567d64875dfca7f34f2d2f3658f8ac8240cccdce034d585047f763c3dc37e",
+    "src/command/input/text.rs": "4b849c8e70ffdbd83eb3f78ba086fd0c25c86664d3da17f9ff3560ca3dd688ef",
+    "src/command/inspect.rs": "7ef8a83cddd287673abf447f59d8d86773c7645289f71c3b9a6f4f800836208a",
+    "src/command/inspect/component.rs": "68434d29d9763e2d06c3d866f142f0a0fc3a0531a0590757521dd0a012fdb938",
+    "src/command/inspect/entity.rs": "e6f5b9e153f96158a100e91a266e5666bb4b30419542ea719816e9aec2d7e8cf",
+    "src/command/mod.rs": "3b3901662c18d0055ef9f87c5d9d5aebaaab0230a5064f7302c132d8a94d1df2",
+    "src/command/recording.rs": "86cacce1a47360f4096f875b3b340098cef84485f9f080aa4afbc0b3824525b0",
+    "src/command/replay.rs": "69a2a833e541fac2c2c5c7c7a37b9cd78133ca3ab7fea75d040d284a93df8f77",
+    "src/command/screenshot.rs": "c890d3ee3d071e4cd7b03dbeeb82504ddbef1b4cec4729b2ce290c03a58c8e0c",
+    "src/command/tick.rs": "f85bee444b1a42d25701cdbd719a759482c3c2da91645698d6d62b42ba3d3228",
+    "src/handle.rs": "f80f35a08d23815063cd37d25589ff7d8f7ffbfb056e9b5780e24a5fa08bbf04",
+    "src/handle/value.rs": "1684bf28199cd7630c0e120a2a8aa2ed2eae2ecc1c4153258663fc8a5335a772",
+    "src/lib.rs": "e8d1c073752f524ad543170ae1a2e47b5dad64e46e1f7058640308558077da9a",
+    "src/report/capture.rs": "750991b8dc60a630885c11b200d516d20e6841e823ba47ddfc5af9efaed78a71",
+    "src/report/failure.rs": "5108f5522b0bfe1eb916fba7753498dd2448866c98704676aaf92e2b1257aaae",
+    "src/report/markdown.rs": "e44aaf149f76375f2c269f535a72d0e72a99ce76b213e6c33c5e7c98864b890d",
+    "src/report/marker.rs": "439a2ad16361e391fd06d6093f6993133b6873b1c7efd40888b96df5cd1f32fc",
+    "src/report/mod.rs": "a05501012137ad45559287fb57515ab13bfb88afa88495a0a4897f2034f6a3b6",
+    "src/report/normalize.rs": "aae81f29478b5bf7b1bc94212061332118b7a8dc14f4b49fa2d3679e3398eb51",
+    "src/report/observer.rs": "cc38c999ebd65f53f534d82e3121abdafe2cb0dae167070131d87c18677c554e",
+    "src/report/panic_adapter.rs": "f462e5be067fa897e721251f26447ba97c38939c0f3b6454bb57a95855e4893b",
+    "src/report/provider/github.rs": "464e0b39f670befcbaa5684d5595b62dff0627e12759ebdc3203d23e23a3321c",
+    "src/report/provider/local.rs": "077dce429f194882bcebebf3fed2e694de1eb37bd113823679cc7a1ef4c7b82a",
+    "src/report/provider/mod.rs": "efe090c55bed1016ffbb4e78828880d3fcf6cc3394d1f3d22a65b99d7f612ce3",
+    "src/report/signature.rs": "56d99bc0fcddfec6c6c509037236ceb5690f761318399ee8fa9cbd7964bf10b7",
+    "src/report/snapshot.rs": "bb78529b2bffa67eb93345562d2bc9ac269f49805307aed10566798c7b97c849",
+    "src/report/work.rs": "b4245d9416f19054dc18d1aa9fdd8876f977bc6d9d60a66eb5ebc62352837701",
+    "src/server/activity.rs": "e8982921465e9a20b51bab71d3eabbdef3c5b0f07536705255c5a797d3262768",
+    "src/server/entry.rs": "f25266c6b8833cd9458520288ac54aa316d41d1cd22160116b062241f2cbc304",
+    "src/server/mod.rs": "9d6af6c27981ccbc9c478888c2636a9cf1a65abb6bf637dd492c7fc23c688349",
+    "src/server/protocol.rs": "698beddc2b51ff197b42daeb552a8530a5e1c6d1c82ed1c8883d9158d22dd5bb",
+    "src/server/reports.rs": "e372fd72ae6f545a8a42d4bfb0c656fa51318d3e1c75915fc4759f86c81e15b4",
+    "src/server/tests/test_report_completion.rs": "5ef0198c8ce7da94534e99bcbb78a7150f32b221e0d5ea4addb934fe3fe078f2",
+    "src/server/tests/test_session_identity.rs": "44d5723ecd4e32b61dfc3c323fe4fdf877ca22426eb5fc36c4df6b56207261d4",
+    "src/server/transport.rs": "f64d94d9999efc60aad823c6957b76d53fac215d4afef1a1cdc388ec5bb221fa",
+    "src/session/clock.rs": "29735fe158384341f5b0483190c8a56b376e67be2d3ab3f3d72f17ee0205345c",
+    "src/session/coordinator.rs": "b55370016d6ef07dc42e9f988398b226f52a614df3b19c76cad8df2bb3f02e99",
+    "src/session/coordinator/tests/test_request_id_exhaustion.rs": "a3c203697875f34b0f4595dbd11cf28a0b7f0c4d9b4ec6199f2098c996ec485b",
+    "src/session/error.rs": "b1c9c2729d6b6cc6e458e81132e65361d0a981794f48a8ca293706faa5c4621e",
+    "src/session/headless.rs": "0abc3c2a308f6db57f513d093e97e981717f59233cc786f06565e8dba067f47a",
+    "src/session/headless/tests/test_viewport.rs": "136c8fe719d4d9a3475537854405f5270c9d21d6cd27f1a2d6ee64b57126bd9e",
+    "src/session/history.rs": "21c547ab0240b3be8cb4d6750ad75cff10fb18f8a805133872018731d3571470",
+    "src/session/host.rs": "8c52ee30b985f5a8100d77f24dc9968be5bc8ade6ef7d71b578a2d8ae03b50b6",
+    "src/session/host_facade.rs": "1931a8de561169822b99daf806730474f3d3b03c79c23fb4d0a8dee585804a30",
+    "src/session/input.rs": "c0650771119ead2214a1df92702b6979151d664a58b2c3c84bde9b084dc2079a",
+    "src/session/input/keyboard.rs": "eb6c67c616b33f7cb75e7f04778a2f6c93edcddc0e19fba4f6943904fd8c62d5",
+    "src/session/input/pointer.rs": "8315ea717a9b391a709b439792aff8296f78745c96d5e9537735da3eef9ffc00",
+    "src/session/input/pointer/cursor.rs": "7db785d5e0ca157fdc71125466ded8298689524da644566bc32379655de376e5",
+    "src/session/input/pointer/motion.rs": "0357abf92962c66dd6f4ed736e3fd50e4ba845110dddb8a28faf365f20572d70",
+    "src/session/input/tests/test_native_input.rs": "1fda59aa3043610f2bb07cb3dc45043c1a58d46ced20c07d7f502075eab22208",
+    "src/session/input/text.rs": "69acccec5e74b0d60923623076db689a774c99f8962599c41a64a0c46170fc0c",
+    "src/session/input/text/tests/test_target_binding.rs": "baac773d93d94163692b2ad922e6d03f7a3563de49943843db664725b3090230",
+    "src/session/input/ui.rs": "9956ee0663e66197c0f5e7db8faad05f4a8d94c3291219012422c64767ed4f01",
+    "src/session/inspect.rs": "787379a9802fcb04e89aa878ad08bda2456da614998c4af7d6cd01aee583a6ac",
+    "src/session/inspect/entities.rs": "c31b2ef774036d339425257b0dd3db458d78fbb4afb128d6ffd928eb729e9356",
+    "src/session/inspect/value.rs": "1c0ed6a6dab3cac5a522dc2d0aaf578b4f36fc084e4572beac056f36619d08bc",
+    "src/session/launch.rs": "a1347031e485802684509adf86f353a9de7ea40d131b1d5d81bdfa04abd439d8",
+    "src/session/mod.rs": "9e0559ed2365d7acc4f0aa289f7342844adf2a0b9afe624d73c0b12e176d6c58",
+    "src/session/observation.rs": "f4e3161acaf286cf93482a66cbb8a3aa3b0847b047b569401daea2ff73736fb0",
+    "src/session/offscreen.rs": "db84e33ebbb654f1ac4082211b8d4b1d7edf5b1af2d32edc7638b1ac71dafd97",
+    "src/session/offscreen/tests/test_terminal.rs": "c508395e0bea0a2842c7bc1ff0fd382caf39339195bc856c4e1683ae39bf04d3",
+    "src/session/plugin.rs": "73a7f1b395ecdd342fd0964169bf3bcf657befe2997ea9cda981dac4ee33d6b2",
+    "src/session/plugin/render.rs": "697b533e596e4754e7f01db655face572e98f8a80e309e149fdc57734e62cf50",
+    "src/session/process.rs": "a03e06093bfd63f159309655f0eccc0b1bca2ae68ae18638600157327d06799c",
+    "src/session/protocol.rs": "b0523821e06c05f5af9571436d5f69911d088b4dc6fa83ffa7e2094dc47a943c",
+    "src/session/recording/file.rs": "38334afabaf792df580cfb290d6d5edf861a2bf32a40de021b2d72bc220a1bc2",
+    "src/session/recording/file/tests/test_path_replacement.rs": "ff55ecdbd37933142936375b02e73a6e594197e7fc3a7ba4a2e9152199226a03",
+    "src/session/recording/mod.rs": "8824313faaf9e3b318b5f002dbaa68061319699ad9730ea53b692041424dd804",
+    "src/session/recording/worker.rs": "9122a6d2cd69798fca81b603ed5c6804652f69a5338d1bb846deade86500ccc7",
+    "src/session/replay/loader.rs": "c939753fb6b0c17a40101721f00664f439c797f507e2647534cdbc9c150c32c6",
+    "src/session/replay/mod.rs": "ea56c3bdf0e0f16b25234e2cd000746e8de38b5efb0c32139bd560c1cf2922ab",
+    "src/session/screenshot.rs": "762668cc43b45797ff9288e568215d65b28536b55e10b040e070a31f4132d52d",
+    "src/session/screenshot/capture.rs": "a496f57dd4b4719a10eb24648c5f1cba6cc4811eb09e5b5b3808e91a21fc89b7",
+    "src/session/screenshot/capture/surface.rs": "48586168a9a85251355033b2b449b2a7e958e632e722b5ccc506b9a507f9688f",
+    "src/session/screenshot/capture/tests/test_readback_lifecycle.rs": "50fe07e23515471c971c760f86b1061a8bff13b3dbe4026c8888f048dc5183de",
+    "src/session/screenshot/destination.rs": "18c4a623add58a7893fb74f08eb8b6789618ad703d839512d884f2f81981eafc",
+    "src/session/screenshot/destination/tests/test_path_replacement.rs": "bb70419d65269c98de04a4e53f52cb2af49aac835ed1c8bea0f17dfecbad961c",
+    "src/session/screenshot/destination/tests/test_publication_cut.rs": "39db70845768539fcfc792b6b12129e0083e780c05f069b529a85d9d8a59edaa",
+    "src/session/startup.rs": "798a195b5bc96df13d20ae53087063b682d21a40fd9a69d2b941f56a0aae7c2f",
+    "src/session/startup/config.rs": "4eaa485c88eca2cfb128ddf8f127e7c1d7ddd02b5de6814434c68bfc42b61d41",
+    "src/session/startup/render.rs": "aacdf295ca864498121ba09dbfb0aa893893f9bb00cc3291ef822279480cd8e0",
+    "src/session/tests/test_render_protocol.rs": "a943b7b8facdf937c96975b4a95616c6cfe61b689c1df185796d3a4aab583254",
+    "src/session/tests/test_transition_races.rs": "623c53f459e1b0bbda620a321e5da2a604d9df3fecbe55d3fddca9362df0f28a",
+    "src/session/throughput.rs": "c793573ce1ecd6227758f764849dea3c83a9fb924cc4cc170b80ba2d0b8ece3a",
+    "src/session/throughput/test_asset_messages.rs": "6ed8861b831e7a94d977ab2ea1f33615e365cca91a4078a1c697bf440147fb66",
+    "src/session/window.rs": "b80f049282621a4b5a2b7d023b29af223e6005d6b08eb57656917186b2a5f759",
+    "src/session/workspace.rs": "63ec6bd29c7231046d8c250dbd07c44e80c8e97f88d919c7f85999ee666e7dd7",
+    "src/test_support.rs": "a3eb686551f44b98e27c4e910ea866eef3192db4c8f68112e595ba83fa86776d",
+    "test_app/Cargo.lock": "e7dfa296e2804a616f2c2bd4f6dadf7a0372bd72b545f94a5f5dabcc1471afdc",
+    "test_app/Cargo.toml": "aca720e69ab3ba64bf68da51c919ac853091ccc943299bff2bf692f918dbd370",
+    "test_app/asset/License.txt": "2530a169c73cdbb78d664740faea89109cdd564976be2c6fbdd178bc8c35e8e2",
+    "test_app/asset/blender/create_blaster.py": "fb578255d7d104e6be70d8cc2b5217923ca06e376d92a8ed604cfacbec5b32f5",
+    "test_app/asset/blender/create_station.py": "8182ac26dd6ca0eea02b958b228a5d204c97ef965992d76f1fb90fbd441aad94",
+    "test_app/asset/blender/dummy_base.blend": "c001a99029ac9305dcb4264041333a9b6aac90f8c29859ada37b3f4655d557e4",
+    "test_app/asset/blender/export_blaster.py": "4200f3fc0a0637f948ec145a8efaf4189960c0360885604a755b0d992f3f279a",
+    "test_app/asset/blender/export_level.py": "2632e430e7925d72e2ac2ebc75e91e464dd98010a3515f1aa30e7268c73f8938",
+    "test_app/asset/blender/gltf_export.py": "96f58bd8da1a1cba0aa3eeb88f60c2c8c6aa24ad766df4b4eba51e73c2eea787",
+    "test_app/asset/blender/level_modules.py": "12705f495b0d9f798b818899548e4ef1b92ff88966cb4f2cbb0143e76f3c995e",
+    "test_app/asset/blender/station_kit.blend": "bbd58dee43bb7ab181d1157de62549db0357818aed3f4f1c2d42272b7dbbe8a1",
+    "test_app/asset/blender/training_blaster.blend": "9a17b593f8ce86522c2215e9360e576062077a899ae2aae521f7ac8c53aae8ec",
+    "test_app/asset/fonts/Barlow-Regular.ttf": "95aa02c7c43096e0dd44d787ba6216864a67157e402adab59b35572e0c1577ea",
+    "test_app/asset/fonts/NotoEmoji-Variable.ttf": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+    "test_app/asset/fonts/NotoSansCJKsc-Regular.otf": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+    "test_app/asset/fonts/OFL-NotoEmoji.txt": "500bb1ccf43df7bbb522112f9133a52b16e1c35e809632f5d8609b179152de5b",
+    "test_app/asset/fonts/OFL-NotoSansCJK.txt": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2",
+    "test_app/asset/fonts/OFL.txt": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+    "test_app/asset/meshes/characters/Dummy_Base.bin": "9e7ccba077a5c549ceb7e1e342fbca0431cd1e79b3aa7d90e9d41a3340aa66e4",
+    "test_app/asset/meshes/characters/Dummy_Base.gltf": "9759953f57fd2850b9699635d8c34aab7e21d381330d5d700fd8e962a9b3871f",
+    "test_app/asset/meshes/collectibles/Coin_A.bin": "ec0daba899fb776fd99d11b6bda072e09b578cf895017baabde900cacc965068",
+    "test_app/asset/meshes/collectibles/Coin_A.gltf": "e7fd76871acd5f835490cac97d1765045df47769d7b89f132818d1bea65aed88",
+    "test_app/asset/meshes/environment/courtyard.bin": "34604dd7f761995d944c5ce9403dea5a2c641297e07ccd791984307176cc7211",
+    "test_app/asset/meshes/environment/courtyard.gltf": "f0d16a5ca937cbb81d663ea31ee0bd271a13f7dbc7b3c900b61efdce973366c2",
+    "test_app/asset/meshes/environment/workshop_stair.bin": "0b238ec170a763c093cd0924e70c45658b25a3b4d34c8f42bc72adde06ade9dc",
+    "test_app/asset/meshes/environment/workshop_stair.gltf": "a1354db0d6c777475b89dc279208ff3eb9e3565e40d7336fb4aae68155497719",
+    "test_app/asset/meshes/targets/target.bin": "2066bc2a84fc7a45f322ad20422dc0bca40030981920a838968e25f9f976a8a9",
+    "test_app/asset/meshes/targets/target.gltf": "426e5262d8bacea319d223514e3d98c2c8ca0200c2926cc44b2d3459d45c03d8",
+    "test_app/asset/meshes/targets/target_pieces_A.bin": "78a3f98d502b149d963675bda8daf208345ee88e34682aa7ba1a3553f6ca4f11",
+    "test_app/asset/meshes/targets/target_pieces_A.gltf": "14260a362fb2211fb6b06252982bf2bf11dad788f7ba2c06bfd4d9c09552da2f",
+    "test_app/asset/meshes/targets/target_pieces_B.bin": "50e2ca471d82b67894b49c836bd69d77bb01a0ee893cf80d51dcf695acc557c1",
+    "test_app/asset/meshes/targets/target_pieces_B.gltf": "b657570cdb9ef18caf30f2eb6b8f2c0a898eb627e37d5db02fd824ad7f86004f",
+    "test_app/asset/meshes/targets/target_pieces_C.bin": "b6e8c3d1aaaf91d98bc37071e1af318115fd6f47fdae861a778ce4ddd5d69447",
+    "test_app/asset/meshes/targets/target_pieces_C.gltf": "f3c9eb45a3d15eac3ec4552f1b99e593b3cd8822ba15ac1f1f63b328507452e5",
+    "test_app/asset/meshes/targets/target_pieces_D.bin": "531997877d2fa63a5a9cb3e4640ff3f29b225bdc444d009e6a010b3206cc49f0",
+    "test_app/asset/meshes/targets/target_pieces_D.gltf": "8d219266469f9593e1129e342dd3d6914ae02051cf35823f9982154c94df63bb",
+    "test_app/asset/meshes/targets/target_pieces_E.bin": "b769c493c466a9a730cf71ef2d9cdb67741b25df8cf9e50df0a9e40a9d78f8de",
+    "test_app/asset/meshes/targets/target_pieces_E.gltf": "3fcdf487cd8baf4d3f3cef3161878efe6ee255af86c9cc6969fb26309338b5ab",
+    "test_app/asset/meshes/targets/target_pieces_F.bin": "a44f349f0fc019ee439367dedd02c717517e2c9e0a10e55476767007d99caf9b",
+    "test_app/asset/meshes/targets/target_pieces_F.gltf": "99968121e92d4c89f5c00156bdeb9141eef5d953df310d433bd99750981c6c18",
+    "test_app/asset/meshes/weapons/training_blaster.bin": "67c7fef3102ca59d48e3e7340c95fef026ee559722ac19c49849336d442f207e",
+    "test_app/asset/meshes/weapons/training_blaster.gltf": "5f9f58bc42542a5e6dfbd6faf351160aec0e7b71deacbe928a0d912de328367c",
+    "test_app/asset/textures/prototypebits_texture.png": "dec912e8cc8f8d09c29be48dda0daad90e653939c4e6fc799309ec1ae7a4cbcd",
+    "test_app/asset/ui/blueprint.png": "4d50263143705b6f02d4c6f503663e62a8bc17b190c68258a70459c37de8052e",
+    "test_app/asset/ui/cell.png": "267af2ea52721c6fc6e9fc2b6bb4fa4cfce9d2c5a2471621aee9bd09276ecbbb",
+    "test_app/asset/ui/coin.png": "e478820c9daf783034b8f333b1fc13416911dcdcc1e31802327e7d0a530bb62b",
+    "test_app/asset/ui/part.png": "0c6f902424513bdbed7383715f7f879b9d5130390e2621713d499ba6222bfb8d",
+    "test_app/asset/ui/stations/assembly.png": "b16ce7bd15aff38fe2def563d3777876b1d03416bed3642464b9c66bba45e70d",
+    "test_app/asset/ui/stations/assembly_done.png": "cbf4ef0c8e1f8f2be3eeb2cf1d38846dfe001f108735fda8d5285c20df6c549a",
+    "test_app/asset/ui/stations/assembly_ready.png": "5bd3fb506a1e10b0b582b29fe5e4edee6c2641e8b7c81868e96c273010eb2d06",
+    "test_app/asset/ui/stations/board.png": "371d41988c4e2ea8beb084d2cc7a682bef7a45e87ba90c3ceca4fa501a57bbea",
+    "test_app/asset/ui/stations/board_done.png": "e822ef34887e6e99e47acc4073f89d4090b35e5fb1798c94d5c333116f092e22",
+    "test_app/asset/ui/stations/board_ready.png": "9976d0915bfd65e2fe98c7e498b02781baa7c91242a94794d1fb48aa45d00924",
+    "test_app/asset/ui/stations/cell_archive.png": "ed29b5957955116c0f69eabf74421041980d57a96eb1b52d45e08594443451e8",
+    "test_app/asset/ui/stations/cell_archive_done.png": "f9be77c217bfe8b7adf505cee0b811ff73c7aa9c3241f2d3d8bcf79b6077eaaf",
+    "test_app/asset/ui/stations/cell_archive_ready.png": "cec0c2b2aa1fff93651cf1270ed9cb1a4dc4478b54e24ddebc33435509239801",
+    "test_app/asset/ui/stations/cell_assembly.png": "6ade7e12d9398338a939aa045e61a96e3a7465eb913375ac42ffbd3c5bc983e0",
+    "test_app/asset/ui/stations/cell_assembly_done.png": "79f762a0e5aa1928a9efb7cf580e54e12c7b7bca9ff74685bcea99394e6f2857",
+    "test_app/asset/ui/stations/cell_assembly_ready.png": "88b10cdec5784a9baada23ecfbb02855260b97c0474dc2f77becf36fd077a9fc",
+    "test_app/asset/ui/stations/cell_water.png": "080b5b6fc4aad5f5f143948370389798b028cd4945951a076eb46c294ffbdfd6",
+    "test_app/asset/ui/stations/cell_water_done.png": "f9be77c217bfe8b7adf505cee0b811ff73c7aa9c3241f2d3d8bcf79b6077eaaf",
+    "test_app/asset/ui/stations/cell_water_ready.png": "cec0c2b2aa1fff93651cf1270ed9cb1a4dc4478b54e24ddebc33435509239801",
+    "test_app/asset/ui/stations/checkpoint.png": "11b73830e7d65cb7dff674ce36648dab9e6d8f53ae7da4676c2e8388de32883e",
+    "test_app/asset/ui/stations/checkpoint_done.png": "c9b7f0ed3006bb998fd6ff4ad848cd5d7980393e5351e45991d7c3fea264185a",
+    "test_app/asset/ui/stations/checkpoint_ready.png": "11b73830e7d65cb7dff674ce36648dab9e6d8f53ae7da4676c2e8388de32883e",
+    "test_app/asset/ui/stations/chest.png": "0275305423cd679bf122345cdbd63a7a9675b5c1be73dbaf25eab675450dd61e",
+    "test_app/asset/ui/stations/chest_done.png": "883d94c1b0251738a6919c3afa4a1fde6af8fcf4924bf52cb2c5ec9fcdd03bc3",
+    "test_app/asset/ui/stations/chest_ready.png": "702328e930949e44843777e656dcea25340d140009bb101c3d3a6de3221694ac",
+    "test_app/asset/ui/stations/generator.png": "05e31529ebf1999a8a9f4f00db65163130d77bf161f1482406a7c1eb554f5fec",
+    "test_app/asset/ui/stations/generator_done.png": "d5a5bbe269a5a4258ec21be2a40af080d5ead478d53ff87c678e37455255e45c",
+    "test_app/asset/ui/stations/generator_ready.png": "cfd8222ced6f1d0d4a6b84e2521c3ff0d7d0953979024e758d4721a6f43bece9",
+    "test_app/asset/ui/stations/part.png": "5ee3766f4161c941b728983028f3a50c2aa8e238ad78bc3e409ca067162373fe",
+    "test_app/asset/ui/stations/part_done.png": "ba4ebb8d5a0cab4ebe8650d6b6b4a2f0f2fd15e9561ebacf576a91ac71c7ba1f",
+    "test_app/asset/ui/stations/part_ready.png": "7f28285bb5bc4d6a8506f5b148784366c65bf80a9e91e7dfc7d249cf49cffec4",
+    "test_app/asset/ui/stations/rack.png": "5e4fb2a7bb0f80b1aaffb9d875336589bf46cd8c9b5e226e14d4e3d1702d559f",
+    "test_app/asset/ui/stations/rack_done.png": "a89e03820c8c889dacedad07ae39e5ba10e5164b2a3158834f52c69bbc5ebf9b",
+    "test_app/asset/ui/stations/rack_ready.png": "5e4fb2a7bb0f80b1aaffb9d875336589bf46cd8c9b5e226e14d4e3d1702d559f",
+    "test_app/asset/ui/stations/scanner.png": "0eb471540bdfb84dadfb44ca8c28554f1a2ffe6a14997589046c605486e79b64",
+    "test_app/asset/ui/stations/scanner_done.png": "1123780d19a0797b46c468a08869bc055fb9d168c92fd6854b9fb302bc5d2d4a",
+    "test_app/asset/ui/stations/scanner_ready.png": "0eb471540bdfb84dadfb44ca8c28554f1a2ffe6a14997589046c605486e79b64",
+    "test_app/asset/ui/stations/sender.png": "18d1cec2c67333b2a5b030fc47ffa687754bfe4de66e644ae67ee6d71ae6fe1a",
+    "test_app/asset/ui/stations/sender_done.png": "f2ef2652e1887ed2aa20f1a0a6f03c21d1cb2591919acf0960e98e2d2e3a80df",
+    "test_app/asset/ui/stations/sender_ready.png": "8c232396144aed0ca5dfb7d6a20fe5fbcf0691684a09b77b26079dae963ad011",
+    "test_app/asset/ui/stations/valve.png": "7f40912c3998320a5569bf5da915a035702bbf0a8f770649d0bff2da21c0558e",
+    "test_app/asset/ui/stations/valve_done.png": "7e7995e09ad234809a45a80e09bb10080459244938f90775e062e07ff21b0cb8",
+    "test_app/asset/ui/stations/valve_ready.png": "7f40912c3998320a5569bf5da915a035702bbf0a8f770649d0bff2da21c0558e",
+    "test_app/src/app/flow.rs": "5a6a3e788ad51cea355dcbce4b6f7c38c95aa6108d17d3fcbf10f6ea893c5331",
+    "test_app/src/app/headless.rs": "f633b37ee6306db39a660771d2165e045d1e33af6f120414449b40e8d5c05a3f",
+    "test_app/src/app/launch.rs": "69b696e775dc8c7e8887162dad2ca9a0803dcc56f2eecad73a74bf63f634e287",
+    "test_app/src/app/mod.rs": "34cddc1cba3b96a16d0b8293ab1a39326b29a2ca1db4ba3cbdbbcafba6ecaca6",
+    "test_app/src/app/schedule.rs": "a896cee775e2ad27c51f5c24fb0c85fc1e786a2e13297f41fd07061718238643",
+    "test_app/src/app/settings/mod.rs": "186724b350f415cd77f77a0192b8c6ff96bbcbb92cb4d1b1ebbb7bc0f57b8f6d",
+    "test_app/src/app/settings/storage.rs": "4d45b593ffdf9cd91eff03e65972ac8c381684205f2c1785b323d8918972096c",
+    "test_app/src/app/settings/values.rs": "e6fd5e4cd937a4414cebe699c0b62bbe043e153b2d5b10d64e209cd11b8c6824",
+    "test_app/src/diagnostics.rs": "2965381e052cdcb2854264beaea509376ce7673065cdfbf9b492306f1670dc3b",
+    "test_app/src/diagnostics/clock.rs": "e6fe3d610968085d4bb11c3fb694f4fdfae71967c6d54d47ca1b8a164d75cbe3",
+    "test_app/src/diagnostics/fixture.rs": "d678027ef07f2129d5ef01f15594c3d87915e77a77ab6b9e719e846de7926e3f",
+    "test_app/src/diagnostics/reflection.rs": "0228e46cdbfabb09f1c20dc7abc4376020f15a17476b96bbf0b0ab1e5d776472",
+    "test_app/src/diagnostics/reports.rs": "0f67aef6533fded789970c89722250f8cd1fc7ded351f2ced21f0cb941746017",
+    "test_app/src/diagnostics/startup.rs": "6840f568231f833fe98522960ab8498a9702470326b7904edfb07935e83c37ea",
+    "test_app/src/input/devices.rs": "7aefa7dc5e80a20e1852de6a742f542fd47f6fbc05685f69e8752045d5586598",
+    "test_app/src/input/intents.rs": "986627b1833ed878aaf855f46755f95515ee633cd9eafbba2b1499e220709776",
+    "test_app/src/input/mod.rs": "d19ef4d2279429d55c7638884b91234b84bb33d1d000106b67210096aba017b1",
+    "test_app/src/input/policy.rs": "c0dc59376cbd45dab4aa5daa9d8491622db246878a1572f8f20b6e212c1449e9",
+    "test_app/src/level/actions.rs": "fe90b0a151168f3528c4eafe438066cf4d8dae24eb97a0fcd95dd0459b4f9886",
+    "test_app/src/level/definition.rs": "1dcd751cd689a08b5edf17b52ea8e193bfeacb830c0e4ea055e55730e2b5827f",
+    "test_app/src/level/environment.rs": "b2d417c4fd2913ecf9f9f50aa398eb2205f8b9ad76b8b2d996326e7222a70dfa",
+    "test_app/src/level/import.rs": "dc35e9d5a46fe8ff10c10fa7611bdb8879b74cbd5f0c7cc54109a87ec52f69cd",
+    "test_app/src/level/interactions.rs": "ce363dbeb671e3dba13b0d899387f77ad299092e91314608b860e700f447bc31",
+    "test_app/src/level/layout_tests.rs": "981b1325c26fa57bf39dd1a9bd3d569cb6c8ba60bb8f356166a54f61af206a9b",
+    "test_app/src/level/mission/ids.rs": "ed81ab76416107798af2cb6d26be38ade98399052124e2f924a280859b0afcd0",
+    "test_app/src/level/mission/inventory.rs": "29908067c678c9d6caaa04f5e406cba5ccf7dde2a70230b87edd94b044dd948e",
+    "test_app/src/level/mission/mod.rs": "ce46148f6b451de89784ac528f7d7ca03bfb10b52c9a090c3382695993c6bc65",
+    "test_app/src/level/mission/objectives.rs": "2d51a79c7c3d9eeae5b240dd185e89716da85228ebbe16e1ade7be64db711991",
+    "test_app/src/level/mod.rs": "e95960f8734529f61f8f2113702cd42086c4bb98ac103980e841028b4e3c319d",
+    "test_app/src/level/navigation.rs": "e545be9b1933191c62bdb63b81336735ed5a53b9d1416cbb16ec09a46b0a3014",
+    "test_app/src/level/objects/board.rs": "76b290c2c7222d2af554287e09296875b79844595a592d1c428bd918b682b3f2",
+    "test_app/src/level/objects/checkpoint.rs": "3a5466693f0134549a1941cdf62792e1a23bba49dc404652bbcbeac48dc92353",
+    "test_app/src/level/objects/chest.rs": "25f8def62701d4911ef1b0e97470423055b71d74fa4f201161f50f9e03b062f1",
+    "test_app/src/level/objects/definitions.rs": "18955aa419aad67cdcf52c1cd6dc60c7d7f4bd63e796895c488ce549995a96ce",
+    "test_app/src/level/objects/generator.rs": "fecfe831d38c1943f2567982c812923bc778103685a5efe6dcbf106a7a0fa203",
+    "test_app/src/level/objects/mod.rs": "2b52e9f725637c4366f22414f83a71781ec687ba871eede72549fce3a9af8ee7",
+    "test_app/src/level/objects/model_parts.rs": "c2ef58c303f5661e4ce0e1815a40ee723059500b041cb4eaebe3c4ddd775dd6d",
+    "test_app/src/level/objects/pickups/coins.rs": "60d9bcfb9dc3a18dda471e2dc6e32776cf8ef53d5a70e26a66e41286c3d7315d",
+    "test_app/src/level/objects/pickups/mod.rs": "75461c37eb2b3280260a7be598af95b0018ab76f2cf787609b5798747cb41856",
+    "test_app/src/level/objects/pickups/models.rs": "df5c9027f61f552c9fb1c7b6d5c42f9f86fccc9d2a03c0d1eff17538d8cbeb3d",
+    "test_app/src/level/objects/scanner.rs": "c8af788a464cc7fc663f6d2102473e3278b5efed8d7cff6f4e884a3163bff059",
+    "test_app/src/level/objects/shooting_range/mod.rs": "05af5c353cfd9ef0c95f9d1f58dab39212d1d8407a3579bf2821cfa408c63d98",
+    "test_app/src/level/objects/shooting_range/scoring.rs": "950daaff196989840b61970922f922d73476fd613e41e867a1942147890187b1",
+    "test_app/src/level/objects/shooting_range/targets.rs": "eacdba0021608f63b589be6579b6c4af97b9b4552a10b9da6c9fabc7a8fb5833",
+    "test_app/src/level/objects/shooting_range/visuals.rs": "f87e4cc99be665d8c90a6ce995584084e496f56962a041bca3ef71cd069cda67",
+    "test_app/src/level/objects/storage_rack.rs": "36fa3b509e6bf597e3a7309f38d4031b81117442a9b6f0879144beb7e8681c05",
+    "test_app/src/level/objects/transmitter.rs": "3bf3251b84ee94321955ad3e7ccae13be6bdf13fb587eaf53fb0d7af55cf4e06",
+    "test_app/src/level/objects/valve.rs": "96a8a4b0d2f86a899cfcda82070625a5f7a9e454e96fc9098167a378387dfe60",
+    "test_app/src/level/objects/workbench.rs": "28d37193cf9145840d6c0c82605666304f758fb4a35e414fe2ace097a111cef8",
+    "test_app/src/level/passage_tests.rs": "59d4c39db05fe3a8450656c59fa275539d5f19aafc8c28e8f8ad91de63616cfc",
+    "test_app/src/level/passages.rs": "fae65307cacc528711517958f3074ce071fb123be5686de7e69aa71f5f10eaf2",
+    "test_app/src/level/placement_tests.rs": "55f1b75425a0b17bc108edc159da920cdcfb7fd22657afd2e409cb12ab196f2d",
+    "test_app/src/level/scene.rs": "a80724a317f1df19c11b3ff4c0087256c521794a6152fcfe3e22158a2f25d03c",
+    "test_app/src/lib.rs": "4516511ded7d5c1a035c9ac20b3637c320dd3ec56bac0c58703330520a5b8063",
+    "test_app/src/main.rs": "169873d0073d55c26a5f7ba9b156d0c7f7b647290fb1b2096ba5a4165251742d",
+    "test_app/src/performance.rs": "4c77fe7c03adbd8c586bff3511df9468db65412714ea3a8c9c32cacf986f98ce",
+    "test_app/src/performance/overlay.rs": "51f3858bafa08fbb36d2ca15cd98baa1d084bc2388dc776d8ef96a7cee72ff92",
+    "test_app/src/player/actions.rs": "d8b0e645173afb80dfc1aa741d698837d9fb7cba96bfa443ac9c249bddf424d8",
+    "test_app/src/player/blaster.rs": "e763dea9a47b748cf00748aa613b21a395298fb8fa4d26bfbe36ba91a5a1c255",
+    "test_app/src/player/camera.rs": "50e840cb80eeb070a77b212d4daf71f5852e21c196334309679601b67800486e",
+    "test_app/src/player/camera/tests.rs": "ef95f90442b8b38faf497f4b07afd4862f10deeb8093be51602160ac8243978c",
+    "test_app/src/player/mod.rs": "853c6c3283dc0d7c3517376e9baefc068dd005221d00ed1c55ff1890df0b2b85",
+    "test_app/src/player/model.rs": "3e085cdf4a8b6b81601289e0e5bbd1bc4234bc4e156b5c5e7c983d309e37320e",
+    "test_app/src/player/movement.rs": "dd8586485ae4fda151fd20a25cb8c7053557112fcc1db20be63dc30a2d7c0738",
+    "test_app/src/ui/fonts.rs": "aaaeaa47fb2b8fef19c9272feb0b15f3be3e20341046cf95be051334844570ed",
+    "test_app/src/ui/hud.rs": "6ade8eec95f1b8c5209e14f624fae0a3e7dd7c3aa4d8fcccafad5974eb1ef833",
+    "test_app/src/ui/messages.rs": "b55df9e655407b3d19db9905f390b4522d210b1a06a91e67efdda83979a02de0",
+    "test_app/src/ui/mod.rs": "6feea311cfcfb7d29dc3e93cef3ccb9718b7a7da2a07f9e115fadfa3d0b1a299",
+    "test_app/src/ui/settings_menu.rs": "fcd924151b67830d77876ba8a083edc3546b6f87c34734b8cd20e04b6dc6d2a1",
+    "test_app/src/ui/theme.rs": "8c6ed1e2ddeeb14e7956d43aae907c4b6571ef422e7625688b99ea003236edd6",
+    "test_app/src/ui/widgets.rs": "b0230fc7c9a3a00786ab405d4a7cea50f244765f9cd46cb9f6abafa3f2832791",
+    "test_app/src/woodpecker.rs": "59e2f8ebbc3bcbaa0113257983441253c508accaca412522de86b70beacd78e9"
+  },
+  "schema": 1,
+  "scope": "Signalstation L1 on Apple M1 Pro/Metal; not L2-L5 or general platform/effects support"
+}

@@ -57,6 +57,10 @@ impl Observation {
         self.wire_ready.is_some()
     }
 
+    pub fn offscreen(&self) -> bool {
+        self.wire_ready.as_ref().is_some_and(|capabilities| capabilities.offscreen)
+    }
+
     pub fn initialized(&self) -> bool {
         self.initialized
     }

@@ -19,6 +19,7 @@ debug = "line-tables-only"
 default = []
 ui = ["bevy/bevy_ui", "bevy/bevy_input_focus"]
 screenshot = ["bevy/bevy_render", "dep:image"]
+offscreen = ["screenshot", "dep:wgpu"]
 server = ["dep:axum", "dep:tokio", "dep:getrandom"]
 client = ["server", "dep:ureq", "dep:tungstenite"]
 cli = ["client", "dep:clap", "dep:toml", "dep:crossterm", "dep:unicode-width"]
@@ -32,6 +33,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["r
 cap-std = "3"
 cap-fs-ext = "3"
 image = { version = "0.25", default-features = false, features = ["png"], optional = true }
+wgpu = { version = "=30.0.1", default-features = false, features = ["metal"], optional = true }
 axum = { version = "0.8", features = ["ws"], optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros", "signal"], optional = true }
 getrandom = { version = "0.4", optional = true }

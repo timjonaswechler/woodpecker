@@ -1,0 +1,17 @@
+{
+  "contract": "finite frame + no observed fatal at final owner check; not future device health",
+  "format": "Rgba8UnormSrgb -> RGBA8 PNG",
+  "frame": 3,
+  "generation": 1,
+  "height": 49,
+  "map_result": "Ok",
+  "pixels_sha256": "08cb50f6247d17a2ea27cf6520e0794db0d55180a1ce310eab3a44184efccb82",
+  "png_sha256": "8129fea82243bbecfd24a06047c42e82a73b98c28dc391329e27f010dbd4f4ee",
+  "request": 800,
+  "state": 1,
+  "stride": 512,
+  "submission": "SubmissionIndex { index: 12 }",
+  "target": "AssetId<bevy_image::image::Image>{ index: 1, generation: 0}",
+  "tick": 1,
+  "width": 65
+}

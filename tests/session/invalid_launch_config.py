@@ -23,5 +23,24 @@ class InvalidLaunchConfigTest(unittest.TestCase):
             self.assertIn("invalid_config", json.loads(result.stderr)["error"])
             self.assertEqual(server.cli("session", "ls"), [])
 
+        sentinel = server.artifacts / "never-window"
+        sentinel.write_text("#!/bin/sh\nexit 86\n")
+        sentinel.chmod(0o700)
+        for index, geometry in enumerate((
+            {"width": 0, "height": 900, "scale_factor": 1.0},
+            {"width": 1440, "height": 0, "scale_factor": 1.0},
+            {"width": 8193, "height": 900, "scale_factor": 1.0},
+            {"width": 1440, "height": 900, "scale_factor": 0.0},
+            {"width": 1440, "height": 900, "scale_factor": 9.0},
+        )):
+            configuration = load_config()
+            configuration["launch"].update(headless=geometry, no_default_features=True, executable=str(sentinel))
+            config = server.artifacts / f"invalid-headless-{index}.toml"
+            write_app_config(config, configuration)
+            result = server.run_cli("session", "create", "--config", str(config))
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertEqual(result.stdout, "")
+            self.assertIn("invalid_config", json.loads(result.stderr)["error"])
+            self.assertEqual(server.cli("session", "ls"), [])
         self.assertEqual(server.cli("server", "stop")["state"], "Stopping")
         self.assertEqual(server.process.wait(timeout=5), 0)

@@ -5,15 +5,18 @@ from pathlib import Path
 import select
 import sys
 
-def main(root):
+def main(root, offscreen=False):
     (root / "peer.json").write_text(json.dumps({"pid": os.getpid(), "group": os.getpgrp()}) + "\n")
 
     def completed(request, output):
         print(json.dumps({"status": "completed", "request_id": request["request_id"],
                           "command": request["command"], "output": output}), flush=True)
 
+    capabilities = {"screenshot": offscreen, "fixed_clock": True}
+    if offscreen:
+        capabilities["offscreen"] = True
     print(json.dumps({"status": "ready", "version": 3,
-                      "capabilities": {"screenshot": False, "fixed_clock": True}}), flush=True)
+                      "capabilities": capabilities}), flush=True)
     pending = None
     buffer = b""
     while True:
@@ -38,6 +41,10 @@ def main(root):
                 # Diagnostic pipe fence: no SUT command/response or game behavior.
                 (root / request["label"]).write_text("all earlier pipe lines observed\n")
                 continue
+            if command == "test.render_failed":
+                assert offscreen
+                print(json.dumps({"status": "render_failed", "error": {"code": "render_device_lost", "message": "owned literal peer fault"}}), flush=True)
+                continue
             if command == "shutdown":
                 assert pending is None
                 completed(request, None)
@@ -60,4 +67,4 @@ def main(root):
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]))
+    main(Path(sys.argv[1]), "--offscreen" in sys.argv[2:])

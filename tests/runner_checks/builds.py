@@ -52,8 +52,8 @@ class BuildSelectionTest(unittest.TestCase):
     def test_explicit_feature_matrix_preserves_checks_and_app_order(self):
         commands = _builds.commands([python_row("tests.pointer.ui_click")], feature_matrix=True)
         names = [name for name, _ in commands]
-        self.assertEqual(names[:7], ["library-" + name for name in (
-            "default", "ui", "screenshot", "ui,screenshot", "server", "client", "cli")])
+        self.assertEqual(names[:8], ["library-" + name for name in (
+            "default", "ui", "screenshot", "ui,screenshot", "offscreen", "server", "client", "cli")])
         self.assertLess(names.index("app-normal"), names.index("app-automation"))
         self.assertNotIn("rust-tests", names)
         self.assertNotIn("github-live-driver", names)
@@ -65,8 +65,8 @@ class BuildSelectionTest(unittest.TestCase):
     def test_product_inventory_excludes_runner_self_checks(self):
         rows, _, targets, errors = acceptance.inventory()
         self.assertEqual(errors, [])
-        self.assertEqual(len(rows), 96)
-        self.assertEqual(sum(row["kind"] == "python" for row in rows.values()), 75)
+        self.assertEqual(len(rows), 103)
+        self.assertEqual(sum(row["kind"] == "python" for row in rows.values()), 78)
         self.assertEqual(len(targets), 10)
         self.assertFalse(any(row.get("module", "").startswith("tests.runner_checks.") for row in rows.values()))
 
@@ -91,7 +91,7 @@ class BuildSelectionTest(unittest.TestCase):
                 if expected is not None:
                     self.assertEqual(names, expected)
                 if not flags:
-                    self.assertEqual(len(names), 12)
+                    self.assertEqual(len(names), 13)
                     self.assertNotIn("github-live-driver", names)
                 run.assert_not_called()
                 logged.assert_not_called()
@@ -207,7 +207,10 @@ class BuildSelectionTest(unittest.TestCase):
             self.assertFalse(any("--list" in call.args[0] for call in run.call_args_list))
 
     def test_ci_shell_requires_passing_subset_and_expected_exit(self):
-        workflow = (ROOT / ".github/workflows/contracts.yml").read_text()
+        path = ROOT / ".github/workflows/contracts.yml"
+        if not path.exists():
+            path = ROOT / ".github/disabled-workflows/contracts.yml"
+        workflow = path.read_text()
         block = workflow.split("      - name: Common acceptance entry (no games or real GitHub)\n", 1)[1]
         script_lines = block.split("        run: |\n", 1)[1].splitlines()
         script = []

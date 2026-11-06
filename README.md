@@ -25,6 +25,7 @@ text widget also needs the application's `bevy_ui_widgets` feature and `TextInpu
 
 - **[User guide: learn integration on the real Signalstation game](docs/user-guide.md)**
 - [Target contract](docs/api/target.md)
+- [Headless implementation status and remaining work](docs/headless-plan/STATUS.md)
 - [CLI usage](docs/api/usage.md)
 - [Historical implementation notes](docs/api/implementation-plan.md)
 - [Historical handoff snapshots](docs/api/next-steps.md)
@@ -73,14 +74,27 @@ see [Warp throughput and performance diagnostics](docs/performance.md).
 | --- | --- |
 | `ui` | Virtual legacy UI interaction and focused text input |
 | `screenshot` | GPU readback and sandboxed PNG output in rendered applications |
+| `offscreen` | Image capture and logical headless viewport; qualified Signalstation/Metal profile; includes `screenshot` |
 | `server` | Local session management and HTTP/WebSocket serving |
 | `client` | Network management and fixed-session access |
 | `cli` | The `woodpecker` executable |
 
+The opt-in [`session::OffscreenTarget` adapter](docs/headless-plan/SLICE.md) selects
+an application-owned image instead of the primary window. It preserves RGB PNGs,
+path isolation and explicit ticks. The additional [Signalstation L1 integration](docs/headless-plan/L1.md)
+connects launch configuration, image readiness, real assets, keyboard/pointer/text,
+UI and shutdown without a native window. Use the [headless launch guide](docs/api/usage.md#signalstation-headless-auf-metal);
+this is a qualified Metal profile, not general platform or effects support.
+
 ## Tests
 
 The [acceptance guide](tests/README.md) is the executable entry point. There are
-95 product tests: 94 local cases and one separately authorized real GitHub case.
+102 product tests: 101 local cases (including three explicit headless owners) and
+one separately authorized real GitHub case. The native local run selects 98
+product cases plus its deliberate negative control; the headless L1 run selects
+13 cases separately, including the ten unchanged original input owners.
+The separate [eight-case offscreen SDK proof](tests/fixtures/offscreen/README.md)
+requires explicit local GPU permission and is not an automatic acceptance/CI run.
 The common local run also checks the existing deliberate negative control and
 the feature/build matrix. Harness checks are separate, not extra product cases.
 
@@ -89,12 +103,12 @@ python3 -m tests.acceptance --list             # plan only; no builds or process
 python3 -m tests.acceptance --non-graphical    # passing subset still exits 2
 ```
 
-The latest complete local run and separate real GitHub verification passed.
-The [test plan](docs/testing-plan.md#full-stop-abnahme-und-offene-checkpoints)
-records their exact source state, evidence and remaining work; this is not a
-claim that every future run or all possible application behavior is verified.
-Rendered runs require explicit scoped permission, an awake desktop and visible
-windows. No headless replacement or automatic retry is used. The
+The native feature baseline and scoped headless L1 run passed; external GitHub
+verification was not rerun. [L1 evidence](tests/headless/evidence/README.md) and the
+[status plan](docs/headless-plan/STATUS.md) record scope and remaining work.
+Rendered runs require explicit scoped permission. Native runs need an awake
+desktop and visible windows; headless runs still use a real GPU but no native
+window. No silent headless replacement or automatic retry is used. The
 [game-control examples](examples/README.md) start with REPL, CLI and fixed scripts,
 then add Python feedback, agent handoff and replay. Advanced recipes cover
 movement and Unicode text checks; all examples are separate from acceptance. The bounded

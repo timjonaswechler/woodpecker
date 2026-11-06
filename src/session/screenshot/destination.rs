@@ -9,6 +9,9 @@ use std::{
 #[cfg(all(test, unix))]
 #[path = "destination/tests/test_path_replacement.rs"]
 mod test_path_replacement;
+#[cfg(test)]
+#[path = "destination/tests/test_publication_cut.rs"]
+mod test_publication_cut;
 
 static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
 
@@ -53,6 +56,15 @@ pub(super) fn prepare(root: &Dir, path: &str) -> Result<bool, Diagnostic> {
 }
 
 pub(super) fn write(root: &Dir, path: &str, png: &[u8]) -> Result<bool, Diagnostic> {
+    write_checked(root, path, png, || Ok(()))
+}
+
+pub(super) fn write_checked(
+    root: &Dir,
+    path: &str,
+    png: &[u8],
+    check: impl FnOnce() -> Result<(), Diagnostic>,
+) -> Result<bool, Diagnostic> {
     let overwritten = prepare(root, path)?;
     let path = Path::new(path);
     let parent = path
@@ -76,6 +88,9 @@ pub(super) fn write(root: &Dir, path: &str, png: &[u8]) -> Result<bool, Diagnost
     let result = (|| {
         file.write_all(png).map_err(failed)?;
         file.sync_all().map_err(failed)?;
+        // Last owner check: immutable CPU pixels, deadline and observed terminal/fatal.
+        // A later, unobserved backend event is not an atomic GPU-health promise.
+        check()?;
         directory
             .rename(&temporary, &directory, name)
             .map_err(failed)?;

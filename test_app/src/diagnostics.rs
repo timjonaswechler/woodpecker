@@ -13,6 +13,19 @@ pub(crate) fn install(app: &mut App) {
     {
         return;
     }
+    if std::env::args().any(|argument| argument == "--woodpecker-clock-snapshot") {
+        clock::install_snapshot(app);
+    }
+    if std::env::args().any(|argument| argument == "--woodpecker-render-loss") {
+        app.add_systems(
+            Update,
+            lose_device.in_set(crate::app::schedule::Phase::WorldActions),
+        );
+    }
+    if std::env::args().any(|argument| argument == "--woodpecker-legacy-ui") {
+        app.register_type::<bevy::ui::DeprecatedInteraction>()
+            .add_systems(PostStartup, legacy_ui);
+    }
     if std::env::args().any(|argument| argument == "--woodpecker-test-fixture") {
         fixture::install(app);
     }
@@ -32,6 +45,24 @@ pub(crate) fn install(app: &mut App) {
         Update,
         trigger.in_set(crate::app::schedule::Phase::WorldActions),
     );
+}
+
+// Observe the existing laid-out buttons through both supported UI contracts.
+// No synthetic UI, input, ticks or additional application actions are introduced.
+fn legacy_ui(mut commands: Commands, buttons: Query<Entity, With<bevy::ui_widgets::Button>>) {
+    for entity in &buttons {
+        commands
+            .entity(entity)
+            .insert(bevy::ui::DeprecatedInteraction::None);
+    }
+}
+
+// Deliberately destroys only this test-owned logical device, never the adapter,
+// driver, OS display, another application or a hardware device.
+fn lose_device(keys: Res<ButtonInput<KeyCode>>, device: Res<bevy::render::renderer::RenderDevice>) {
+    if keys.just_pressed(KeyCode::F10) {
+        device.wgpu_device().destroy();
+    }
 }
 
 fn trigger(keys: Res<ButtonInput<KeyCode>>) {

@@ -128,11 +128,11 @@ pub(super) fn after_tick(world: &mut World, ticks: u64) -> Option<Message> {
                 // One further ordinary update lets the game's own load transition and
                 // deferred scene construction run after the first ready observation.
                 if state.stable.as_ref() == Some(&ids) {
-                    if let Some((window, _)) = super::window::primary(world) {
-                        state.frame = Some(render::Ticket::new(world, window));
-                        state.waiting = "prepared pipelines and a completed window frame".into();
+                    if let Some(target) = super::window::target(world) {
+                        state.frame = Some(render::Ticket::new(world, target));
+                        state.waiting = "prepared pipelines and a completed target frame".into();
                     } else {
-                        state.waiting = "one primary window".into();
+                        state.waiting = "one primary render target".into();
                     }
                 }
                 state.stable = Some(ids);
