@@ -19,10 +19,11 @@ Die Capturebasis `5493eb1` ist um [L1](L1.md) auf
 [PR #23](https://github.com/timjonaswechler/woodpecker/pull/23) erweitert: echte
 Signalstation mit Image-EngineReady, Keyboard/Pointer/Text/UI und Capture auf
 Metal lokal nachgewiesen. Alle zehn ursprünglichen Inputowner und die vollständige
-native lokale Regression bestehen. Native bleibt Standard. Unabhängiger
-Abschlussreview und finaler PR-Preflight stehen noch aus; L2–L5 bleiben offen.
+native lokale Qualifikationsbasis bestehen; Belegstand und gesperrter späterer
+Native-Nachlauf sind in L1 getrennt dokumentiert. Native bleibt Standard. L1 ist
+nach zwei unabhängigen APPROVE-Reviews abgeschlossen; L2–L5 bleiben unbegonnen.
 
-Das einzige aktive Lieferpaket L1 ist der **Signalstation-Basisbetrieb auf
+Das abgeschlossene Lieferpaket L1 ist der **Signalstation-Basisbetrieb auf
 Metal**: Start/Assets/Image-Ready, Capture, der vereinbarte vollständige
 Keyboard-/Pointer-/Text-/UIumfang und sauberer Einzel-Session-Abschluss. Alle zehn
 ursprünglichen Inputowner gehören zur Headless-Abnahme dieses Pakets.
@@ -31,7 +32,7 @@ Der Ablauf **Start → Ready → realer UI-Klick → Zustand und PNG → Shutdow
 ein früher Integrationscheck, aber kein Paketabschluss. Notwendige Fehlerpfade,
 Regressionen, Anleitung und Cleanup werden nicht auf später verschoben. Erst
 wenn die [L1-Abschlusskriterien](STATUS.md#abschlusskriterien-von-l1--alle-erforderlich)
-erfüllt sind, beginnt L2. „Teilweise“ bleibt lediglich der ehrliche Status des
+erfüllt sind, darf L2 mit eigenem Auftrag beginnen; es wurde nicht automatisch gestartet. „Teilweise“ bleibt lediglich der ehrliche Status des
 historischen Bestands, kein künftiger Liefermodus. Kein Scope-Verkleinern oder
 Testlockern zum Grünmachen und keine erneute Render-Machbarkeitsrunde.
 
